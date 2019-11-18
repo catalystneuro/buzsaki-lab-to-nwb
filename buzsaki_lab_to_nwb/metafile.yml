@@ -1,0 +1,20 @@
+NWBFile:
+  data_collection: ''
+  experiment_description: ADDME
+  experimenter: Experimenter
+  identifier: ABC123
+  institution: University
+  keywords:
+  - ''
+  lab: Buzsaki lab
+  notes: ''
+  pharmacology: ''
+  protocol: ''
+  related_publications: ''
+  session_description: session_description
+  session_id: ''
+  session_start_time: 2018-08-09 10:00:00
+  slices: ''
+  stimulus_notes: ''
+  surgery: ''
+  virus: ''
