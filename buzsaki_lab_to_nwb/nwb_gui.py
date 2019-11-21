@@ -8,11 +8,15 @@ metafile = 'metafile.yml'
 conversion_module = 'conversion_module.py'
 
 source_paths = {}
-source_paths['processed data'] = {'type': 'file', 'path': ''}
-source_paths['sparse matrix'] = {'type': 'file', 'path': ''}
-source_paths['ref image'] = {'type': 'file', 'path': ''}
+source_paths['data_1'] = {'type': 'file', 'path': ''}
+source_paths['data_2'] = {'type': 'file', 'path': ''}
 
-kwargs_fields = {}
+# Other options
+kwargs = {'option_1': True, 'option_2': False}
 
-nwbn_conversion_gui(metafile=metafile, conversion_module=conversion_module,
-                    source_paths=source_paths, kwargs_fields=kwargs_fields)
+nwbn_conversion_gui(
+    metafile=metafile,
+    conversion_module=conversion_module,
+    source_paths=source_paths,
+    kwargs_fields=kwargs,
+)
