@@ -312,6 +312,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
                         data=H5DataIO(pos_data_norm, compression='gzip'),
                         reference_frame='unknown', conversion=conversion,
                         resolution=np.nan,
+                        conversion=np.nan,
                         timestamps=H5DataIO(tt, compression='gzip'))
                     pos_obj.add_spatial_series(spatial_series_object)
 
