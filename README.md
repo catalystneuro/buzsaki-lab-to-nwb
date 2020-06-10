@@ -4,7 +4,7 @@ A collaboration with [Buzsáki Lab](https://buzsakilab.com/wp/).
 
 # Install
 ```
-$ pip install git+https://github.com/ben-dichter-consulting/buzsaki-lab-to-nwb
+$ pip install git+https://github.com/catalystneuro/buzsaki-lab-to-nwb
 ```
 
 # Use
