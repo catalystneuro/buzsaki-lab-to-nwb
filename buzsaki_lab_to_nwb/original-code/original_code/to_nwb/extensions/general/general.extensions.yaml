@@ -1,0 +1,44 @@
+groups:
+- neurodata_type_def: CatCellInfo
+  neurodata_type_inc: NWBDataInterface
+  doc: Categorical Cell Info
+  attributes:
+  - name: help
+    dtype: text
+    doc: help
+    value: Categorical information about cells. For most cases the units tables is
+      more appropriate. This structure can be used if you need multiple entries per
+      cell
+  datasets:
+  - name: cell_index
+    dtype: int
+    doc: global id for neuron
+    quantity: '?'
+    shape:
+    - null
+  - name: indices
+    dtype: int
+    doc: list of indices for values
+    attributes:
+    - name: values
+      dtype: text
+      doc: values that the indices are indexing
+      shape:
+      - null
+    shape:
+    - null
+- neurodata_type_def: CatTimeSeries
+  neurodata_type_inc: TimeSeries
+  doc: Categorical data through time
+  datasets:
+  - name: data
+    dtype: int
+    doc: timeseries of indicies for values
+    attributes:
+    - name: values
+      dtype: text
+      doc: values that the indices are indexing
+      shape:
+      - null
+    shape:
+    - null

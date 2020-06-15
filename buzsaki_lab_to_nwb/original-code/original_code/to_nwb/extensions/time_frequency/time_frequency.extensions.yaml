@@ -1,0 +1,78 @@
+groups:
+- neurodata_type_def: HilbertSeries
+  neurodata_type_inc: ElectricalSeries
+  doc: output of hilbert transform
+  attributes:
+  - name: help
+    dtype: text
+    doc: help
+    value: ENTER HELP INFO HERE
+  datasets:
+  - name: filter_centers
+    dtype: float
+    doc: in Hz
+    shape:
+    - null
+    dims:
+    - frequency
+  - name: filter_sigmas
+    dtype: float
+    doc: in Hz
+    shape:
+    - null
+    dims:
+    - frequency
+  - name: data
+    dtype: float
+    doc: Analytic amplitude of signal
+    attributes:
+    - name: unit
+      dtype: text
+      doc: unit
+      value: no units
+    shape:
+    - null
+    - null
+    - null
+    dims:
+    - time
+    - channel
+    - frequency
+    quantity: '?'
+  - name: real_data
+    dtype: float
+    doc: The real component of the complex result of the hilbert transform
+    shape:
+    - null
+    - null
+    - null
+    dims:
+    - time
+    - channel
+    - frequency
+    quantity: '?'
+  - name: imaginary_data
+    dtype: float
+    doc: The imaginary component of the complex result of the hilbert transform
+    shape:
+    - null
+    - null
+    - null
+    dims:
+    - time
+    - channel
+    - frequency
+    quantity: '?'
+  - name: phase_data
+    dtype: float
+    doc: The phase of the complex result of the hilbert transform
+    shape:
+    - null
+    - null
+    - null
+    dims:
+    - time
+    - channel
+    - frequency
+    quantity: '?'
+  quantity: '?'
