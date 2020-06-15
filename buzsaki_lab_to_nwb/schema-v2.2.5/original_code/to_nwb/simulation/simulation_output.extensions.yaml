@@ -1,0 +1,36 @@
+groups:
+- datasets:
+  - dims:
+    - cells
+    doc: list of cell ids
+    dtype: uint32
+    name: gid
+    quantity: '?'
+    shape:
+    - null
+  - dims:
+    - cells
+    doc: index pointer
+    dtype: uint64
+    name: index_pointer
+    shape:
+    - null
+  - dims:
+    - compartments
+    doc: cell compartment ids corresponding to a given column in the data
+    dtype: uint32
+    name: element_id
+    shape:
+    - null
+  - dims:
+    - compartments
+    - position
+    doc: relative position of recording within a given compartment
+    dtype: float
+    name: element_pos
+    shape:
+    - null
+    - null
+  doc: A spec for storing cell recording variables
+  neurodata_type_def: CompartmentSeries
+  neurodata_type_inc: TimeSeries

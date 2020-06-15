@@ -1,0 +1,40 @@
+groups:
+- neurodata_type_def: CorticalSurfaces
+  neurodata_type_inc: NWBDataInterface
+  name: cortical_surfaces
+  doc: triverts for cortical surfaces
+  attributes:
+  - name: help
+    dtype: text
+    doc: help
+    value: This holds the vertices and faces for the cortical surface meshes
+  groups:
+  - neurodata_type_def: Surface
+    neurodata_type_inc: NWBDataInterface
+    doc: brain cortical surface
+    attributes:
+    - name: help
+      dtype: text
+      doc: help
+      value: This holds Surface objects
+    datasets:
+    - name: faces
+      dtype: uint
+      doc: faces for surface, indexes vertices
+      dims:
+      - face_number
+      - vertex_index
+      shape:
+      - 
+      - 3
+    - name: vertices
+      dtype: float
+      doc: vertices for surface, points in 3D space
+      dims:
+      - vertex_number
+      - xyz
+      shape:
+      - 
+      - 3
+    quantity: +
+  quantity: '?'

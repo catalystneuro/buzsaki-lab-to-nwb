@@ -15,10 +15,10 @@ from pynwb.behavior import SpatialSeries, Position
 from pynwb.file import Subject, TimeIntervals
 from pynwb.misc import DecompositionSeries
 from scipy.io import loadmat
-#from ..utils import check_module
+from ..utils import check_module
 
 import to_nwb.neuroscope as ns
-from to_nwb.utils import find_discontinuities, check_module
+from to_nwb.utils import find_discontinuities
 
 
 # taken from ReadMe
@@ -55,7 +55,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shank
     """
 
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'), # Cody: modified path a bit for my location
+    matin = loadmat(os.path.join(fpath_base, 'DG_all_6__UnitFeatureSummary_add.mat'),
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
     nshanks = min((max_shanks, len(ns.get_shank_channels(session_path))))
@@ -167,7 +167,6 @@ def parse_states(fpath):
     return states, state_times
 
 
-
 def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
              subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
 
@@ -244,9 +243,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
 
     for name, channel in special_electrode_dict.items():
         ts = TimeSeries(name=name, description='environmental electrode recorded inline with neural data',
-                        data=all_channels_data[:, channel], rate=lfp_fs, unit='V', 
-                        #conversion=np.nan, 
-                        resolution=np.nan)
+                        data=all_channels_data[:, channel], rate=lfp_fs, unit='V', conversion=np.nan, resolution=np.nan)
         nwbfile.add_acquisition(ts)
 
     # compute filtered LFP
@@ -315,7 +312,6 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
                         data=H5DataIO(pos_data_norm, compression='gzip'),
                         reference_frame='unknown', conversion=conversion,
                         resolution=np.nan,
-                        #conversion=np.nan,
                         timestamps=H5DataIO(tt, compression='gzip'))
                     pos_obj.add_spatial_series(spatial_series_object)
 

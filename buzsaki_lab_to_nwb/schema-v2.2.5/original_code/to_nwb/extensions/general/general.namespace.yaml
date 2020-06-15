@@ -1,0 +1,9 @@
+namespaces:
+- author: Ben Dichter
+  contact: bendichter@gmail.com
+  doc: general extensions
+  name: general
+  schema:
+  - namespace: core
+  - source: general.extensions.yaml
+  version: '1.0'

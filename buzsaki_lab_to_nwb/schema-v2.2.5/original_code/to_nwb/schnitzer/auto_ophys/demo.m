@@ -1,0 +1,63 @@
+%%
+% These functions call matnwb functions to create an NWB file with just a few calls. You need to install 
+% matnwb (including running GenerateCore) for this to work. These functions simplify the process of creating
+% an NWB object by making assumptions about the structure of the data. There are lots of customizations possible
+% within NWB that these functions do not support, like multiple simultaneous imaging planes, volumetric imaging,
+% multiple analysis pipelines for comparison, and much more. If you need something non-standard you will need to
+% alter these functions (or talk to Ben)
+%
+% The functions use prefixes on the labels to direct name-value pairs to specific MatNWB objects (e.g. file, 
+% subject, imaging_plane). In some cases this leads to awkward names (e.g. 'subject_subject_id') but hopefully
+% the intention is clear despite that.
+
+%%
+session_start_time = datetime(2018, 3, 1, 12, 0, 0, 'TimeZone', 'local');
+
+nwb = init_nwb_session( ...
+    'file_identifier','aa', ...
+    'file_general_session_id', 'AA2_d4', ...
+    'file_session_description','aa', ...
+    'file_session_start_time', session_start_time, ...
+    'subject_species','Mus musculus', ...
+    'subject_sex', 'M', ...
+    'subject_subject_id', 'AA2', ...
+    'subject_description', 'description of animal'); % , ...
+    %'file_timestamps_reference_time', session_start_time, ...          % If not entered, session_start_time is used
+    %'file_general_experimenter', 'John Due', ...                       % optional
+    %'file_general_experiment_description', 'running in a maze', ...    % optional
+    %'file_general_institution', Stanford University', ...              % optional
+    %'file_general_keywords', {'memory', 'sharp wave ripples'}, ...     % optional
+    %'file_general_notes', 'aa', ...                                    % optional
+    %'file_general_pharmacology', 'drug a', ...                         % optional
+    %'file_general_protocol', 'aa', ...                                 % optional
+    %'file_general_related_publications', {'DOI1', 'DOI2'}, ...         % optional
+    %'file_general_slices', 'path/to/slices', ...                       % optional
+    %'file_general_source_script', 'my script', ...                     % optional
+    %'file_general_source_script_file_name', my_script.py', ...         % optional
+    %'file_general_stimulus', 'stimulus description', ...               % optional
+    %'file_general_surgery', 'surgery description', ...                 % optional
+    %'file_general_virus', 'virus description', ...                     % optional
+    %'subject_genotype', 'my_genotype'                                  % optional
+    %'subject_age' ,'9 months', ...                                     % optional
+
+
+nwb = add_ophys(nwb, ...
+    ones(13,100), ...             % ROI response data, rois x frames
+    ones(50,50,13), ...           % ROI image masks; x * y * rois
+    'my_device', ...              % e.g. model of microscope
+    'my_indicator', ...
+    5., ...                       % (approximate) imaging frame rate in Hz
+    'optical_channel_emission_lambda', 500., ...       % units: nm
+    'imaging_plane_excitation_lambda', 300., ...       % units: nm
+    'imaging_plane_location', 'brain area', ...        % use Allen term if possible
+    'name_of_imaging_plane', 'ImagingPlane', ...                  
+    'optical_channel_description', 'my description', ...       
+    'plane_segmentation_description', 'my description', ...
+    'imaging_plane_description', 'my description'); %, ...
+    %'frame_times', [2., 2.5, 3.], ...                      % If not entered, imaging_rate is used
+    %'imaging_plane_manifold', ones(200,200,3), ...         % optional; describes 3D location of pixels in brain space
+    %'imaging_plane_conversion', 1, ...                     % optional; convert from manifold values to manifold_unit
+    %'imaging_plane_manifold_unit', 'm', ...                % optional; units of measure for manifold
+    %'imaging_plane_reference_frame', 'upper left', ...     % optional; description of where 0 is
+
+nwbExport(nwb, 'save_path.nwb');
