@@ -99,7 +99,7 @@ def get_lfp_sampling_rate(session_path=None, xml_filepath=None):
 
 
 def add_position_data(nwbfile, session_path, fs=1250./32., # Cody: default of 1250/32 is specific to the yuta dataset, right?
-                      names=('x0', 'y0', 'x1', 'y1')):
+                      names=('x0', 'y0', 'x1', 'y1')): # also, how do we know in advance these will be the names
     """Read raw position sensor data from .whl file
 
     Parameters
@@ -125,19 +125,19 @@ def add_position_data(nwbfile, session_path, fs=1250./32., # Cody: default of 12
 
     nwbfile.add_acquisition(
         SpatialSeries('position_sensor0',
-                      H5DataIO(df[['x0', 'y0']].values, compression='gzip'),
+                      H5DataIO(df[[names[0], names[1]].values, compression='gzip'),
                       'unknown', description='raw sensor data from sensor 0',
-                      timestamps=H5DataIO(df.index.values, compression='gzip'),
+                      rate=fs,
+                      starting_time = df.index.values[0],
                       resolution=np.nan))
 
     nwbfile.add_acquisition(
         SpatialSeries('position_sensor1',
-                      H5DataIO(df[['x1', 'y1']].values, compression='gzip'),
+                      H5DataIO(df[[names[2], names[3]].values, compression='gzip'),
                       'unknown', description='raw sensor data from sensor 1',
-                      timestamps=H5DataIO(df.index.values, compression='gzip'),
+                      rate=fs,
+                      starting_time = df.index.values[0],
                       resolution=np.nan))
-    
-    # Cody: are there always necessarily two sensors? or just for yuta?
 
 
 def read_spike_times(session_path, shankn, fs=20000.):

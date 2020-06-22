@@ -107,7 +107,7 @@ def add_position_data(nwbfile, session_path, fs=1250./32.,
     nwbfile: pynwb.NWBFile
     session_path: str
     fs: float
-        sampling rate
+        sampling rate (in units seconds) of regularly sampled series
     names: iterable
         names of column headings
 
@@ -119,22 +119,25 @@ def add_position_data(nwbfile, session_path, fs=1250./32.,
         return
     print('warning: time may not be aligned')
     df = pd.read_csv(whl_path, sep='\t', names=names)
-
-    df.index = np.arange(len(df)) / fs
-    df.index.name = 'tt (sec)'
+        
+    # default units for SpatialSeries are in seconds, which is why we require
+    # the sampling rate to be passed in the correct units. Units in .whl file are
+    # assumed to be correct by default
 
     nwbfile.add_acquisition(
         SpatialSeries('position_sensor0',
                       H5DataIO(df[['x0', 'y0']].values, compression='gzip'),
                       'unknown', description='raw sensor data from sensor 0',
-                      timestamps=H5DataIO(df.index.values, compression='gzip'),
+                      rate = fs,
+                      starting_time = df.index.values[0],
                       resolution=np.nan))
 
     nwbfile.add_acquisition(
         SpatialSeries('position_sensor1',
                       H5DataIO(df[['x1', 'y1']].values, compression='gzip'),
                       'unknown', description='raw sensor data from sensor 1',
-                      timestamps=H5DataIO(df.index.values, compression='gzip'),
+                      rate = fs,
+                      starting_time = df.index.values[0],
                       resolution=np.nan))
 
 
