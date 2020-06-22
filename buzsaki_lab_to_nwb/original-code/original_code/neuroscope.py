@@ -14,7 +14,7 @@ from hdmf.data_utils import DataChunkIterator
 from pynwb.misc import AnnotationSeries
 from tqdm import tqdm
 
-from .utils import check_module
+from utils import check_module
 
 
 def load_xml(filepath):
@@ -98,8 +98,8 @@ def get_lfp_sampling_rate(session_path=None, xml_filepath=None):
     return float(load_xml(xml_filepath).lfpSamplingRate.string)
 
 
-def add_position_data(nwbfile, session_path, fs=1250./32., # Cody: default of 1250/32 is specific to the yuta dataset, right?
-                      names=('x0', 'y0', 'x1', 'y1')): # also, how do we know in advance these will be the names
+def add_position_data(nwbfile, session_path, fs=1250./32.,
+                      names=('x0', 'y0', 'x1', 'y1')):
     """Read raw position sensor data from .whl file
 
     Parameters
@@ -107,7 +107,7 @@ def add_position_data(nwbfile, session_path, fs=1250./32., # Cody: default of 12
     nwbfile: pynwb.NWBFile
     session_path: str
     fs: float
-        sampling rate
+        sampling rate (in units seconds) of regularly sampled series
     names: iterable
         names of column headings
 
@@ -119,24 +119,25 @@ def add_position_data(nwbfile, session_path, fs=1250./32., # Cody: default of 12
         return
     print('warning: time may not be aligned')
     df = pd.read_csv(whl_path, sep='\t', names=names)
-
-    df.index = np.arange(len(df)) / fs
-    df.index.name = 'tt (sec)'
+        
+    # default units for SpatialSeries are in seconds, which is why we require
+    # the sampling rate to be passed in the correct units. Units in .whl file are
+    # assumed to be correct by default
 
     nwbfile.add_acquisition(
         SpatialSeries('position_sensor0',
-                      H5DataIO(df[[names[0], names[1]].values, compression='gzip'),
+                      H5DataIO(df[[names[0], names[1]]].values, compression='gzip'),
                       'unknown', description='raw sensor data from sensor 0',
-                      rate=fs,
-                      starting_time = df.index.values[0],
+                      rate = fs,
+                      starting_time = 0.,
                       resolution=np.nan))
 
     nwbfile.add_acquisition(
         SpatialSeries('position_sensor1',
-                      H5DataIO(df[[names[2], names[3]].values, compression='gzip'),
+                      H5DataIO(df[[names[2], names[3]]].values, compression='gzip'),
                       'unknown', description='raw sensor data from sensor 1',
-                      rate=fs,
-                      starting_time = df.index.values[0],
+                      rate = fs,
+                      starting_time = 0.,
                       resolution=np.nan))
 
 

@@ -71,7 +71,6 @@ def remove_duplicates(li):
     Parameters
     ----------
     li: list
-
     Returns
     -------
     res: list
@@ -90,17 +89,14 @@ def natural_key(text):
 
 def check_module(nwbfile, name, description=None):
     """Check if processing module exists. If not, create it. Then return module
-
     Parameters
     ----------
     nwbfile: pynwb.NWBFile
     name: str
     description: str | None (optional)
-
     Returns
     -------
     pynwb.module
-
     """
 
     if name in nwbfile.modules:

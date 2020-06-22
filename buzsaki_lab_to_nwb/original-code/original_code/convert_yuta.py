@@ -15,10 +15,9 @@ from pynwb.behavior import SpatialSeries, Position
 from pynwb.file import Subject, TimeIntervals
 from pynwb.misc import DecompositionSeries
 from scipy.io import loadmat
-#from ..utils import check_module
 
-import to_nwb.neuroscope as ns
-from to_nwb.utils import find_discontinuities, check_module
+import neuroscope as ns
+from utils import find_discontinuities, check_module
 
 
 # taken from ReadMe

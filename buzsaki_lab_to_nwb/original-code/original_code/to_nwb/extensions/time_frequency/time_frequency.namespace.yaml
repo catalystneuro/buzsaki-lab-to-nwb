@@ -1,9 +1,0 @@
-namespaces:
-- author: Ben Dichter
-  contact: bendichter@gmail.com
-  doc: time_frequency extensions
-  name: time_frequency
-  schema:
-  - namespace: core
-  - source: time_frequency.extensions.yaml
-  version: '1.0'
