@@ -231,19 +231,29 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
                       'description': 'this electrode was used to calculate LFP canonical bands',
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
+    
+    # Now that we have an electrode table, add the raw acquisition series
+    print('reading raw electrode data...', end='', flush = True)
+    es_fs, all_channels_raw_es_data = ns.read_raw_es(session_path, stub=stub)
+    
+    raw_data = all_channels_raw_es_data[:, all_shank_channels]
+    print('writing raw electrode data...', flush=True)
+    ns.write_raw_es(nwbfile, raw_data, es_fs, name='ES', description='raw electrode data')
 
+    # Read LFP's
     print('reading LFPs...', end='', flush=True)
-    lfp_fs, all_channels_data = ns.read_lfp(session_path, stub=stub)
+    lfp_fs, all_channels_lfp_data = ns.read_lfp(session_path, stub=stub)
 
-    lfp_data = all_channels_data[:, all_shank_channels]
+    lfp_data = all_channels_lfp_data[:, all_shank_channels]
     print('writing LFPs...', flush=True)
     # lfp_data[:int(len(lfp_data)/4)]
     lfp_ts = ns.write_lfp(nwbfile, lfp_data, lfp_fs, name='lfp',
                           description='lfp signal for all shank electrodes')
 
+    # Read and add special environmental electrodes
     for name, channel in special_electrode_dict.items():
         ts = TimeSeries(name=name, description='environmental electrode recorded inline with neural data',
-                        data=all_channels_data[:, channel], rate=lfp_fs, unit='V', 
+                        data=all_channels_lfp_data[:, channel], rate=lfp_fs, unit='V', 
                         #conversion=np.nan, 
                         resolution=np.nan)
         nwbfile.add_acquisition(ts)

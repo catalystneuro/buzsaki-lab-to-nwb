@@ -98,6 +98,50 @@ def get_lfp_sampling_rate(session_path=None, xml_filepath=None):
     return float(load_xml(xml_filepath).lfpSamplingRate.string)
 
 
+def get_n_channels(session_path=None, xml_filepath=None):
+    """Reads the number of channels from the xml parameter file of the
+    Neuroscope format
+
+    Parameters
+    ----------
+    session_path: str
+    xml_filepath: None | str (optional)
+
+    Returns
+    -------
+    fs: int
+
+    """
+
+    if xml_filepath is None:
+        session_name = os.path.split(session_path)[1]
+        xml_filepath = os.path.join(session_path, session_name + '.xml')
+
+    return int(load_xml(xml_filepath).nChannels.string)
+
+
+def get_bit_type(session_path=None, xml_filepath=None):
+    """Reads the bit type usued to record data from the xml parameter file of the
+    Neuroscope format
+
+    Parameters
+    ----------
+    session_path: str
+    xml_filepath: None | str (optional)
+
+    Returns
+    -------
+    fs: int
+
+    """
+
+    if xml_filepath is None:
+        session_name = os.path.split(session_path)[1]
+        xml_filepath = os.path.join(session_path, session_name + '.xml')
+
+    return int(load_xml(xml_filepath).nBits.string)
+
+
 def add_position_data(nwbfile, session_path, fs=1250./32.,
                       names=('x0', 'y0', 'x1', 'y1')):
     """Read raw position sensor data from .whl file
@@ -322,6 +366,40 @@ def write_electrode_table(nwbfile, session_path, electrode_positions=None,
                 group=electrode_group, amp_channel=amp_channel,
                 shank_electrode_number=shank_electrode_number, **custom_data)
 
+            
+def read_raw_es(session_path, stub=False):
+    """
+
+    Parameters
+    ----------
+    session_path: str
+    stub: bool, optional
+        Default is False. If True, don't read raw data, but instead add a small
+        amount of placeholder data. This is useful for rapidly checking new
+        features without the time-intensive data read step.
+
+    Returns
+    -------
+    lfp_fs, all_channels_data
+
+    """
+    fs = get_lfp_sampling_rate(session_path)
+    
+    #n_channels = sum(len(x) for x in get_channel_groups(session_path)) # Cody: this is overkill, the nChannels is in the .xml
+    n_channels = get_n_channels(session_path)
+    bit_type = get_bit_type(session_path)
+    
+    if stub:
+        all_channels_es = np.random.randn(1000, n_channels)  # use for dev testing for speed
+        return fs, all_channels_es
+    
+    fpath_base, fname = os.path.split(session_path)
+    es_filepath = os.path.join(session_path, fname + '.dat')
+
+    all_channels_data = np.memmap(es_filepath, mode='r', shape=(nSamples,nChannels), dtype='int'+str(bitType)) # memmap reads row-wise
+
+    return fs, all_channels_data
+
 
 def read_lfp(session_path, stub=False):
     """
@@ -340,7 +418,11 @@ def read_lfp(session_path, stub=False):
 
     """
     lfp_fs = get_lfp_sampling_rate(session_path)
-    n_channels = sum(len(x) for x in get_channel_groups(session_path))
+    
+    #n_channels = sum(len(x) for x in get_channel_groups(session_path)) # Cody: this is overkill, the nChannels is in the .xml
+    n_channels = get_n_channels(session_path)
+    bit_type = get_bit_type(session_path)
+    
     if stub:
         all_channels_lfp = np.random.randn(1000, n_channels)  # use for dev testing for speed
         return lfp_fs, all_channels_lfp
@@ -348,9 +430,58 @@ def read_lfp(session_path, stub=False):
     fpath_base, fname = os.path.split(session_path)
     lfp_filepath = os.path.join(session_path, fname + '.eeg')
 
-    all_channels_data = np.fromfile(lfp_filepath, dtype=np.int16).reshape(-1, n_channels)
+    all_channels_data = np.fromfile(lfp_filepath, dtype='int'+str(bitType)).reshape(-1, n_channels)
 
     return lfp_fs, all_channels_data
+
+
+
+def write_raw_es(nwbfile, data, fs, name='ES', description='raw electrode data', electrode_inds=None):
+    """
+    Add raw electrode data from neuroscope to a "ecephys_es" acquisition module of an NWBFile
+
+    Parameters
+    ----------
+    nwbfile: pynwb.NWBFile
+    data: array-like
+    fs: float
+    name: str
+    description: str
+    electrode_inds: list(int)
+
+    Returns
+    -------
+    ES pynwb.ecephys.ElectricalSeries
+
+    """
+
+    if electrode_inds is None:
+        electrode_inds = list(range(data.shape[1]))
+
+    table_region = nwbfile.create_electrode_table_region(
+        electrode_inds, 'electrode table reference')
+
+    data = H5DataIO(
+        DataChunkIterator(
+            tqdm(data, desc='writing raw electrode data'),
+            buffer_size=int(fs * 3600)), compression='gzip')
+
+    raw_electrical_series = ElectricalSeries(
+        name=name, description=description,
+        data=data, electrodes=table_region, conversion=np.nan,
+        rate=fs, resolution=np.nan)
+
+    nwbfile.add_acquisition(raw_electrical_series)
+    
+#    ecephys_mod = check_module(
+#        nwbfile, 'ecephys', 'raw data from extracellular electrophysiology recordings')
+
+#    if 'ES' not in ecephys_mod.data_interfaces:
+#        ecephys_mod.add_data_interface(LFP(name='ES'))
+
+#    ecephys_mod.data_interfaces['ES'].add_electrical_series(lfp_electrical_series)
+
+    return raw_electrical_series
 
 
 def write_lfp(nwbfile, data, fs, name='LFP', description='local field potential signal', electrode_inds=None):
