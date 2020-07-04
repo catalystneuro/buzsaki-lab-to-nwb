@@ -14,6 +14,12 @@ from hdmf.data_utils import DataChunkIterator
 from pynwb.misc import AnnotationSeries
 from tqdm import tqdm
 
+# this is eventual code when merged with main spikeinterface branch
+#import spikeinterface.extractors as se
+
+# have to do this locally for a dev installation for now
+import spikeextractors as se
+
 from utils import check_module
 
 
@@ -118,6 +124,28 @@ def get_n_channels(session_path=None, xml_filepath=None):
         xml_filepath = os.path.join(session_path, session_name + '.xml')
 
     return int(load_xml(xml_filepath).nChannels.string)
+
+
+def get_n_samples(session_path=None, xml_filepath=None):
+    """Reads the number of frame samples from the xml parameter file of the
+    Neuroscope format
+
+    Parameters
+    ----------
+    session_path: str
+    xml_filepath: None | str (optional)
+
+    Returns
+    -------
+    fs: int
+
+    """
+
+    if xml_filepath is None:
+        session_name = os.path.split(session_path)[1]
+        xml_filepath = os.path.join(session_path, session_name + '.xml')
+
+    return int(load_xml(xml_filepath).nSamples.string)
 
 
 def get_bit_type(session_path=None, xml_filepath=None):
@@ -367,12 +395,13 @@ def write_electrode_table(nwbfile, session_path, electrode_positions=None,
                 shank_electrode_number=shank_electrode_number, **custom_data)
 
             
-def read_raw_es(session_path, stub=False):
+def read_raw_es(session_path,all_shank_channels,stub=False):
     """
 
     Parameters
     ----------
     session_path: str
+    all_shank_channels: a list of the channel IDs to extract from a full recording file
     stub: bool, optional
         Default is False. If True, don't read raw data, but instead add a small
         amount of placeholder data. This is useful for rapidly checking new
@@ -380,13 +409,15 @@ def read_raw_es(session_path, stub=False):
 
     Returns
     -------
-    lfp_fs, all_channels_data
+    fs, all_channels_data
 
     """
+    
     fs = get_lfp_sampling_rate(session_path)
     
     #n_channels = sum(len(x) for x in get_channel_groups(session_path)) # Cody: this is overkill, the nChannels is in the .xml
     n_channels = get_n_channels(session_path)
+    n_samples = get_n_samples(session_path)
     bit_type = get_bit_type(session_path)
     
     if stub:
@@ -396,9 +427,42 @@ def read_raw_es(session_path, stub=False):
     fpath_base, fname = os.path.split(session_path)
     es_filepath = os.path.join(session_path, fname + '.dat')
 
-    all_channels_data = np.memmap(es_filepath, mode='r', shape=(nSamples,nChannels), dtype='int'+str(bitType)) # memmap reads row-wise
-
+    #all_channels_data = np.memmap(es_filepath, mode='r', shape=(n_samples,n_channels), dtype='int'+str(bit_type)) # memmap reads row-wise
+    dat_filesize = os.path.getsize(es_filepath)
+    
+    if (bit_type == 16):
+        n_items = int(dat_filesize/np.int16(0).nbytes)
+    elif (bit_type == 32):
+        n_items = int(dat_filesize/np.int32(0).nbytes)
+    else:
+        print("Raw acquisition only supports int16 and int32 at this point in time." +
+              " Please raise an issue if you need support added for other types.")
+        return
+        
+    n_rows = int(n_items/n_channels)
+    datashape = (n_rows, n_channels)
+    
+    all_channels_data = DataChunkIterator(data=iter_largearray(filename=es_filepath, 
+                                                               all_shank_channels=all_shank_channels,
+                                                               shape=datashape,
+                                                               dtype='int'+str(bit_type)),
+                                          maxshape=datashape,
+                                          buffer_size=10) # Buffer 10 elements into a chunk
+    
     return fs, all_channels_data
+
+# Helper function for read_raw_es
+def iter_largearray(filename, all_shank_channels, shape, dtype='int16'):
+    """
+    Generator reading [chunk_size, :] elements from our array in each iteration.
+    """
+    for i in range(shape[0]):
+        # Open the file and read the next chunk
+        newfp = np.memmap(filename, dtype=dtype, mode='r', shape=shape)
+        curr_data = newfp[i:(i + 1), all_shank_channels][0]
+        del newfp  # Reopen the file in each iterator to prevent accumulation of data in memory
+        yield curr_data
+    return
 
 
 def read_lfp(session_path, stub=False):
@@ -431,6 +495,7 @@ def read_lfp(session_path, stub=False):
     lfp_filepath = os.path.join(session_path, fname + '.eeg')
 
     all_channels_data = np.fromfile(lfp_filepath, dtype='int'+str(bitType)).reshape(-1, n_channels)
+    # Cody: the only reason this method is possible is b/c this particular .eeg is small enough to fit in RAM
 
     return lfp_fs, all_channels_data
 
@@ -473,14 +538,6 @@ def write_raw_es(nwbfile, data, fs, name='ES', description='raw electrode data',
 
     nwbfile.add_acquisition(raw_electrical_series)
     
-#    ecephys_mod = check_module(
-#        nwbfile, 'ecephys', 'raw data from extracellular electrophysiology recordings')
-
-#    if 'ES' not in ecephys_mod.data_interfaces:
-#        ecephys_mod.add_data_interface(LFP(name='ES'))
-
-#    ecephys_mod.data_interfaces['ES'].add_electrical_series(lfp_electrical_series)
-
     return raw_electrical_series
 
 
@@ -678,6 +735,52 @@ def write_spike_waveforms(nwbfile, session_path, shankn, stub=False, compression
 
     check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
 
+    
+def write_clustered_spikes(nwbfile_path, session_path, shankn, stub=False, compression='gzip'):
+    """
+
+    Parameters
+    ----------
+    nwbfile: pynwb.NWBFiles
+    session_path: str
+    shankn: int
+    stub: bool, optional
+        default: False
+    compression: str (optional)
+
+    Returns
+    -------
+
+    """
+
+    session_name = os.path.split(session_path)[1]
+    xml_filepath = os.path.join(session_path, session_name + '.xml')
+
+    group = nwbfile.electrode_groups['shank' + str(shankn)]
+    elec_idx = list(np.where(np.array(nwbfile.ec_electrodes['group']) == group)[0])
+    table_region = nwbfile.create_electrode_table_region(elec_idx, group.name + ' region')
+
+    nchan = len(elec_idx)
+    soup = load_xml(xml_filepath)
+    nsamps = int(soup.spikes.nSamples.string)
+
+    if stub:
+        spks = np.random.randn(10, nsamps, nchan)
+        spike_times = np.arange(10)
+    else:
+        res_file = os.path.join(session_path, session_name + '.res.' + str(shankn))
+        clu_file = os.path.join(session_path, session_name + '.clu.' + str(shankn))
+        
+        if not os.path.isfile(res_file):
+            print('spike times for shank{} not found'.format(shankn))
+            return
+        if not os.path.isfile(clu_file):
+            print('spike clusters for shank{} not found'.format(shankn))
+            return
+        
+        nse = se.NeuroscopeSortingExtractor(res_file,clu_file)
+        se.NwbSortingExtractor.write_sorting(nse,nwbfile_path)
+    
 
 def add_units(nwbfile, session_path, custom_cols=None, max_shanks=8):
     """
@@ -710,3 +813,43 @@ def add_units(nwbfile, session_path, custom_cols=None, max_shanks=8):
         [nwbfile.add_unit_column(**x) for x in custom_cols]
 
     return nwbfile
+
+
+def add_units_with_si(nwbfile_path, session_path, max_shanks=8):
+    """
+
+    Parameters
+    ----------
+    nwbfile_path: path to pynwb.NWBFile
+    session_path: str
+
+    Returns
+    -------
+
+    """
+
+    session_name = os.path.split(session_path)[1]
+    nshanks = len(get_shank_channels(session_path))
+    nshanks = min((max_shanks, nshanks))
+
+    counter = 0
+    for shankn in np.arange(nshanks, dtype=int) + 1:
+        # Get isolated cluster-based spike activity from .res and .clu files on a per-shank basis
+        print(shankn,counter)
+    
+        res_file = os.path.join(session_path, session_name + '.res.' + str(shankn))
+        clu_file = os.path.join(session_path, session_name + '.clu.' + str(shankn))
+
+        if not os.path.isfile(res_file):
+            print('spike times for shank{} not found'.format(shankn))
+            return
+        if not os.path.isfile(clu_file):
+            print('spike clusters for shank{} not found'.format(shankn))
+            return
+
+        nse = se.NeuroscopeSortingExtractor(res_file,clu_file,keep_mua_units=False)
+        se.NeuroscopeSortingExtractor.shift_unit_ids(nse,counter)
+        counter += len(nse.get_unit_ids())
+        print(nse.get_unit_ids())
+        se.NwbSortingExtractor.write_sorting(nse,nwbfile_path)
+

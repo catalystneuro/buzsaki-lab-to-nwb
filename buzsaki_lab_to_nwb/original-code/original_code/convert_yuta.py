@@ -232,15 +232,15 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
     
-    # Now that we have an electrode table, add the raw acquisition series
+    # Now that we have an electrode table, read and write the raw acquisition series
     print('reading raw electrode data...', end='', flush = True)
-    es_fs, all_channels_raw_es_data = ns.read_raw_es(session_path, stub=stub)
+    es_fs, all_channels_raw_es_data = ns.read_raw_es(session_path, all_shank_channels, stub=stub)
     
-    raw_data = all_channels_raw_es_data[:, all_shank_channels]
     print('writing raw electrode data...', flush=True)
-    ns.write_raw_es(nwbfile, raw_data, es_fs, name='ES', description='raw electrode data')
+    ns.write_raw_es(nwbfile, all_channels_raw_es_data, es_fs, name='ES', description='raw electrode data',
+                        electrode_inds=list(all_shank_channels))
 
-    # Read LFP's
+    # Read and write LFP's
     print('reading LFPs...', end='', flush=True)
     lfp_fs, all_channels_lfp_data = ns.read_lfp(session_path, stub=stub)
 
@@ -434,6 +434,252 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     with NWBHDF5IO(out_fname, mode='r') as io:
         io.read()
     print('done.')
+    
+    
+def yuta2nwb_with_si(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
+             subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
+
+    subject_path, session_id = os.path.split(session_path)
+    fpath_base = os.path.split(subject_path)[0]
+    identifier = session_id
+    mouse_number = session_id[9:11]
+    if '-' in session_id:
+        subject_id, date_text = session_id.split('-')
+        b = False
+    else:
+        subject_id, date_text = session_id.split('b')
+        b = True
+
+    if subject_xls is None:
+        subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
+    else:
+        if not subject_xls[-4:] == 'xlsx':
+            subject_xls = os.path.join(subject_xls, 'YM' + mouse_number + ' exp_sheet.xlsx')
+
+    session_start_time = dateparse(date_text, yearfirst=True)
+
+    df = pd.read_excel(subject_xls)
+
+    subject_data = {}
+    for key in ['genotype', 'DOB', 'implantation', 'Probe', 'Surgery', 'virus injection', 'mouseID']:
+        names = df.iloc[:, 0]
+        if key in names.values:
+            subject_data[key] = df.iloc[np.argmax(names == key), 1]
+
+    if isinstance(subject_data['DOB'], datetime):
+        age = session_start_time - subject_data['DOB']
+    else:
+        age = None
+
+    subject = Subject(subject_id=subject_id, age=str(age),
+                      genotype=subject_data['genotype'],
+                      species='mouse')
+
+    nwbfile = NWBFile(session_description='mouse in open exploration and theta maze',
+                      identifier=identifier,
+                      session_start_time=session_start_time.astimezone(),
+                      file_create_date=datetime.now().astimezone(),
+                      experimenter='Yuta Senzai',
+                      session_id=session_id,
+                      institution='NYU',
+                      lab='Buzsaki',
+                      subject=subject,
+                      related_publications='DOI:10.1016/j.neuron.2016.12.011')
+
+    print('reading and writing raw position data...', end='', flush=True)
+    ns.add_position_data(nwbfile, session_path)
+
+    shank_channels = ns.get_shank_channels(session_path)[:8]
+    all_shank_channels = np.concatenate(shank_channels)
+
+    print('setting up electrodes...', end='', flush=True)
+    hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
+    lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
+    print(lfp_channel)
+    custom_column = [{'name': 'theta_reference',
+                      'description': 'this electrode was used to calculate LFP canonical bands',
+                      'data': all_shank_channels == lfp_channel}]
+    ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
+    
+    # Now that we have an electrode table, read and write the raw acquisition series
+    print('reading raw electrode data...', end='', flush = True)
+    es_fs, all_channels_raw_es_data = ns.read_raw_es(session_path, all_shank_channels, stub=stub)
+    
+    print('writing raw electrode data...', flush=True)
+    ns.write_raw_es(nwbfile, all_channels_raw_es_data, es_fs, name='ES', description='raw electrode data',
+                        electrode_inds=list(all_shank_channels))
+
+    # Read and write LFP's
+    print('reading LFPs...', end='', flush=True)
+    lfp_fs, all_channels_lfp_data = ns.read_lfp(session_path, stub=stub)
+
+    lfp_data = all_channels_lfp_data[:, all_shank_channels]
+    print('writing LFPs...', flush=True)
+    # lfp_data[:int(len(lfp_data)/4)]
+    lfp_ts = ns.write_lfp(nwbfile, lfp_data, lfp_fs, name='lfp',
+                          description='lfp signal for all shank electrodes')
+
+    # Read and add special environmental electrodes
+    for name, channel in special_electrode_dict.items():
+        ts = TimeSeries(name=name, description='environmental electrode recorded inline with neural data',
+                        data=all_channels_lfp_data[:, channel], rate=lfp_fs, unit='V', 
+                        #conversion=np.nan, 
+                        resolution=np.nan)
+        nwbfile.add_acquisition(ts)
+
+    # compute filtered LFP
+    print('filtering LFP...', end='', flush=True)
+    all_lfp_phases = []
+    for passband in ('theta', 'gamma'):
+        lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(), lfp_fs, passband=passband)
+        lfp_phase, _ = hilbert_lfp(lfp_fft)
+        all_lfp_phases.append(lfp_phase[:, np.newaxis])
+    data = np.dstack(all_lfp_phases)
+    print('done.', flush=True)
+
+    if include_spike_waveforms:
+        print('writing waveforms...', end='', flush=True)
+        nshanks = min((max_shanks, len(ns.get_shank_channels(session_path))))
+        
+        for shankn in np.arange(nshanks, dtype=int) + 1:
+            # Get spike activty from .spk file on a per-shank and per-sample basis
+            ns.write_spike_waveforms(nwbfile, session_path, shankn, stub=stub)
+            
+        print('done.', flush=True)
+
+    
+    # Get the LFP Decomposition Series
+    decomp_series = DecompositionSeries(name='LFPDecompositionSeries',
+                                        description='Theta and Gamma phase for reference LFP',
+                                        data=data, rate=lfp_fs,
+                                        source_timeseries=lfp_ts,
+                                        metric='phase', unit='radians')
+    decomp_series.add_band(band_name='theta', band_limits=(4, 10))
+    decomp_series.add_band(band_name='gamma', band_limits=(30, 80))
+
+    check_module(nwbfile, 'ecephys', 'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
+
+    [nwbfile.add_stimulus(x) for x in ns.get_events(session_path)]
+
+    # create epochs corresponding to experiments/environments for the mouse
+
+    sleep_state_fpath = os.path.join(session_path, '{}--StatePeriod.mat'.format(session_id))
+
+    exist_pos_data = any(os.path.isfile(os.path.join(session_path, '{}__{}.mat'.format(session_id, task_type['name'])))
+                         for task_type in task_types)
+
+    if exist_pos_data:
+        nwbfile.add_epoch_column('label', 'name of epoch')
+
+    for task_type in task_types:
+        label = task_type['name']
+
+        file = os.path.join(session_path, session_id + '__' + label + '.mat')
+        if os.path.isfile(file):
+            print('loading position for ' + label + '...', end='', flush=True)
+
+            pos_obj = Position(name=label + '_position')
+
+            matin = loadmat(file)
+            tt = matin['twhl_norm'][:, 0]
+            exp_times = find_discontinuities(tt)
+
+            if 'conversion' in task_type:
+                conversion = task_type['conversion']
+            else:
+                conversion = np.nan
+
+            for pos_type in ('twhl_norm', 'twhl_linearized'):
+                if pos_type in matin:
+                    pos_data_norm = matin[pos_type][:, 1:]
+
+                    spatial_series_object = SpatialSeries(
+                        name=label + '_{}_spatial_series'.format(pos_type),
+                        data=H5DataIO(pos_data_norm, compression='gzip'),
+                        reference_frame='unknown', conversion=conversion,
+                        resolution=np.nan,
+                        #conversion=np.nan,
+                        timestamps=H5DataIO(tt, compression='gzip'))
+                    pos_obj.add_spatial_series(spatial_series_object)
+
+            check_module(nwbfile, 'behavior', 'contains processed behavioral data').add_data_interface(pos_obj)
+            for i, window in enumerate(exp_times):
+                nwbfile.add_epoch(start_time=window[0], stop_time=window[1],
+                                  label=label + '_' + str(i))
+            print('done.')
+
+    # there are occasional mismatches between the matlab struct and the neuroscope files
+    # regions: 3: 'CA3', 4: 'DG'
+
+    trialdata_path = os.path.join(session_path, session_id + '__EightMazeRun.mat')
+    if os.path.isfile(trialdata_path):
+        trials_data = loadmat(trialdata_path)['EightMazeRun']
+
+        trialdatainfo_path = os.path.join(fpath_base, 'EightMazeRunInfo.mat')
+        trialdatainfo = [x[0] for x in loadmat(trialdatainfo_path)['EightMazeRunInfo'][0]]
+
+        features = trialdatainfo[:7]
+        features[:2] = 'start_time', 'stop_time',
+        [nwbfile.add_trial_column(x, 'description') for x in features[4:] + ['condition']]
+
+        for trial_data in trials_data:
+            if trial_data[3]:
+                cond = 'run_left'
+            else:
+                cond = 'run_right'
+            nwbfile.add_trial(start_time=trial_data[0], stop_time=trial_data[1], condition=cond,
+                              error_run=trial_data[4], stim_run=trial_data[5], both_visit=trial_data[6])
+    """
+    mono_syn_fpath = os.path.join(session_path, session_id+'-MonoSynConvClick.mat')
+
+    matin = loadmat(mono_syn_fpath)
+    exc = matin['FinalExcMonoSynID']
+    inh = matin['FinalInhMonoSynID']
+
+    #exc_obj = CatCellInfo(name='excitatory_connections',
+    #                      indices_values=[], cell_index=exc[:, 0] - 1, indices=exc[:, 1] - 1)
+    #module_cellular.add_container(exc_obj)
+    #inh_obj = CatCellInfo(name='inhibitory_connections',
+    #                      indices_values=[], cell_index=inh[:, 0] - 1, indices=inh[:, 1] - 1)
+    #module_cellular.add_container(inh_obj)
+    """
+
+    if os.path.isfile(sleep_state_fpath):
+        matin = loadmat(sleep_state_fpath)['StatePeriod']
+
+        table = TimeIntervals(name='states', description='sleep states of animal')
+        table.add_column(name='label', description='sleep state')
+
+        data = []
+        for name in matin.dtype.names:
+            for row in matin[name][0][0]:
+                data.append({'start_time': row[0], 'stop_time': row[1], 'label': name})
+        [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
+
+        check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)
+
+    if stub:
+        out_fname = session_path + '_stub.nwb'
+    else:
+        out_fname = session_path + '.nwb'
+
+    print('writing NWB file...', end='', flush=True)
+    with NWBHDF5IO(out_fname, mode='w') as io:
+        io.write(nwbfile, cache_spec=cache_spec)
+    print('done.')
+
+    print('testing read...', end='', flush=True)
+    # test read
+    with NWBHDF5IO(out_fname, mode='r') as io:
+        io.read()
+    print('done.')
+    
+    # When using SpikeInterface to add units, we must have an NWB file saved
+    if include_spike_waveforms:
+        print('writing clustered spikes...', end='', flush=True)
+        ns.add_units_with_si(out_fname, session_path)
+            
+        print('done.', flush=True)
 
 
 def main(argv):
