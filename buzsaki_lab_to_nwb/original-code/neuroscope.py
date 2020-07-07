@@ -782,84 +782,35 @@ def write_clustered_spikes(nwbfile_path, session_path, shankn, stub=False, compr
         se.NwbSortingExtractor.write_sorting(nse,nwbfile_path)
     
 
-# def add_units(nwbfile, session_path, custom_cols=None, max_shanks=8):
-#    """
-#
-#    Parameters
-#    ----------
-#    nwbfile: pynwb.NWBFile
-#    session_path: str
-#    custom_cols: list(dict), optional
-#        [{name, description, data, kwargs}]
-#    max_shanks: int
-#        only take the first <max_shanks> channel groups
-#
-#    Returns
-#    -------
-#
-#    """
-#
-#    nwbfile.add_unit_column('shank_id', '0-indexed id of cluster of shank')
-#    nshanks = len(get_shank_channels(session_path))
-#    nshanks = min((max_shanks, nshanks))
-#
-#    for shankn in range(1, nshanks + 1):
-#        df = get_clusters_single_shank(session_path, shankn)
-#        electrode_group = nwbfile.electrode_groups['shank' + str(shankn)]
-#        for shank_id, idf in df.groupby('id'):
-#            nwbfile.add_unit(spike_times=idf['time'].values, shank_id=shank_id, electrode_group=electrode_group)
-#
-#    if custom_cols:
-#        [nwbfile.add_unit_column(**x) for x in custom_cols]
-#
-#    return nwbfile
+def add_units(nwbfile, session_path, custom_cols=None, max_shanks=8):
+   """
 
+   Parameters
+   ----------
+   nwbfile: pynwb.NWBFile
+   session_path: str
+   custom_cols: list(dict), optional
+       [{name, description, data, kwargs}]
+   max_shanks: int
+       only take the first <max_shanks> channel groups
 
-def add_units(nwbfile_path, session_path, max_shanks=8):
-    """
+   Returns
+   -------
 
-    Parameters
-    ----------
-    nwbfile_path: path to pynwb.NWBFile
-    session_path: str
+   """
 
-    Returns
-    -------
+   nwbfile.add_unit_column('shank_id', '0-indexed id of cluster of shank')
+   nshanks = len(get_shank_channels(session_path))
+   nshanks = min((max_shanks, nshanks))
 
-    """
+   for shankn in range(1, nshanks + 1):
+       df = get_clusters_single_shank(session_path, shankn)
+       electrode_group = nwbfile.electrode_groups['shank' + str(shankn)]
+       for shank_id, idf in df.groupby('id'):
+           nwbfile.add_unit(spike_times=idf['time'].values, shank_id=shank_id, electrode_group=electrode_group)
 
-    session_name = os.path.split(session_path)[1]
-    nshanks = len(get_shank_channels(session_path))
-    nshanks = min((max_shanks, nshanks))
+   if custom_cols:
+       [nwbfile.add_unit_column(**x) for x in custom_cols]
 
-    shankn = 1
-    res_file = os.path.join(session_path, session_name + '.res.' + str(shankn))
-    clu_file = os.path.join(session_path, session_name + '.clu.' + str(shankn))
-
-    if not os.path.isfile(res_file):
-        print('spike times for shank{} not found'.format(shankn))
-        return
-    if not os.path.isfile(clu_file):
-        print('spike clusters for shank{} not found'.format(shankn))
-        return
-    
-    nse = se.NeuroscopeSortingExtractor(res_file,clu_file,keep_mua_units=False)
-    
-    for shankn in np.arange(2, nshanks+1, dtype=int):
-        # Get isolated cluster-based spike activity from .res and .clu files on a per-shank basis
-        res_file = os.path.join(session_path, session_name + '.res.' + str(shankn))
-        clu_file = os.path.join(session_path, session_name + '.clu.' + str(shankn))
-
-        if not os.path.isfile(res_file):
-            print('spike times for shank{} not found'.format(shankn))
-            return
-        if not os.path.isfile(clu_file):
-            print('spike clusters for shank{} not found'.format(shankn))
-            return
-
-        shank_nse = se.NeuroscopeSortingExtractor(res_file,clu_file,keep_mua_units=False)
-        se.NeuroscopeSortingExtractor.merge_sorting(nse,shank_nse)
-        
-    se.NeuroscopeSortingExtractor.shift_unit_ids(nse,-1) # to start them from 0, seems necessary for add_unit_column?
-    se.NwbSortingExtractor.write_sorting(nse,nwbfile_path)
+   return nwbfile
 

@@ -9,14 +9,17 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 import numpy as np
 import pandas as pd
 from dateutil.parser import parse as dateparse
-from ephys_analysis.band_analysis import filter_lfp, hilbert_lfp
+from band_analysis import filter_lfp, hilbert_lfp
 from pynwb import NWBFile, NWBHDF5IO, TimeSeries
 from pynwb.behavior import SpatialSeries, Position
 from pynwb.file import Subject, TimeIntervals
 from pynwb.misc import DecompositionSeries
 from scipy.io import loadmat
 
+import spikeextractors as se
 import neuroscope as ns
+import SpikeExtractor2Nwb as se2nwb
+
 from utils import find_discontinuities, check_module
 
 
@@ -259,6 +262,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     ns.add_position_data(nwbfile, session_path)
 
     shank_channels = ns.get_shank_channels(session_path)[:8]
+    nshanks = len(shank_channels)
     all_shank_channels = np.concatenate(shank_channels)
 
     print('setting up electrodes...', end='', flush=True)
@@ -277,6 +281,55 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     print('writing raw electrode data...', flush=True)
     ns.write_raw_es(nwbfile, all_channels_raw_es_data, es_fs, name='ES', description='raw electrode data',
                         electrode_inds=list(all_shank_channels))
+    
+    
+    # Use SpikeInterface SortingExtractors to get unit spike information
+    # as well as custom columns, and convert it into the nwbfile
+    print('writing spiking units...', end='', flush=True)
+    nse_shank = se.NeuroscopeSortingExtractor.read_shanks(os.path.join(session_path, session_id),
+                                                          np.arange(1,nshanks+1),
+                                                          keep_mua_units=False)
+    se_allshanks = se.concatenate_sortings(nse_shank)
+    
+    electrode_group = []
+    for shankn in np.arange(1, nshanks+1, dtype=int):
+        for id in nse_shank[shankn-1].get_unit_ids():
+            electrode_group.append(nwbfile.electrode_groups['shank' + str(shankn)])
+
+    df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
+
+    celltype_names = []
+    for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
+                                      df_unit_features['region'].values):
+        if celltype_id == 1:
+            if region_id == 3:
+                celltype_names.append('pyramidal cell')
+            elif region_id == 4:
+                celltype_names.append('granule cell')
+            else:
+                raise Exception('unknown type')
+        elif not np.isfinite(celltype_id):
+            celltype_names.append('missing')
+        else:
+            celltype_names.append(celltype_dict[celltype_id])
+
+    # Add custom column data into the SortingExtractor so it can be written by the converter
+        # Note there is currently a hidden assumption that the way in which the NeuroscopeSortingExtractor
+        # merges the cluster IDs matches one-to-one with the get_UnitFeatureCell_features extraction
+    for id in se_allshanks.get_unit_ids():
+        se_allshanks.set_unit_property(id, 'cell_type', celltype_names[id])
+        se_allshanks.set_unit_property(id, 'global_id', df_unit_features['unitID'].values[id])
+        se_allshanks.set_unit_property(id, 'shank_id', df_unit_features['unitIDshank'].values[id]-2) # -2 b/c the get_UnitFeatureCell_features removes 0 and 1 IDs from each shank
+        se_allshanks.set_unit_property(id, 'electrode_group', electrode_group[id])
+        
+        # Can't figure out why the max_electrodes isn't working properly. Errors indicate indexing issue in the dynamic table, which is all code that I haven't altered...
+#         se_allshanks.set_unit_property(id, 'max_electrode', get_max_electrodes(nwbfile, session_path)[id])
+        
+    # Convert the data in the SortingExtractor to the NWB file
+    con = se2nwb.SpikeExtractor2NWBConverter(nwbfile, {}, {})
+    con.SX = se_allshanks
+    con.run_conversion()
+        
 
     # Read and write LFP's
     print('reading LFPs...', end='', flush=True)
@@ -426,7 +479,9 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
         [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
 
         check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)
+        
 
+    print('writing NWB file...', end='', flush=True)        
     if stub:
         out_fname = session_path + '_stub.nwb'
     else:
@@ -434,68 +489,8 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
 
     with NWBHDF5IO(out_fname, mode='w') as io:
         io.write(nwbfile, cache_spec=cache_spec)
+    print('done.')
         
-    # When using SpikeInterface to add units, we must have an NWB file saved
-    if include_spike_waveforms:
-        print('writing spiking units...', end='', flush=True)
-        ns.add_units(out_fname, session_path)
-
-        # The new add_units function using the NeuroscopeSortingExtractor does not
-        # currently allow custom columns so we open again in append mode and
-        # add them manually
-        
-        # Note there is currently a hidden assumption that the way in which the NeuroscopeSortingExtractor
-        # merges the cluster IDs matches one-to-one with the get_UnitFeatureCell_features extraction
-        
-        with NWBHDF5IO(out_fname, mode='r+') as io:
-            nwbfile = io.read()
-
-            df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
-
-            celltype_names = []
-            for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
-                                              df_unit_features['region'].values):
-                if celltype_id == 1:
-                    if region_id == 3:
-                        celltype_names.append('pyramidal cell')
-                    elif region_id == 4:
-                        celltype_names.append('granule cell')
-                    else:
-                        raise Exception('unknown type')
-                elif not np.isfinite(celltype_id):
-                    celltype_names.append('missing')
-                else:
-                    celltype_names.append(celltype_dict[celltype_id])
-
-            custom_unit_columns = [
-                {
-                    'name': 'cell_type',
-                    'description': 'name of cell type',
-                    'data': celltype_names},
-                {
-                    'name': 'global_id',
-                    'description': 'global id for cell for entire experiment',
-                    'data': df_unit_features['unitID'].values},
-                {
-                    'name': 'shank_id',
-                    'description': '',
-                    'data': df_unit_features['unitIDshank'].values},
-                #{
-                #    'name': 'max_electrode',
-                #    'description': 'electrode that has the maximum amplitude of the waveform',
-                #    'data': get_max_electrodes(nwbfile, session_path),
-                #    'table': nwbfile.electrodes
-                #}
-            ]
-
-            [nwbfile.add_unit_column(**x) for x in custom_unit_columns]
-            
-            print('writing NWB file...', end='', flush=True)
-            io.write(nwbfile, cache_spec=cache_spec)
-            print('done.')
-
-            print('done.', flush=True)
-
     print('testing read...', end='', flush=True)
     # test read
     with NWBHDF5IO(out_fname, mode='r') as io:
