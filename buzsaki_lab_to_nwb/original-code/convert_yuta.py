@@ -168,45 +168,6 @@ def parse_states(fpath):
 
     return states, state_times
 
-
-    # there are occasional mismatches between the matlab struct and the neuroscope files
-    # regions: 3: 'CA3', 4: 'DG'
-
-#    df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
-#
-#    celltype_names = []
-#    for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
-#                                      df_unit_features['region'].values):
-#        if celltype_id == 1:
-#            if region_id == 3:
-#                celltype_names.append('pyramidal cell')
-#            elif region_id == 4:
-#                celltype_names.append('granule cell')
-#            else:
-#                raise Exception('unknown type')
-#        elif not np.isfinite(celltype_id):
-#            celltype_names.append('missing')
-#        else:
-#            celltype_names.append(celltype_dict[celltype_id])
-#
-#    custom_unit_columns = [
-#        {
-#            'name': 'cell_type',
-#            'description': 'name of cell type',
-#            'data': celltype_names},
-#        {
-#            'name': 'global_id',
-#            'description': 'global id for cell for entire experiment',
-#            'data': df_unit_features['unitID'].values},
-#        {
-#            'name': 'max_electrode',
-#            'description': 'electrode that has the maximum amplitude of the waveform',
-#            'data': get_max_electrodes(nwbfile, session_path),
-#            'table': nwbfile.electrodes
-#        }]
-#
-#    ns.add_units(nwbfile, session_path, custom_unit_columns, max_shanks=max_shanks)
-    
     
 def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
              subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
@@ -268,33 +229,45 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     print('setting up electrodes...', end='', flush=True)
     hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
     lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
-    print(lfp_channel)
+    
     custom_column = [{'name': 'theta_reference',
                       'description': 'this electrode was used to calculate LFP canonical bands',
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
     
-    # Now that we have an electrode table, read and write the raw acquisition series
     print('reading raw electrode data...', end='', flush = True)
-    es_fs, all_channels_raw_es_data = ns.read_raw_es(session_path, all_shank_channels, stub=stub)
+    if stub:
+        # example recording extractor for fast testing
+        num_channels = 4
+        num_frames = 10000
+        X = np.random.normal(0, 1, (num_channels, num_frames))
+        geom = np.random.normal(0, 1, (num_channels, 2))
+        X = (X * 100).astype(int)
+        sre = se.NumpyRecordingExtractor(timeseries=X, sampling_frequency=20000, geom=geom)
+    else:
+        nre = se.NeuroscopeRecordingExtractor('{}/{}.dat'.format(session_path,session_id))
+        sre = se.SubRecordingExtractor(nre,channel_ids=all_shank_channels)
     
-    print('writing raw electrode data...', flush=True)
-    ns.write_raw_es(nwbfile, all_channels_raw_es_data, es_fs, name='ES', description='raw electrode data',
-                        electrode_inds=list(all_shank_channels))
-    
-    
-    # Use SpikeInterface SortingExtractors to get unit spike information
-    # as well as custom columns, and convert it into the nwbfile
     print('writing spiking units...', end='', flush=True)
-    nse_shank = se.NeuroscopeSortingExtractor.read_shanks(os.path.join(session_path, session_id),
-                                                          np.arange(1,nshanks+1),
-                                                          keep_mua_units=False)
-    se_allshanks = se.concatenate_sortings(nse_shank)
+    if stub:
+        spike_times = [200, 300, 400]
+        num_frames = 10000
+        allshanks = []
+        for k in range(nshanks):
+            SX = se.NumpySortingExtractor()
+            for j in range(len(spike_times)):
+                SX.add_unit(unit_id=j+1, times=np.sort(np.random.uniform(0, num_frames, spike_times[j])))
+            allshanks.append(SX)
+        se_allshanks = se.MultiSortingExtractor(allshanks)
+        se_allshanks.set_sampling_frequency(20000)
+    else:
+        se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path,keep_mua_units=False)
     
     electrode_group = []
     for shankn in np.arange(1, nshanks+1, dtype=int):
-        for id in nse_shank[shankn-1].get_unit_ids():
+        for id in se_allshanks.sortings[shankn-1].get_unit_ids():
             electrode_group.append(nwbfile.electrode_groups['shank' + str(shankn)])
+    max_electrodes = get_max_electrodes(nwbfile, session_path)
 
     df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
 
@@ -317,19 +290,34 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
         # Note there is currently a hidden assumption that the way in which the NeuroscopeSortingExtractor
         # merges the cluster IDs matches one-to-one with the get_UnitFeatureCell_features extraction
     for id in se_allshanks.get_unit_ids():
-        se_allshanks.set_unit_property(id, 'cell_type', celltype_names[id])
-        se_allshanks.set_unit_property(id, 'global_id', df_unit_features['unitID'].values[id])
-        se_allshanks.set_unit_property(id, 'shank_id', df_unit_features['unitIDshank'].values[id]-2) # -2 b/c the get_UnitFeatureCell_features removes 0 and 1 IDs from each shank
-        se_allshanks.set_unit_property(id, 'electrode_group', electrode_group[id])
+        descriptions = [
+        {
+            'name': 'cell_type',
+            'description': 'name of cell type',
+            'data': celltype_names[id]},
+        {
+            'name': 'global_id',
+            'description': 'global id for cell for entire experiment',
+            'data': df_unit_features['unitID'].values[id]},
+        {
+            'name': 'electrode_group',
+            'description': 'the electrode group that each spike unit came from',
+            'data': electrode_group[id]},
+        {
+            'name': 'max_electrode',
+            'description': 'electrode that has the maximum amplitude of the waveform',
+            'data': max_electrodes[id]}
+        ]
         
-        # Can't figure out why the max_electrodes isn't working properly. Errors indicate indexing issue in the dynamic table, which is all code that I haven't altered...
-#         se_allshanks.set_unit_property(id, 'max_electrode', get_max_electrodes(nwbfile, session_path)[id])
+        property_names = ['cell_type_info','global_id_info','electrode_group_info','max_electrode_info']
+        for j in range(len(property_names)):
+            se_allshanks.set_unit_property(id, property_names[j], descriptions[j])
         
     # Convert the data in the SortingExtractor to the NWB file
     con = se2nwb.SpikeExtractor2NWBConverter(nwbfile, {}, {})
     con.SX = se_allshanks
+    con.RX = sre
     con.run_conversion()
-        
 
     # Read and write LFP's
     print('reading LFPs...', end='', flush=True)

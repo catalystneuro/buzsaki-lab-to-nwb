@@ -70,7 +70,7 @@ class SpikeExtractor2NWBConverter(NWBConverter):
             for id in ids:
                 spkt = self.SX.get_unit_spike_train(unit_id=id) / fs
                 if 'waveforms' in self.SX.get_unit_spike_feature_names(unit_id=id):
-                    if 'electrode_group' in self.SX.get_unit_property_names(unit_id=id):
+                    if 'electrode_group_info' in self.SX.get_unit_property_names(unit_id=id):
                         # Stores average and std of spike traces
                         wf = self.SX.get_unit_spike_features(unit_id=id,
                                                              feature_name='waveforms')
@@ -84,7 +84,7 @@ class SpikeExtractor2NWBConverter(NWBConverter):
                             spike_times=spkt,
                             waveform_mean=traces_avg,
                             waveform_sd=traces_std,
-                            electrode_group=self.SX.get_unit_property(id,'electrode_group')
+                            electrode_group=self.SX.get_unit_property(id,'electrode_group_info')['data']
                         )
                     else:
                         # Stores average and std of spike traces
@@ -102,51 +102,38 @@ class SpikeExtractor2NWBConverter(NWBConverter):
                             waveform_sd=traces_std
                         )
                 else:
-                    if 'electrode_group' in self.SX.get_unit_property_names(unit_id=id):
-                        self.nwbfile.add_unit(id=id, spike_times=spkt, electrode_group=self.SX.get_unit_property(id,'electrode_group'))
+                    if 'electrode_group_info' in self.SX.get_unit_property_names(unit_id=id):
+                        self.nwbfile.add_unit(id=id, spike_times=spkt,
+                                              electrode_group=self.SX.get_unit_property(id,'electrode_group_info')['data'])
                     else: 
                         self.nwbfile.add_unit(id=id, spike_times=spkt)
         # Extract and add custom column data from unit properties
-        descriptions = [
-            {
-                'name': 'cell_type',
-                'description': 'name of cell type'},
-            {
-                'name': 'global_id',
-                'description': 'global id for cell for entire experiment'},
-            {
-                'name': 'shank_id',
-                'description': '0-indexed id of cluster of shank'},
-#             {
-#                'name': 'electrode_group',
-#                'description': 'the electrode group that each spike unit came from'},
-            {
-               'name': 'max_electrode',
-               'description': 'electrode that has the maximum amplitude of the waveform'
-            }
-        ]
+        # Use ID zero as base case, and assume all other IDs have those same unit properties
         property_names = self.SX.get_unit_property_names(0)
-        if 'electrode_group' in property_names:
-            property_names.remove('electrode_group')
+        if 'electrode_group_info' in property_names:
+            property_names.remove('electrode_group_info')
         custom_unit_columns = []
-        for unit_property in property_names: # Use ID zero as base case, and assume all other IDs have those same unit properties
+        for unit_property in property_names:
             custom_unit_column = []
             for id in self.SX.get_unit_ids():
-                custom_unit_column.append(self.SX.get_unit_property(id,unit_property))
-        
-            this_description = list(filter(lambda description: description['name'] == unit_property, descriptions))
+                this_info = self.SX.get_unit_property(id,unit_property)
+                custom_unit_column.append(this_info['data'])
             
-            if unit_property=='max_electrode':
-                custom_unit_columns.append({'name': unit_property,
-                                            'description': this_description[0]['description'],
+            if unit_property=='max_electrode_info':
+                custom_unit_columns.append({'name': this_info['name'], # ToDo: unit property name
+                                            'description': this_info['description'], # ToDo: 'no description'
                                             'data': custom_unit_column,
                                             'table': self.nwbfile.electrodes})
             else:
-                custom_unit_columns.append({'name': unit_property,
-                                            'description': this_description[0]['description'],
+                # technically using the names and description present in the final id
+                custom_unit_columns.append({'name': this_info['name'],
+                                            'description': this_info['description'],
                                             'data': custom_unit_column})
         
-#         if not custom_unit_columns:
+        custom_unit_columns.append({'name': 'shank_id',
+                                   'description': '0-indexed id of cluster of shank',
+                                   'data': [unit_dict['unit_id']-1 for ind,unit_dict in self.SX._unit_map.items()]}) # ToDo: should make a get_unit_map() function in spikeextractor
+        
         [self.nwbfile.add_unit_column(**x) for x in custom_unit_columns]
             
             

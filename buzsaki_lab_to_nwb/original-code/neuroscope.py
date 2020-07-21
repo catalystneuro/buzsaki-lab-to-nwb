@@ -494,8 +494,7 @@ def read_lfp(session_path, stub=False):
     fpath_base, fname = os.path.split(session_path)
     lfp_filepath = os.path.join(session_path, fname + '.eeg')
 
-    all_channels_data = np.fromfile(lfp_filepath, dtype='int'+str(bitType)).reshape(-1, n_channels)
-    # Cody: the only reason this method is possible is b/c this particular .eeg is small enough to fit in RAM
+    all_channels_data = np.fromfile(lfp_filepath, dtype='int'+str(bit_type)).reshape(-1, n_channels)
 
     return lfp_fs, all_channels_data
 
