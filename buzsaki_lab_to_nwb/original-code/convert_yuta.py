@@ -247,8 +247,12 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     else:
         nre = se.NeuroscopeRecordingExtractor('{}/{}.dat'.format(session_path,session_id))
         sre = se.SubRecordingExtractor(nre,channel_ids=all_shank_channels)
+        
+    print('writing raw electrode data...', end='', flush=True)
+    nwbfile = se.NwbRecordingExtractor.add_electrical_series(sre,nwbfile,{})
+    print('done.')
     
-    print('writing spiking units...', end='', flush=True)
+    print('reading spiking units...', end='', flush=True)
     if stub:
         spike_times = [200, 300, 400]
         num_frames = 10000
@@ -310,14 +314,9 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
         ]
         
         property_names = ['cell_type_info','global_id_info','electrode_group_info','max_electrode_info']
+        se_allshanks._properties = {}
         for j in range(len(property_names)):
             se_allshanks.set_unit_property(id, property_names[j], descriptions[j])
-        
-    # Convert the data in the SortingExtractor to the NWB file
-    con = se2nwb.SpikeExtractor2NWBConverter(nwbfile, {}, {})
-    con.SX = se_allshanks
-    con.RX = sre
-    con.run_conversion()
 
     # Read and write LFP's
     print('reading LFPs...', end='', flush=True)
@@ -478,7 +477,11 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     with NWBHDF5IO(out_fname, mode='w') as io:
         io.write(nwbfile, cache_spec=cache_spec)
     print('done.')
-        
+    
+    print('writing spiking units...', end='', flush=True)
+    se.NwbSortingExtractor.write_sorting(se_allshanks,out_fname)
+    print('done.')
+    
     print('testing read...', end='', flush=True)
     # test read
     with NWBHDF5IO(out_fname, mode='r') as io:
