@@ -18,9 +18,8 @@ from scipy.io import loadmat
 
 import spikeextractors as se
 import neuroscope as ns
-import SpikeExtractor2Nwb as se2nwb
 
-from utils import find_discontinuities, check_module
+from ns_utils import find_discontinuities, check_module
 
 
 # taken from ReadMe

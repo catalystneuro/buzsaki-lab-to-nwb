@@ -1,13 +1,11 @@
-from abc import abstractmethod
+
 from copy import deepcopy
-
-from nwb_conversion_tools.utils import get_schema_from_method_signature, get_schema_from_hdmf_class
-
-
+from nwb_conversion_tools_utils import get_schema_from_hdmf_class
+from pynwb.file import NWBFile, Subject
 
 base_schema = dict(
     required=[],
-    properties=[],
+    properties={},
     type='object',
     additionalProperties='false')
 
@@ -25,7 +23,7 @@ class NWBConverter:
         """Compile input schemas from each of the data interface classes"""
         input_schema = deepcopy(root_schema)
         for name, data_interface in cls.data_interface_classes.items():
-            input_schema['properties'].append(data_interface.get_input_schema())
+            input_schema['properties'].update(data_interface.get_input_schema())
         return input_schema
     
     def __init__(self, **input_paths):
@@ -35,15 +33,15 @@ class NWBConverter:
         
     def get_metadata_schema(self):
         """Compile metadata schemas from each of the data interface objects"""
-        
         metadata_schema = deepcopy(root_schema)
-        default_metadata_schema['properties'] = dict(
+        metadata_schema['properties'] = dict(
             NWBFile=get_schema_from_hdmf_class(NWBFile),
             Subject=get_schema_from_hdmf_class(Subject)
         )
         for name, data_interface in self.data_interface_objects.items():
-            metadata_schema['properties'].append(dict(name=data_interface.get_metadata_schema()))
-            metadata_schema['required'].append(name)
+            metadata_schema['properties'].update(data_interface.get_metadata_schema()['properties'])
+            for field in data_interface.get_metadata_schema()['required']:
+                metadata_schema['required'].append(field)
             
         return metadata_schema
 
