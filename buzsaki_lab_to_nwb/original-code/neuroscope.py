@@ -20,7 +20,7 @@ from tqdm import tqdm
 # have to do this locally for a dev installation for now
 import spikeextractors as se
 
-from utils import check_module
+from ns_utils import check_module
 
 
 def load_xml(filepath):

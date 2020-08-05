@@ -252,7 +252,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     print('done.')
     
     print('reading spiking units...', end='', flush=True)
-    if stub:
+    if not stub:
         spike_times = [200, 300, 400]
         num_frames = 10000
         allshanks = []
@@ -264,7 +264,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
         se_allshanks = se.MultiSortingExtractor(allshanks)
         se_allshanks.set_sampling_frequency(20000)
     else:
-        se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path,keep_mua_units=False)
+        se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path, keep_mua_units=False)
     
     electrode_group = []
     for shankn in np.arange(1, nshanks+1, dtype=int):
@@ -292,30 +292,24 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     # Add custom column data into the SortingExtractor so it can be written by the converter
         # Note there is currently a hidden assumption that the way in which the NeuroscopeSortingExtractor
         # merges the cluster IDs matches one-to-one with the get_UnitFeatureCell_features extraction
-    for id in se_allshanks.get_unit_ids():
-        descriptions = [
-        {
-            'name': 'cell_type',
-            'description': 'name of cell type',
-            'data': celltype_names[id]},
-        {
-            'name': 'global_id',
-            'description': 'global id for cell for entire experiment',
-            'data': df_unit_features['unitID'].values[id]},
-        {
-            'name': 'electrode_group',
-            'description': 'the electrode group that each spike unit came from',
-            'data': electrode_group[id]},
-        {
-            'name': 'max_electrode',
-            'description': 'electrode that has the maximum amplitude of the waveform',
-            'data': max_electrodes[id]}
-        ]
-        
-        property_names = ['cell_type_info','global_id_info','electrode_group_info','max_electrode_info']
-        se_allshanks._properties = {}
-        for j in range(len(property_names)):
-            se_allshanks.set_unit_property(id, property_names[j], descriptions[j])
+    property_descriptions = {'cell_type': 'name of cell type',
+                            'global_id': 'global id for cell for entire experiment',
+                            'shank_id': '0-indexed id of cluster of shank',
+                            'electrode_group': 'the electrode group that each spike unit came from',
+                            'max_electrode': 'electrode that has the maximum amplitude of the waveform'}
+    property_values = {'cell_type': celltype_names,
+                            'global_id': df_unit_features['unitID'].values,
+                            'shank_id': [x - 2 for x in df_unit_features['unitIDshank'].values],
+                            # - 2 b/c the get_UnitFeatureCell_features removes 0 and 1 IDs from each shank
+                            'electrode_group': electrode_group,
+                            'max_electrode': max_electrodes}
+    for unit_id in se_allshanks.get_unit_ids():
+        for property_name in property_descriptions.keys():
+            se_allshanks.set_unit_property(unit_id, property_name, property_values[property_name][unit_id])
+            
+    se.NwbSortingExtractor.write_sorting(se_allshanks, nwbfile = nwbfile,
+                                         property_descriptions = property_descriptions)
+    print('done.')
 
     # Read and write LFP's
     print('reading LFPs...', end='', flush=True)
@@ -475,10 +469,6 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
 
     with NWBHDF5IO(out_fname, mode='w') as io:
         io.write(nwbfile, cache_spec=cache_spec)
-    print('done.')
-    
-    print('writing spiking units...', end='', flush=True)
-    se.NwbSortingExtractor.write_sorting(se_allshanks,out_fname)
     print('done.')
     
     print('testing read...', end='', flush=True)
