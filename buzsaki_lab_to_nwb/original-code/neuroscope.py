@@ -357,7 +357,7 @@ def write_electrode_table(nwbfile, session_path, electrode_positions=None,
         nwbfile.add_electrode_column(custom_column['name'],
                                      custom_column['description'])
 
-    device = nwbfile.create_device('implant', fname + '.xml')
+    device = nwbfile.create_device('implant', fname + '.xml') # Cody, NewRef: Done
     for shankn, channels in enumerate(shank_channels):
         shankn += 1
         electrode_group = nwbfile.create_electrode_group(

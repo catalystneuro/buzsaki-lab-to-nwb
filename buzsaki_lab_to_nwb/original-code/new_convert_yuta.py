@@ -8,11 +8,15 @@ input_file_schema = BuzsakiLabNWBConverter.get_input_schema()
 
 # construct input_args dict according to input schema, e.g.: 
 input_args = {'NeuroscopeRecording': {'file_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903/YutaMouse41-150903.dat"},
-              'NeuroscopeSorting': {'file_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"}}
+              'NeuroscopeSorting': {'folder_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903", 
+                                    'keep_mua_units': False}}
 
 buzlab_converter = BuzsakiLabNWBConverter(**input_args)
 
 expt_json_schema = buzlab_converter.get_metadata_schema()
+
+# expt_json_schema does not indicate device linking in ElectrodeGroup.
+# Also out of place 'type' in property levels?
 
 # construct metadata_dict according to expt_json_schema, e.g. 
 metadata_dict = {
@@ -33,19 +37,26 @@ metadata_dict = {
             'genotype': 'POMC-Cre::Arch',
             'species': 'mouse' # should be Mus musculus?
     },
-    'neuroscope': {
-        'Device': {
-            'name': 'implant',
-            'description': 'no description'
-        },
-        'ElectrodeGroup': {
-            'name': 'electrodes',
-            'description': 'no description'
-        },        
-        'ElectricalSeries': {
-            'name': 'ElectricalSeries',
-            'description': 'no description'
+    'NeuroscopeRecording': {
+        'Ecephys': {
+            # NwbRecordingExtractor expects metadata to be lists of dictionaries
+            'Device': [{
+                'name': 'implant',
+                'description': 'YutaMouse41-150903.xml'
+            }],
+            'ElectrodeGroup': [{
+                'name': f'shank{n+1}',
+                'description': f'shank{n+1} electrodes',
+                'location': 'unknown',
+                'device': 'implant'
+            } for n,a in enumerate(range(8))] # We know there are 8 shanks, but how best to integrate an auto-detect in here? i.e., at what point do we incorporate the xml info?
         }
+        # 'ElectricalSeries': {
+        #     'name': 'ElectricalSeries',
+        #     'description': 'no description'
+        # }
+    },
+    'NeuroscopeSorting': {
     }
 }
 
