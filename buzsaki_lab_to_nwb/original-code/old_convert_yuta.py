@@ -229,10 +229,12 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
     lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
     
+    # Cody, NewRef: Done 1
     custom_column = [{'name': 'theta_reference',
                       'description': 'this electrode was used to calculate LFP canonical bands',
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
+    # Cody, NewRef: Done 1
     
     print('reading raw electrode data...', end='', flush = True)
     if stub:

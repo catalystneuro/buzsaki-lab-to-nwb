@@ -351,19 +351,24 @@ def write_electrode_table(nwbfile, session_path, electrode_positions=None,
     shank_channels = get_shank_channels(session_path)
     if max_shanks:
         shank_channels = shank_channels[:max_shanks]
+    
+    # Cody, NewRef: Done 3
     nwbfile.add_electrode_column('shank_electrode_number', '1-indexed channel within a shank')
     nwbfile.add_electrode_column('amp_channel', 'order in which the channels were plugged into amp')
     for custom_column in custom_columns:
         nwbfile.add_electrode_column(custom_column['name'],
                                      custom_column['description'])
+    # Cody, NewRef: Done 3
 
-    device = nwbfile.create_device('implant', fname + '.xml') # Cody, NewRef: Done
+    device = nwbfile.create_device('implant', fname + '.xml') # Cody, NewRef: Done 2
     for shankn, channels in enumerate(shank_channels):
         shankn += 1
         electrode_group = nwbfile.create_electrode_group(
             name='shank{}'.format(shankn),
             description='shank{} electrodes'.format(shankn),
-            device=device, location='unknown')
+            device=device, location='unknown') # Cody, NewRef: Done 2
+        
+        # TODO
         for shank_electrode_number, amp_channel in enumerate(channels):
             if electrode_positions is not None:
                 pos = electrode_positions[amp_channel]
@@ -393,6 +398,7 @@ def write_electrode_table(nwbfile, session_path, electrode_positions=None,
                 imp=imp, location=location, filtering=filtering,
                 group=electrode_group, amp_channel=amp_channel,
                 shank_electrode_number=shank_electrode_number, **custom_data)
+            #TODO
 
             
 def read_raw_es(session_path,all_shank_channels,stub=False):
