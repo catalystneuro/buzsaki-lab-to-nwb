@@ -23,6 +23,7 @@ from ns_utils import find_discontinuities, check_module
 
 
 # taken from ReadMe
+# Cody: Done start
 celltype_dict = {
     0: 'unknown',
     1: 'granule cells (DG) or pyramidal cells (CA3)  (need to use region info. see below.)',
@@ -37,7 +38,6 @@ celltype_dict = {
 }
 
 max_shanks = 8
-
 
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shanks=max_shanks):
     """Load features from matlab file. Handle occasional mismatches
@@ -96,6 +96,7 @@ task_types = [
 ]
 
 
+
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
     df = pd.read_csv(hilus_csv_path)
     if session_id in df['session name'].values:
@@ -141,8 +142,10 @@ def get_max_electrodes(nwbfile, session_path, max_shanks=max_shanks):
         for i in range(len(set(df['id']))):
             elec_ids.append(elec_idx)
     return elec_ids
+# Cody: Done end
 
 
+# TODO: start
 def parse_states(fpath):
 
     state_map = {'H': 'Home', 'M': 'Maze', 'St': 'LDstim',
@@ -167,10 +170,13 @@ def parse_states(fpath):
 
     return states, state_times
 
+# TODO: end
+
     
 def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
              subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
 
+    # Cody: Done start
     subject_path, session_id = os.path.split(session_path)
     fpath_base = os.path.split(subject_path)[0]
     identifier = session_id
@@ -229,12 +235,11 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
     lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
     
-    # Cody, NewRef: Done 1
+    
     custom_column = [{'name': 'theta_reference',
                       'description': 'this electrode was used to calculate LFP canonical bands',
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
-    # Cody, NewRef: Done 1
     
     print('reading raw electrode data...', end='', flush = True)
     if stub:
@@ -312,7 +317,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     se.NwbSortingExtractor.write_sorting(se_allshanks, nwbfile = nwbfile,
                                          property_descriptions = property_descriptions)
     print('done.')
-
+    
     # Read and write LFP's
     print('reading LFPs...', end='', flush=True)
     lfp_fs, all_channels_lfp_data = ns.read_lfp(session_path, stub=stub)
@@ -462,6 +467,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
 
         check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)
         
+    # Cody: Done end
 
     print('writing NWB file...', end='', flush=True)        
     if stub:

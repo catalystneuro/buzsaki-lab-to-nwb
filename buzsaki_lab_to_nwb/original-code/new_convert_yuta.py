@@ -7,7 +7,8 @@ input_file_schema = Buz2Nwb.BuzsakiLabNWBConverter.get_input_schema()
 # construct input_args dict according to input schema, e.g.: 
 input_args = {'NeuroscopeRecording': {'file_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903/YutaMouse41-150903.dat"},
               'NeuroscopeSorting': {'folder_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903", 
-                                    'keep_mua_units': False}}
+                                    'keep_mua_units': False},
+              'BuzsakiLabBehavioral': {}}
 
 buzlab_converter = Buz2Nwb.BuzsakiLabNWBConverter(**input_args)
 

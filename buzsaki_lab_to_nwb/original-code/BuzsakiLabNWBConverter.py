@@ -9,6 +9,7 @@ from dateutil.parser import parse as dateparse
 from pathlib import Path
 from typing import Union
 from scipy.io import loadmat
+import BuzsakiLabBehavioralDataInterface
 
 PathType = Union[str, Path, None]
 
@@ -204,7 +205,8 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path):
 
 class BuzsakiLabNWBConverter(NWBConverter):
     data_interface_classes = {'NeuroscopeRecording': NeuroscopeDataInterface.NeuroscopeRecordingInterface,
-                              'NeuroscopeSorting': NeuroscopeDataInterface.NeuroscopeSortingInterface}
+                              'NeuroscopeSorting': NeuroscopeDataInterface.NeuroscopeSortingInterface,
+                              'BuzsakiLabBehavioral': BuzsakiLabBehavioralDataInterface.BuzsakiLabBehavioralDataInterface}
     
     
     def __init__(self, **input_paths):
@@ -231,7 +233,7 @@ class BuzsakiLabNWBConverter(NWBConverter):
         
         subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
         hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
-        lfp_channels = get_reference_elec(subject_xls,
+        lfp_channel = get_reference_elec(subject_xls,
                                           hilus_csv_path,
                                           dateparse(date_text, yearfirst = True),
                                           session_id,
@@ -277,6 +279,22 @@ class BuzsakiLabNWBConverter(NWBConverter):
             df = get_clusters_single_shank(session_path, shankn+1)
             for shank_id, idf in df.groupby('id'):
                 sorting_electrode_groups.append('shank' + str(shankn+1))
+                
+                
+        special_electrode_dict = {'ch_wait': 79, 'ch_arm': 78, 'ch_solL': 76,
+                          'ch_solR': 77, 'ch_dig1': 65, 'ch_dig2': 68,
+                          'ch_entL': 72, 'ch_entR': 71, 'ch_SsolL': 73,
+                          'ch_SsolR': 70}
+        
+        task_types = [
+            {'name': 'OpenFieldPosition_ExtraLarge'},
+            {'name': 'OpenFieldPosition_New_Curtain', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_New', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_Old_Curtain', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_Old', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_Oldlast', 'conversion': 0.46},
+            {'name': 'EightMazePosition', 'conversion': 0.65 / 2}
+        ]
     
         metadata = {
             'NWBFile': {
@@ -307,7 +325,7 @@ class BuzsakiLabNWBConverter(NWBConverter):
                         {
                             'name': 'theta_reference',
                             'description': 'this electrode was used to calculate LFP canonical bands',
-                            'data':  list(np.concatenate(shank_channels) == lfp_channels)
+                            'data':  list(np.concatenate(shank_channels) == lfp_channel)
                         },
                         {
                             'name': 'shank_electrode_number',
@@ -359,6 +377,13 @@ class BuzsakiLabNWBConverter(NWBConverter):
                     #     'data': max_electrodes
                     # }
                   ]
+            },
+            'BuzsakiLabBehavioral': {
+                'shank_channels': np.concatenate(shank_channels),
+                'special_electrode_dict': special_electrode_dict,
+                'lfp_channel': lfp_channel,
+                'nshanks': len(shank_channels),
+                'task_types': task_types
             }
         }
             
