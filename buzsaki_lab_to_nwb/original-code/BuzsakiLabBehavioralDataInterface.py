@@ -1,32 +1,29 @@
 
-from copy import deepcopy
 from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
 from nwb_conversion_tools.BaseDataInterface import BaseDataInterface
-from pynwb.behavior import SpatialSeries,Position
-import numpy as np
 from pynwb import NWBFile, TimeSeries
-from pathlib import Path
-from typing import Union
+from pynwb.file import TimeIntervals
+from pynwb.behavior import SpatialSeries,Position
+from pynwb.ecephys import ElectricalSeries, LFP, SpikeEventSeries
+from pynwb.misc import DecompositionSeries, AnnotationSeries
+from hdmf.backends.hdf5.h5_utils import H5DataIO
+from hdmf.data_utils import DataChunkIterator
 import os
 import pandas as pd
-from hdmf.backends.hdf5.h5_utils import H5DataIO
-from bs4 import BeautifulSoup
-from hdmf.data_utils import DataChunkIterator
+import numpy as np
+from scipy.io import loadmat
 from tqdm import tqdm
 from glob import glob
-from pynwb.ecephys import ElectricalSeries, LFP, SpikeEventSeries
-
+from copy import deepcopy
+from pathlib import Path
+from typing import Union
 # TODO: there doesn't seem to be a pypi for ephys_analysis... copy entire library here or just these functions?
 from ephys_analysis.band_analysis import filter_lfp, hilbert_lfp
-
-from pynwb.misc import DecompositionSeries, AnnotationSeries
-from scipy.io import loadmat
-from pynwb.file import TimeIntervals
 
 PathType = Union[str, Path, None]
 
 
-def add_position_data(nwbfile, session_path, names, fs):
+def add_position_data(nwbfile, session_path, position_sensor_info, fs):
     '''
     Read raw position sensor data from .whl file
 
@@ -39,104 +36,34 @@ def add_position_data(nwbfile, session_path, names, fs):
     names: iterable
         names of column headings
     '''
-    session_name = os.path.split(session_path)[1]
-    whl_path = os.path.join(session_path, session_name + '.whl')
+    session_id = os.path.split(session_path)[1]
+    whl_path = os.path.join(session_path, session_id + '.whl')
+    
     if not os.path.isfile(whl_path):
         print('Warning: File not found (' + whl_path + ')!')
         return
-    df = pd.read_csv(whl_path, sep='\t', names=names)
-
-    nwbfile.add_acquisition(
-        SpatialSeries('position_sensor0',
-                      H5DataIO(df[[names[0], names[1]]].values, compression='gzip'),
-                      'unknown', description='raw sensor data from sensor 0',
-                      rate = fs,
-                      starting_time = 0.,
-                      resolution=np.nan))
-
-    nwbfile.add_acquisition(
-        SpatialSeries('position_sensor1',
-                      H5DataIO(df[[names[2], names[3]]].values, compression='gzip'),
-                      'unknown', description='raw sensor data from sensor 1',
-                      rate = fs,
-                      starting_time = 0.,
-                      resolution=np.nan))
     
+    special_sensor_colnames = ()
+    for position_sensor in position_sensor_info:
+        special_sensor_colnames+=(position_sensor['colnames'][0],position_sensor['colnames'][1])
+        
+    df = pd.read_csv(whl_path, sep='\t', names=special_sensor_colnames)
     
-def load_xml(filepath):
-    with open(filepath, 'r') as xml_file:
-        contents = xml_file.read()
-        soup = BeautifulSoup(contents, 'xml')
-    return soup
-
-    
-def get_lfp_sampling_rate(session_path=None, xml_filepath=None):
-    """Reads the LFP Sampling Rate from the xml parameter file of the
-    Neuroscope format
-
-    Parameters
-    ----------
-    session_path: str
-    xml_filepath: None | str (optional)
-
-    Returns
-    -------
-    fs: float
-
-    """
-
-    if xml_filepath is None:
-        session_name = os.path.split(session_path)[1]
-        xml_filepath = os.path.join(session_path, session_name + '.xml')
-
-    return float(load_xml(xml_filepath).lfpSamplingRate.string)
-
-def get_n_channels(session_path=None, xml_filepath=None):
-    """Reads the number of channels from the xml parameter file of the
-    Neuroscope format
-
-    Parameters
-    ----------
-    session_path: str
-    xml_filepath: None | str (optional)
-
-    Returns
-    -------
-    fs: int
-
-    """
-
-    if xml_filepath is None:
-        session_name = os.path.split(session_path)[1]
-        xml_filepath = os.path.join(session_path, session_name + '.xml')
-
-    return int(load_xml(xml_filepath).nChannels.string)
+    #TODO: some error checking on this
+    for position_sensor in position_sensor_info:
+        nwbfile.add_acquisition(
+            SpatialSeries(position_sensor['name'],
+                          H5DataIO(df[[position_sensor['colnames'][0], position_sensor['colnames'][1]]].values,
+                                   compression='gzip'),
+                          reference_frame=position_sensor['reference_frame'],
+                          description=position_sensor['description'],
+                          rate = fs,
+                          starting_time = 0.,
+                          resolution=np.nan))
 
 
-
-def get_bit_type(session_path=None, xml_filepath=None):
-    """Reads the bit type usued to record data from the xml parameter file of the
-    Neuroscope format
-
-    Parameters
-    ----------
-    session_path: str
-    xml_filepath: None | str (optional)
-
-    Returns
-    -------
-    fs: int
-
-    """
-
-    if xml_filepath is None:
-        session_name = os.path.split(session_path)[1]
-        xml_filepath = os.path.join(session_path, session_name + '.xml')
-
-    return int(load_xml(xml_filepath).nBits.string)
-
-    
-def read_lfp(session_path: PathType, stub_test: bool = False):
+def read_lfp(session_path: PathType, n_channels: int, lfp_sampling_rate: float,
+             n_bits: int, stub_test: bool = False):
     '''
     Parameters
     ----------
@@ -144,42 +71,39 @@ def read_lfp(session_path: PathType, stub_test: bool = False):
     stub: bool, optional
         Default is False. If True, don't read full LFP, but instead a 
         truncated version of at most size (50, n_channels)
+        
     Returns
     -------
     lfp_fs, all_channels_data
-
     '''
-    lfp_fs = get_lfp_sampling_rate(session_path)
-    n_channels = get_n_channels(session_path)
-    bit_type = get_bit_type(session_path)
-
     fpath_base, fname = os.path.split(session_path)
+    #TODO: some error checking on this
     lfp_filepath = os.path.join(session_path, fname + '.eeg')
     
     if stub_test:
         max_size = 50
         all_channels_data = np.fromfile(lfp_filepath,
-                                        dtype='int'+str(bit_type),
+                                        dtype='int'+str(n_bits),
                                         count = max_size*n_channels).reshape(-1, n_channels)
     else:
         all_channels_data = np.fromfile(lfp_filepath,
-                                        dtype='int'+str(bit_type)).reshape(-1, n_channels)
-
-    return lfp_fs, all_channels_data
+                                        dtype='int'+str(n_bits)).reshape(-1, n_channels)
+    return all_channels_data
 
 
 def check_module(nwbfile, name, description=None):
-    """Check if processing module exists. If not, create it. Then return module
+    '''
+    Check if processing module exists. If not, create it. Then return module
     Parameters
     ----------
     nwbfile: pynwb.NWBFile
     name: str
     description: str | None (optional)
+    
     Returns
     -------
     pynwb.module
-    """
-
+    '''
     if name in nwbfile.modules:
         return nwbfile.modules[name]
     else:
@@ -189,7 +113,7 @@ def check_module(nwbfile, name, description=None):
 
 
 def write_lfp(nwbfile, data, fs, name='LFP', description='local field potential signal', electrode_inds=None):
-    """
+    '''
     Add LFP from neuroscope to a "ecephys" processing module of an NWBFile
 
     Parameters
@@ -204,8 +128,7 @@ def write_lfp(nwbfile, data, fs, name='LFP', description='local field potential 
     Returns
     -------
     LFP pynwb.ecephys.ElectricalSeries
-
-    """
+    '''
 
     if electrode_inds is None:
         if nwbfile.electrodes is not None and data.shape[1] <= len(nwbfile.electrodes.id.data[:]):
@@ -238,7 +161,7 @@ def write_lfp(nwbfile, data, fs, name='LFP', description='local field potential 
 
 
 def read_spike_times(session_path, shankn, fs=20000.):
-    """
+    '''
     Read .res files to get spike times
 
     Parameters
@@ -251,8 +174,7 @@ def read_spike_times(session_path, shankn, fs=20000.):
 
     Returns
     -------
-
-    """
+    '''
     _, session_name = os.path.split(session_path)
     timing_file = os.path.join(session_path, session_name + '.res.' + str(shankn))
     timing_df = pd.read_csv(timing_file, names=('time',))
@@ -261,7 +183,8 @@ def read_spike_times(session_path, shankn, fs=20000.):
 
 
 def write_spike_waveforms(nwbfile: NWBFile, session_path: PathType, shankn: int,
-                          stub_test: bool = False, compression: str = 'gzip'):
+                          spikes_nsamples: int, stub_test: bool = False, 
+                          compression: str = 'gzip'):
     '''
     Parameters
     ----------
@@ -273,7 +196,6 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: PathType, shankn: int,
     compression: str (optional)
     '''
     session_name = os.path.split(session_path)[1]
-    xml_filepath = os.path.join(session_path, session_name + '.xml')
     spk_file = os.path.join(session_path, session_name + '.spk.' + str(shankn))
     if not os.path.isfile(spk_file):
             print('Warning: Spike waveforms for shank{} not found!'.format(shankn))
@@ -284,18 +206,16 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: PathType, shankn: int,
     table_region = nwbfile.create_electrode_table_region(elec_idx, group.name + ' region')
 
     nchan = len(elec_idx)
-    soup = load_xml(xml_filepath)
-    nsamps = int(soup.spikes.nSamples.string)
 
     if stub_test:
         max_size = 50
         spks = np.fromfile(spk_file,
                            dtype=np.int16,
-                           count=max_size*nsamps*nchan).reshape(-1, nsamps, nchan)
+                           count=max_size*spikes_nsamples*nchan).reshape(-1, spikes_nsamples, nchan)
         spike_times = read_spike_times(session_path, shankn).reshape(spks.size)
     else:
         spks = np.fromfile(spk_file,
-                           dtype=np.int16).reshape(-1, nsamps, nchan)
+                           dtype=np.int16).reshape(-1, spikes_nsamples, nchan)
         spike_times = read_spike_times(session_path, shankn)
         
     if compression:
@@ -317,16 +237,16 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: PathType, shankn: int,
     
     
 def get_events(session_path, suffixes=None):
-    """
+    '''
     Parameters
     ----------
     session_path: str
     suffixes: Iterable(str), optional
         The 3-letter names for the events to write. If None, detect all in session_path
-
-    """
+    '''
     session_name = os.path.split(session_path)[1]
 
+    # TODO: add error checking here
     if suffixes is None:
         evt_files = glob(os.path.join(session_path, session_name) + '.evt.*') + \
                     glob(os.path.join(session_path, session_name) + '.*.evt')
@@ -386,76 +306,84 @@ class BuzsakiLabBehavioralDataInterface(BaseDataInterface):
         for field in required_fields:
             metadata_schema['required'].append(field)
         
-        return metadata_schema # RecordingExtractor metadata json-schema here.
-    
-    
-    def get_metadata(self, session_path: PathType, metadata: dict = None):
-        pass
+        return metadata_schema
     
     
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False, include_spike_waveforms: bool = False):
-        # TODO: generalize this and check/enforce format
+        # TODO: check/enforce format?
+        session_path = "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"
         all_shank_channels = metadata_dict['shank_channels']
-        special_electrode_dict = metadata_dict['special_electrode_dict']
+        special_electrode_dict = metadata_dict['special_electrodes']
         lfp_channel = metadata_dict['lfp_channel']
         nshanks = metadata_dict['nshanks']
         task_types = metadata_dict['task_types']
+        spikes_nsamples = metadata_dict['spikes_nsamples']
+        n_channels = metadata_dict['n_channels']
+        lfp_sampling_rate = metadata_dict['lfp_sampling_rate']
+        n_bits = metadata_dict['n_bits']
+        fs = lfp_sampling_rate / spikes_nsamples
+        position_sensor_info = metadata_dict['position_sensor_info']
         
-        # TODO: temporary
-        fs = 1250 / 32
-        names=('x0', 'y0', 'x1', 'y1')
-        session_path = "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]
         
-        add_position_data(nwbfile, session_path, names, fs)
-        lfp_fs, all_channels_lfp_data = read_lfp(session_path, stub_test=stub_test)
+        add_position_data(nwbfile, session_path, position_sensor_info, fs)
+        
+        all_channels_lfp_data = read_lfp(session_path, n_channels=n_channels,
+                                         lfp_sampling_rate=lfp_sampling_rate,
+                                         n_bits=n_bits, stub_test=stub_test)
         lfp_data = all_channels_lfp_data[:, all_shank_channels]
-        lfp_ts = write_lfp(nwbfile, lfp_data, lfp_fs, name='lfp',
-                              description='lfp signal for all shank electrodes')
-    
-        for name, channel in special_electrode_dict.items():
-            ts = TimeSeries(name=name,
-                            description='environmental electrode recorded inline with neural data',
-                            data=all_channels_lfp_data[:, channel], rate=lfp_fs, unit='V',
-                            #conversion=np.nan, 
+        lfp_ts = write_lfp(nwbfile, lfp_data, lfp_sampling_rate,
+                           name=metadata_dict['lfp']['name'],
+                           description=metadata_dict['lfp']['description'])
+        
+        # TODO: error checking on format?
+        for special_electrode in special_electrode_dict:
+            ts = TimeSeries(name=special_electrode['name'],
+                            description=special_electrode['description'],
+                            data=all_channels_lfp_data[:, special_electrode['channel']],
+                            rate=lfp_sampling_rate, unit='V',
                             resolution=np.nan)
             nwbfile.add_acquisition(ts)
     
         all_lfp_phases = []
         for passband in ('theta', 'gamma'):
-            lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(), lfp_fs, passband=passband)
+            lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(), lfp_sampling_rate, passband=passband)
             lfp_phase, _ = hilbert_lfp(lfp_fft)
             all_lfp_phases.append(lfp_phase[:, np.newaxis])
-        data = np.dstack(all_lfp_phases)
+        decomp_series_data = np.dstack(all_lfp_phases)
     
+        # TODO: technically, not tested; also might be replaced with the new doubly jagged features?
         if include_spike_waveforms:
             for shankn in np.arange(nshanks, dtype=int) + 1:
-                write_spike_waveforms(nwbfile, session_path, shankn, stub_test=stub_test)
+                write_spike_waveforms(nwbfile, session_path, shankn=shankn,
+                                      spikes_nsamples=spikes_nsamples, stub_test=stub_test)
     
-        decomp_series = DecompositionSeries(name='LFPDecompositionSeries',
-                                            description='Theta and Gamma phase for reference LFP',
-                                            data=data, rate=lfp_fs,
+        decomp_series = DecompositionSeries(name=metadata_dict['lfp_decomposition']['name'],
+                                            description=metadata_dict['lfp_decomposition']['description'],
+                                            data=decomp_series_data,
+                                            rate=lfp_sampling_rate,
                                             source_timeseries=lfp_ts,
-                                            metric='phase', unit='radians')
+                                            metric='phase', unit='radians') # TODO: should units or metrics be metadata?
         decomp_series.add_band(band_name='theta', band_limits=(4, 10))
         decomp_series.add_band(band_name='gamma', band_limits=(30, 80))
     
+        # TODO: check what this really does, and if it can be refactored at all
         check_module(nwbfile, 'ecephys', 'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
     
         [nwbfile.add_stimulus(x) for x in get_events(session_path)]
     
         # create epochs corresponding to experiments/environments for the mouse
-    
+        
         sleep_state_fpath = os.path.join(session_path, '{}--StatePeriod.mat'.format(session_id))
-    
+        
         exist_pos_data = any(os.path.isfile(os.path.join(session_path, '{}__{}.mat'.format(session_id, task_type['name'])))
                              for task_type in task_types)
-    
+        
         if exist_pos_data:
             nwbfile.add_epoch_column('label', 'name of epoch')
-    
+            
         for task_type in task_types:
             label = task_type['name']
     
@@ -511,20 +439,20 @@ class BuzsakiLabBehavioralDataInterface(BaseDataInterface):
                     cond = 'run_right'
                 nwbfile.add_trial(start_time=trial_data[0], stop_time=trial_data[1], condition=cond,
                                   error_run=trial_data[4], stim_run=trial_data[5], both_visit=trial_data[6])
-        """
-        mono_syn_fpath = os.path.join(session_path, session_id+'-MonoSynConvClick.mat')
+        # """
+        # mono_syn_fpath = os.path.join(session_path, session_id+'-MonoSynConvClick.mat')
     
-        matin = loadmat(mono_syn_fpath)
-        exc = matin['FinalExcMonoSynID']
-        inh = matin['FinalInhMonoSynID']
+        # matin = loadmat(mono_syn_fpath)
+        # exc = matin['FinalExcMonoSynID']
+        # inh = matin['FinalInhMonoSynID']
     
-        #exc_obj = CatCellInfo(name='excitatory_connections',
-        #                      indices_values=[], cell_index=exc[:, 0] - 1, indices=exc[:, 1] - 1)
-        #module_cellular.add_container(exc_obj)
-        #inh_obj = CatCellInfo(name='inhibitory_connections',
-        #                      indices_values=[], cell_index=inh[:, 0] - 1, indices=inh[:, 1] - 1)
-        #module_cellular.add_container(inh_obj)
-        """
+        # #exc_obj = CatCellInfo(name='excitatory_connections',
+        # #                      indices_values=[], cell_index=exc[:, 0] - 1, indices=exc[:, 1] - 1)
+        # #module_cellular.add_container(exc_obj)
+        # #inh_obj = CatCellInfo(name='inhibitory_connections',
+        # #                      indices_values=[], cell_index=inh[:, 0] - 1, indices=inh[:, 1] - 1)
+        # #module_cellular.add_container(inh_obj)
+        # """
     
         if os.path.isfile(sleep_state_fpath):
             matin = loadmat(sleep_state_fpath)['StatePeriod']

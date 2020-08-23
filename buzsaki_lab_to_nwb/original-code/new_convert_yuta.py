@@ -19,7 +19,7 @@ expt_json_schema = buzlab_converter.get_metadata_schema()
 
 
 # construct metadata_dict according to expt_json_schema
-metadata_dict = buzlab_converter.get_metadata('D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903')
+metadata_dict = buzlab_converter.get_metadata(input_args['NeuroscopeSorting']['folder_path'])
 
 # Yuta specific modification
 metadata_dict['NWBFile'].update({'session_description': 'mouse in open exploration and theta maze'})
@@ -31,6 +31,16 @@ metadata_dict['NeuroscopeRecording']['Ecephys']['Device'][0].update({'name': 'im
 for electrode_group_metadata in metadata_dict['NeuroscopeRecording']['Ecephys']['ElectrodeGroup']:
     electrode_group_metadata.update({'location': 'unknown'})
     electrode_group_metadata.update({'device_name': 'implant'})
+
+metadata_dict['BuzsakiLabBehavioral'].update({'task_types': [
+    {'name': 'OpenFieldPosition_ExtraLarge'},
+    {'name': 'OpenFieldPosition_New_Curtain', 'conversion': 0.46},
+    {'name': 'OpenFieldPosition_New', 'conversion': 0.46},
+    {'name': 'OpenFieldPosition_Old_Curtain', 'conversion': 0.46},
+    {'name': 'OpenFieldPosition_Old', 'conversion': 0.46},
+    {'name': 'OpenFieldPosition_Oldlast', 'conversion': 0.46},
+    {'name': 'EightMazePosition', 'conversion': 0.65 / 2}
+]})
     
 
 nwbfile_path = 'D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903_new_converter.nwb'

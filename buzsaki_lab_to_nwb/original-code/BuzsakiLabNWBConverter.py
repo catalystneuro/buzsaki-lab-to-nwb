@@ -1,43 +1,18 @@
 
 from nwb_conversion_tools import NWBConverter, NeuroscopeDataInterface
+import BuzsakiLabBehavioralDataInterface
 import pandas as pd
 import numpy as np
+from scipy.io import loadmat
 import os
-from bs4 import BeautifulSoup
+from lxml import etree as et
 from datetime import datetime
 from dateutil.parser import parse as dateparse
 from pathlib import Path
 from typing import Union
-from scipy.io import loadmat
-import BuzsakiLabBehavioralDataInterface
+
 
 PathType = Union[str, Path, None]
-
-def get_shank_channels(session_path = None, xml_filepath = None):
-        """Read the channels on the shanks in Neuroscope xml
-    
-        Parameters
-        ----------
-        session_path: str
-        xml_filepath: None | str (optional)
-    
-        Returns
-        -------
-        list(list(int))
-    
-        """
-        if xml_filepath is None:
-            fpath_base, fname = os.path.split(session_path)
-            xml_filepath = os.path.join(session_path, fname + '.xml')
-        
-        with open(xml_filepath, 'r') as xml_file:
-            contents = xml_file.read()
-            soup = BeautifulSoup(contents, 'xml')
-    
-        shank_channels = [[int(channel.string)
-                           for channel in group.find_all('channel')]
-                           for group in soup.spikeDetection.channelGroups.find_all('group')]
-        return shank_channels
     
     
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
@@ -127,9 +102,8 @@ def get_clusters_single_shank(session_path, shankn, fs=20000.):
     return df
 
 
-def get_max_electrodes(nwbfile, session_path):
+def get_max_electrodes(nwbfile, session_path, nshanks):
     elec_ids = []
-    nshanks = len(get_shank_channels(session_path))
     for shankn in np.arange(1, nshanks + 1, dtype=int):
         df = get_clusters_single_shank(session_path, shankn)
         electrode_group = nwbfile.electrode_groups['shank' + str(shankn)]
@@ -164,7 +138,7 @@ def read_spike_clustering(session_path, shankn):
     return id_df.values.ravel()
 
 
-def get_UnitFeatureCell_features(fpath_base, session_id, session_path):
+def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     """Load features from matlab file. Handle occasional mismatches
 
     Parameters
@@ -179,12 +153,11 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path):
     list
 
     """
-
+    # TODO: add file existence checks
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'), # Cody: modified path a bit for my location
+    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'),
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
-    nshanks = len(get_shank_channels(session_path))
     all_ids = []
     all_shanks = []
     for shankn in range(1, nshanks + 1):
@@ -228,22 +201,35 @@ class BuzsakiLabNWBConverter(NWBConverter):
         else:
             subject_id, date_text = session_id.split('b')
             b = True
-            
-        shank_channels = get_shank_channels(session_path)
         
+        # TODO: add error checking on file existence
+        xml_filepath = os.path.join(session_path, session_id + '.xml')
+        tree = et.parse(xml_filepath)
+        root = tree.getroot()
+        
+        shank_channels = [[int(channel.text)
+                            for channel in group.find('channels')]
+                            for group in root.find('spikeDetection').find('channelGroups').findall('group')]
+        nshanks = len(shank_channels)
+        spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
+        n_channels = int(root.find('acquisitionSystem').find('nChannels').text);
+        lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
+        n_bits = int(root.find('acquisitionSystem').find('nBits').text)
+        
+        # TODO: add error checking on file existence
         subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
         hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
         lfp_channel = get_reference_elec(subject_xls,
-                                          hilus_csv_path,
-                                          dateparse(date_text, yearfirst = True),
-                                          session_id,
-                                          b = b)
+                                         hilus_csv_path,
+                                         dateparse(date_text, yearfirst=True),
+                                         session_id,
+                                         b=b)
         shank_electrode_number = [x for _, channels in enumerate(shank_channels) for x, _ in enumerate(channels)]
         
         # Temporarily suppressing max_electrode until the function is verified
-        #max_electrodes = get_max_electrodes(nwbfile, session_path)
+        #max_electrodes = get_max_electrodes(nwbfile, session_path, nshanks)
     
-        # Cell types might be Yuta specific? Or general convention for lab?
+        # Cell types and special electrodes might be Yuta specific? Or general convention for lab?
         celltype_dict = {
             0: 'unknown',
             1: 'granule cells (DG) or pyramidal cells (CA3)  (need to use region info. see below.)',
@@ -256,8 +242,19 @@ class BuzsakiLabNWBConverter(NWBConverter):
             9: 'positive waveform unit (bursty)',
             10: 'positive negative waveform unit'
         }
+        
+        special_electrode_mapping = {'ch_wait': 79, 'ch_arm': 78, 'ch_solL': 76,
+                                  'ch_solR': 77, 'ch_dig1': 65, 'ch_dig2': 68,
+                                  'ch_entL': 72, 'ch_entR': 71, 'ch_SsolL': 73,
+                                  'ch_SsolR': 70}
+        
+        special_electrode_dict = []
+        for special_electrode_name, channel in special_electrode_mapping.items():
+            special_electrode_dict.append({'name': special_electrode_name,
+                                           'channel': channel,
+                                           'description': 'environmental electrode recorded inline with neural data'})
             
-        df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
+        df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks)
     
         celltype_names = []
         for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
@@ -279,22 +276,6 @@ class BuzsakiLabNWBConverter(NWBConverter):
             df = get_clusters_single_shank(session_path, shankn+1)
             for shank_id, idf in df.groupby('id'):
                 sorting_electrode_groups.append('shank' + str(shankn+1))
-                
-                
-        special_electrode_dict = {'ch_wait': 79, 'ch_arm': 78, 'ch_solL': 76,
-                          'ch_solR': 77, 'ch_dig1': 65, 'ch_dig2': 68,
-                          'ch_entL': 72, 'ch_entR': 71, 'ch_SsolL': 73,
-                          'ch_SsolR': 70}
-        
-        task_types = [
-            {'name': 'OpenFieldPosition_ExtraLarge'},
-            {'name': 'OpenFieldPosition_New_Curtain', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_New', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_Old_Curtain', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_Old', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_Oldlast', 'conversion': 0.46},
-            {'name': 'EightMazePosition', 'conversion': 0.65 / 2}
-        ]
     
         metadata = {
             'NWBFile': {
@@ -366,8 +347,6 @@ class BuzsakiLabNWBConverter(NWBConverter):
                         'name': 'electrode_group',
                         'description': 'the electrode group that each spike unit came from',
                         'data': sorting_electrode_groups
-                            # ['shank' + str(n+1) for n, shank_channel in 
-                                     # enumerate(shank_channels) for _ in shank_channel]
                     }
                     # Temporarily suppressing max_electrode until the function is verified
                     #,
@@ -379,11 +358,27 @@ class BuzsakiLabNWBConverter(NWBConverter):
                   ]
             },
             'BuzsakiLabBehavioral': {
+                'session_path': session_path,
                 'shank_channels': np.concatenate(shank_channels),
-                'special_electrode_dict': special_electrode_dict,
-                'lfp_channel': lfp_channel,
                 'nshanks': len(shank_channels),
-                'task_types': task_types
+                'spikes_nsamples': spikes_nsamples,
+                'n_channels': n_channels,
+                'lfp_sampling_rate': lfp_sampling_rate,
+                'n_bits': n_bits,
+                'position_sensor_info': [{'name': 'position_sensor0',
+                                          'reference_frame': 'unknown',
+                                          'description': 'raw sensor data from sensor 0',
+                                          'colnames': ('x0', 'y0')},
+                                         {'name': 'position_sensor1',
+                                          'reference_frame': 'unknown',
+                                          'description': 'raw sensor data from sensor 1',
+                                          'colnames': ('x1', 'y1')}],
+                'special_electrodes': special_electrode_dict,
+                'lfp_channel': lfp_channel,
+                'lfp': {'name': 'lfp',
+                        'description': 'lfp signal for all shank electrodes'},
+                'lfp_decomposition': {'name': 'LFPDecompositionSeries',
+                                      'description': 'Theta and Gamma phase for reference LFP'}
             }
         }
             
