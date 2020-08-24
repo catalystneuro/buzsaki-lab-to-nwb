@@ -5,10 +5,12 @@ import BuzsakiLabNWBConverter as Buz2Nwb
 input_file_schema = Buz2Nwb.BuzsakiLabNWBConverter.get_input_schema()
 
 # construct input_args dict according to input schema, e.g.: 
-input_args = {'NeuroscopeRecording': {'file_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903/YutaMouse41-150903.dat"},
-              'NeuroscopeSorting': {'folder_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903", 
-                                    'keep_mua_units': False},
-              'BuzsakiLabBehavioral': {}}
+input_args = {
+    'NeuroscopeRecording': {'file_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903/YutaMouse41-150903.dat"},
+    'NeuroscopeSorting': {'folder_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903", 
+                          'keep_mua_units': False},
+    'BuzsakiLabBehavioral': {'folder_path': "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"}
+}
 
 buzlab_converter = Buz2Nwb.BuzsakiLabNWBConverter(**input_args)
 
@@ -19,7 +21,8 @@ expt_json_schema = buzlab_converter.get_metadata_schema()
 
 
 # construct metadata_dict according to expt_json_schema
-metadata_dict = buzlab_converter.get_metadata(input_args['NeuroscopeSorting']['folder_path'])
+metadata_dict = buzlab_converter.get_metadata()
+
 
 # Yuta specific modification
 metadata_dict['NWBFile'].update({'session_description': 'mouse in open exploration and theta maze'})

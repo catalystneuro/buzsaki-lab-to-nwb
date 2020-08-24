@@ -186,12 +186,13 @@ class BuzsakiLabNWBConverter(NWBConverter):
         NWBConverter.__init__(self, **input_paths)
     
     
-    def get_metadata(self, session_path: PathType, metadata: dict = None):
+    def get_metadata(self, metadata: dict = None):
         
         if metadata is None:
             metadata = {}
 
         # TODO: could be vastly improved with pathlib
+        session_path = self.data_interface_objects['BuzsakiLabBehavioral'].input_args['folder_path']
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]
         mouse_number = session_id[9:11] # TODO: improve

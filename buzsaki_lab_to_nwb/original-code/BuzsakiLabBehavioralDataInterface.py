@@ -312,7 +312,8 @@ class BuzsakiLabBehavioralDataInterface(BaseDataInterface):
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False, include_spike_waveforms: bool = False):
         # TODO: check/enforce format?
-        session_path = "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"
+        # session_path = "D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"
+        session_path = self.input_args['folder_path']
         all_shank_channels = metadata_dict['shank_channels']
         special_electrode_dict = metadata_dict['special_electrodes']
         lfp_channel = metadata_dict['lfp_channel']
