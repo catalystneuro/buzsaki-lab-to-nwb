@@ -167,7 +167,6 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
              #'/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
              subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
 
-    # Cody: Done start
     subject_path, session_id = os.path.split(session_path)
     fpath_base = os.path.split(subject_path)[0]
     identifier = session_id
