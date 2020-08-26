@@ -3,9 +3,7 @@ from __future__ import print_function
 import os
 import sys
 from datetime import datetime
-
 from hdmf.backends.hdf5.h5_utils import H5DataIO
-
 import numpy as np
 import pandas as pd
 from dateutil.parser import parse as dateparse
@@ -15,10 +13,9 @@ from pynwb.behavior import SpatialSeries, Position
 from pynwb.file import Subject, TimeIntervals
 from pynwb.misc import DecompositionSeries
 from scipy.io import loadmat
-from ..utils import check_module
-
-import to_nwb.neuroscope as ns
-from to_nwb.utils import find_discontinuities
+import spikeextractors as se
+import neuroscope as ns
+from to_nwb.utils import find_discontinuities, check_module
 
 
 # taken from ReadMe
@@ -37,7 +34,6 @@ celltype_dict = {
 
 max_shanks = 8
 
-
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shanks=max_shanks):
     """Load features from matlab file. Handle occasional mismatches
 
@@ -55,7 +51,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shank
     """
 
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base, 'DG_all_6__UnitFeatureSummary_add.mat'),
+    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'), # Cody: modified path a bit for my location
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
     nshanks = min((max_shanks, len(ns.get_shank_channels(session_path))))
@@ -93,6 +89,7 @@ task_types = [
     {'name': 'OpenFieldPosition_Oldlast', 'conversion': 0.46},
     {'name': 'EightMazePosition', 'conversion': 0.65 / 2}
 ]
+
 
 
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
@@ -141,7 +138,6 @@ def get_max_electrodes(nwbfile, session_path, max_shanks=max_shanks):
             elec_ids.append(elec_idx)
     return elec_ids
 
-
 def parse_states(fpath):
 
     state_map = {'H': 'Home', 'M': 'Maze', 'St': 'LDstim',
@@ -167,9 +163,11 @@ def parse_states(fpath):
     return states, state_times
 
 
-def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
+def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903',
+             #'/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
              subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
 
+    # Cody: Done start
     subject_path, session_id = os.path.split(session_path)
     fpath_base = os.path.split(subject_path)[0]
     identifier = session_id
@@ -221,29 +219,109 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     ns.add_position_data(nwbfile, session_path)
 
     shank_channels = ns.get_shank_channels(session_path)[:8]
+    nshanks = len(shank_channels)
     all_shank_channels = np.concatenate(shank_channels)
 
     print('setting up electrodes...', end='', flush=True)
     hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
     lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
-    print(lfp_channel)
+    
+    
     custom_column = [{'name': 'theta_reference',
                       'description': 'this electrode was used to calculate LFP canonical bands',
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
+    
+    print('reading raw electrode data...', end='', flush = True)
+    if stub:
+        # example recording extractor for fast testing
+        num_channels = 4
+        num_frames = 10000
+        X = np.random.normal(0, 1, (num_channels, num_frames))
+        geom = np.random.normal(0, 1, (num_channels, 2))
+        X = (X * 100).astype(int)
+        sre = se.NumpyRecordingExtractor(timeseries=X, sampling_frequency=20000, geom=geom)
+    else:
+        nre = se.NeuroscopeRecordingExtractor('{}/{}.dat'.format(session_path,session_id))
+        sre = se.SubRecordingExtractor(nre,channel_ids=all_shank_channels)
+        
+    print('writing raw electrode data...', end='', flush=True)
+    se.NwbRecordingExtractor.add_electrical_series(sre,nwbfile)
+    print('done.')
+    
+    print('reading spiking units...', end='', flush=True)
+    if not stub:
+        spike_times = [200, 300, 400]
+        num_frames = 10000
+        allshanks = []
+        for k in range(nshanks):
+            SX = se.NumpySortingExtractor()
+            for j in range(len(spike_times)):
+                SX.add_unit(unit_id=j+1, times=np.sort(np.random.uniform(0, num_frames, spike_times[j])))
+            allshanks.append(SX)
+        se_allshanks = se.MultiSortingExtractor(allshanks)
+        se_allshanks.set_sampling_frequency(20000)
+    else:
+        se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path, keep_mua_units=False)
+    
+    electrode_group = []
+    for shankn in np.arange(1, nshanks+1, dtype=int):
+        for id in se_allshanks.sortings[shankn-1].get_unit_ids():
+            electrode_group.append(nwbfile.electrode_groups['shank' + str(shankn)])
 
+    df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
+
+    celltype_names = []
+    for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
+                                      df_unit_features['region'].values):
+        if celltype_id == 1:
+            if region_id == 3:
+                celltype_names.append('pyramidal cell')
+            elif region_id == 4:
+                celltype_names.append('granule cell')
+            else:
+                raise Exception('unknown type')
+        elif not np.isfinite(celltype_id):
+            celltype_names.append('missing')
+        else:
+            celltype_names.append(celltype_dict[celltype_id])
+
+    # Add custom column data into the SortingExtractor so it can be written by the converter
+        # Note there is currently a hidden assumption that the way in which the NeuroscopeSortingExtractor
+        # merges the cluster IDs matches one-to-one with the get_UnitFeatureCell_features extraction
+    property_descriptions = {'cell_type': 'name of cell type',
+                            'global_id': 'global id for cell for entire experiment',
+                            'shank_id': '0-indexed id of cluster of shank',
+                            'electrode_group': 'the electrode group that each spike unit came from'}
+    property_values = {'cell_type': celltype_names,
+                            'global_id': df_unit_features['unitID'].values,
+                            'shank_id': [x - 2 for x in df_unit_features['unitIDshank'].values],
+                            # - 2 b/c the get_UnitFeatureCell_features removes 0 and 1 IDs from each shank
+                            'electrode_group': electrode_group}
+    for unit_id in se_allshanks.get_unit_ids():
+        for property_name in property_descriptions.keys():
+            se_allshanks.set_unit_property(unit_id, property_name, property_values[property_name][unit_id])
+            
+    se.NwbSortingExtractor.write_sorting(se_allshanks, nwbfile = nwbfile,
+                                         property_descriptions = property_descriptions)
+    print('done.')
+    
+    # Read and write LFP's
     print('reading LFPs...', end='', flush=True)
-    lfp_fs, all_channels_data = ns.read_lfp(session_path, stub=stub)
+    lfp_fs, all_channels_lfp_data = ns.read_lfp(session_path, stub=stub)
 
-    lfp_data = all_channels_data[:, all_shank_channels]
+    lfp_data = all_channels_lfp_data[:, all_shank_channels]
     print('writing LFPs...', flush=True)
     # lfp_data[:int(len(lfp_data)/4)]
     lfp_ts = ns.write_lfp(nwbfile, lfp_data, lfp_fs, name='lfp',
                           description='lfp signal for all shank electrodes')
 
+    # Read and add special environmental electrodes
     for name, channel in special_electrode_dict.items():
         ts = TimeSeries(name=name, description='environmental electrode recorded inline with neural data',
-                        data=all_channels_data[:, channel], rate=lfp_fs, unit='V', conversion=np.nan, resolution=np.nan)
+                        data=all_channels_lfp_data[:, channel], rate=lfp_fs, unit='V', 
+                        #conversion=np.nan, 
+                        resolution=np.nan)
         nwbfile.add_acquisition(ts)
 
     # compute filtered LFP
@@ -259,10 +337,15 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
     if include_spike_waveforms:
         print('writing waveforms...', end='', flush=True)
         nshanks = min((max_shanks, len(ns.get_shank_channels(session_path))))
+        
         for shankn in np.arange(nshanks, dtype=int) + 1:
+            # Get spike activty from .spk file on a per-shank and per-sample basis
             ns.write_spike_waveforms(nwbfile, session_path, shankn, stub=stub)
+            
         print('done.', flush=True)
 
+    
+    # Get the LFP Decomposition Series
     decomp_series = DecompositionSeries(name='LFPDecompositionSeries',
                                         description='Theta and Gamma phase for reference LFP',
                                         data=data, rate=lfp_fs,
@@ -312,6 +395,7 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
                         data=H5DataIO(pos_data_norm, compression='gzip'),
                         reference_frame='unknown', conversion=conversion,
                         resolution=np.nan,
+                        #conversion=np.nan,
                         timestamps=H5DataIO(tt, compression='gzip'))
                     pos_obj.add_spatial_series(spatial_series_object)
 
@@ -323,41 +407,6 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
 
     # there are occasional mismatches between the matlab struct and the neuroscope files
     # regions: 3: 'CA3', 4: 'DG'
-
-    df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
-
-    celltype_names = []
-    for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
-                                      df_unit_features['region'].values):
-        if celltype_id == 1:
-            if region_id == 3:
-                celltype_names.append('pyramidal cell')
-            elif region_id == 4:
-                celltype_names.append('granule cell')
-            else:
-                raise Exception('unknown type')
-        elif not np.isfinite(celltype_id):
-            celltype_names.append('missing')
-        else:
-            celltype_names.append(celltype_dict[celltype_id])
-
-    custom_unit_columns = [
-        {
-            'name': 'cell_type',
-            'description': 'name of cell type',
-            'data': celltype_names},
-        {
-            'name': 'global_id',
-            'description': 'global id for cell for entire experiment',
-            'data': df_unit_features['unitID'].values},
-        {
-            'name': 'max_electrode',
-            'description': 'electrode that has the maximum amplitude of the waveform',
-            'data': get_max_electrodes(nwbfile, session_path),
-            'table': nwbfile.electrodes
-        }]
-
-    ns.add_units(nwbfile, session_path, custom_unit_columns, max_shanks=max_shanks)
 
     trialdata_path = os.path.join(session_path, session_id + '__EightMazeRun.mat')
     if os.path.isfile(trialdata_path):
@@ -406,16 +455,16 @@ def yuta2nwb(session_path='/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/Y
 
         check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)
 
+    print('writing NWB file...', end='', flush=True)        
     if stub:
         out_fname = session_path + '_stub.nwb'
     else:
         out_fname = session_path + '.nwb'
 
-    print('writing NWB file...', end='', flush=True)
     with NWBHDF5IO(out_fname, mode='w') as io:
         io.write(nwbfile, cache_spec=cache_spec)
     print('done.')
-
+    
     print('testing read...', end='', flush=True)
     # test read
     with NWBHDF5IO(out_fname, mode='r') as io:
