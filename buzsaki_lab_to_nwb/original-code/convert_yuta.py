@@ -51,7 +51,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shank
     """
 
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'), # Cody: modified path a bit for my location
+    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'),
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
     nshanks = min((max_shanks, len(ns.get_shank_channels(session_path))))
