@@ -1,6 +1,8 @@
 
 from nwb_conversion_tools import NWBConverter, NeuroscopeDataInterface
-import BuzsakiLabBehavioralDataInterface
+import YutaPositionDataInterface
+import YutaLFPDataInterface
+import YutaBehaviorDataInterface
 import pandas as pd
 import numpy as np
 from scipy.io import loadmat
@@ -10,7 +12,7 @@ from datetime import datetime
 from dateutil.parser import parse as dateparse
 from pathlib import Path
 from typing import Union
-
+from to_nwb.neuroscope import get_clusters_single_shank, read_spike_clustering
 
 PathType = Union[str, Path, None]
     
@@ -47,95 +49,6 @@ def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False
             return
 
     return out
-
-
-def read_spike_times(session_path, shankn, fs=20000.):
-    """
-    Read .res files to get spike times
-
-    Parameters
-    ----------
-    session_path: str | path
-    shankn: int
-        shank number (1-indexed)
-    fs: float
-        sampling rate. default = 20000.
-
-    Returns
-    -------
-
-    """
-    _, session_name = os.path.split(session_path)
-    timing_file = os.path.join(session_path, session_name + '.res.' + str(shankn))
-    timing_df = pd.read_csv(timing_file, names=('time',))
-
-    return timing_df.values.ravel() / fs
-
-
-def get_clusters_single_shank(session_path, shankn, fs=20000.):
-    """Read the spike time data from the .res and .clu files for a single
-    shank. Automatically removes noise and multi-unit.
-
-    Parameters
-    ----------
-    session_path: str | path
-        session path
-    shankn: int
-        shank number (1-indexed)
-    fs: float
-
-    Returns
-    -------
-    df: pd.DataFrame
-        has column named 'id' which indicates cluster id and 'time' which
-        indicates spike time.
-
-    """
-    spike_times = read_spike_times(session_path, shankn, fs=fs)
-    spike_ids = read_spike_clustering(session_path, shankn)
-    df = pd.DataFrame({'id': spike_ids, 'time': spike_times})
-    noise_inds = ((df.iloc[:, 0] == 0) | (df.iloc[:, 0] == 1)).values.ravel()
-    df = df.loc[np.logical_not(noise_inds)].reset_index(drop=True)
-
-    df['id'] -= 2
-
-    return df
-
-
-def get_max_electrodes(nwbfile, session_path, nshanks):
-    elec_ids = []
-    for shankn in np.arange(1, nshanks + 1, dtype=int):
-        df = get_clusters_single_shank(session_path, shankn)
-        electrode_group = nwbfile.electrode_groups['shank' + str(shankn)]
-        # as a temporary solution, take first channel from shank as max channel
-        elec_idx = np.argmax(np.array(nwbfile.electrodes['group']) == electrode_group)
-        for i in range(len(set(df['id']))):
-            elec_ids.append(elec_idx)
-    return elec_ids
-
-
-def read_spike_clustering(session_path, shankn):
-    """
-    Read .clu files to get spike cluster assignments for a single shank
-
-    Parameters
-    ----------
-    session_path: str | path
-    shankn: int
-        shank number (1-indexed)
-
-    Returns
-    -------
-    np.ndarray
-
-
-    """
-    session_name = os.path.split(session_path)[1]
-    id_file = os.path.join(session_path, session_name + '.clu.' + str(shankn))
-    id_df = pd.read_csv(id_file, names=('id',))
-    id_df = id_df[1:]  # the first number is the number of clusters
-
-    return id_df.values.ravel()
 
 
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
@@ -176,10 +89,12 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     return pd.merge(clu_df, mat_df, how='left', on=('unitIDshank', 'shank'))
 
 
-class BuzsakiLabNWBConverter(NWBConverter):
+class YutaNWBConverter(NWBConverter):
     data_interface_classes = {'NeuroscopeRecording': NeuroscopeDataInterface.NeuroscopeRecordingInterface,
                               'NeuroscopeSorting': NeuroscopeDataInterface.NeuroscopeSortingInterface,
-                              'BuzsakiLabBehavioral': BuzsakiLabBehavioralDataInterface.BuzsakiLabBehavioralDataInterface}
+                              'YutaPosition': YutaPositionDataInterface.YutaPositionInterface,
+                              'YutaLFP': YutaLFPDataInterface.YutaLFPInterface,
+                              'YutaBehavior': YutaBehaviorDataInterface.YutaBehaviorInterface}
     
     
     def __init__(self, **input_paths):
@@ -192,16 +107,32 @@ class BuzsakiLabNWBConverter(NWBConverter):
             metadata = {}
 
         # TODO: could be vastly improved with pathlib
-        session_path = self.data_interface_objects['BuzsakiLabBehavioral'].input_args['folder_path']
+        session_path = self.data_interface_objects['YutaPosition'].input_args['folder_path']
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]
         mouse_number = session_id[9:11] # TODO: improve
+        # TODO: add error checking on file existence
+        subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
+        hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
         if '-' in session_id:
             subject_id, date_text = session_id.split('-')
             b = False
         else:
             subject_id, date_text = session_id.split('b')
             b = True
+        
+        session_start = dateparse(date_text, yearfirst = True)
+        
+        subject_df = pd.read_excel(subject_xls)
+        subject_data = {}
+        for key in ['genotype', 'DOB', 'implantation', 'Probe', 'Surgery', 'virus injection', 'mouseID']:
+            names = subject_df.iloc[:, 0]
+            if key in names.values:
+                subject_data[key] = subject_df.iloc[np.argmax(names == key), 1]
+        if isinstance(subject_data['DOB'], datetime):
+            age = str(session_start - subject_data['DOB'])
+        else:
+            age = None
         
         # TODO: add error checking on file existence
         xml_filepath = os.path.join(session_path, session_id + '.xml')
@@ -211,15 +142,11 @@ class BuzsakiLabNWBConverter(NWBConverter):
         shank_channels = [[int(channel.text)
                             for channel in group.find('channels')]
                             for group in root.find('spikeDetection').find('channelGroups').findall('group')]
+        all_shank_channels = np.concatenate(shank_channels)
         nshanks = len(shank_channels)
         spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
-        n_channels = int(root.find('acquisitionSystem').find('nChannels').text);
         lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
-        n_bits = int(root.find('acquisitionSystem').find('nBits').text)
         
-        # TODO: add error checking on file existence
-        subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
-        hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
         lfp_channel = get_reference_elec(subject_xls,
                                          hilus_csv_path,
                                          dateparse(date_text, yearfirst=True),
@@ -227,10 +154,6 @@ class BuzsakiLabNWBConverter(NWBConverter):
                                          b=b)
         shank_electrode_number = [x for _, channels in enumerate(shank_channels) for x, _ in enumerate(channels)]
         
-        # Temporarily suppressing max_electrode until the function is verified
-        #max_electrodes = get_max_electrodes(nwbfile, session_path, nshanks)
-    
-        # Cell types and special electrodes might be Yuta specific? Or general convention for lab?
         celltype_dict = {
             0: 'unknown',
             1: 'granule cells (DG) or pyramidal cells (CA3)  (need to use region info. see below.)',
@@ -257,6 +180,8 @@ class BuzsakiLabNWBConverter(NWBConverter):
             
         df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks)
     
+        # there are occasional mismatches between the matlab struct
+        # and the neuroscope files regions: 3: 'CA3', 4: 'DG'
         celltype_names = []
         for celltype_id, region_id in zip(df_unit_features['fineCellType'].values,
                                           df_unit_features['region'].values):
@@ -281,7 +206,7 @@ class BuzsakiLabNWBConverter(NWBConverter):
         metadata = {
             'NWBFile': {
                 'identifier': session_id,
-                'session_start_time': (dateparse(date_text, yearfirst = True)).astimezone(),
+                'session_start_time': session_start.astimezone(),
                 'file_create_date': datetime.now().astimezone(),
                 'session_id': session_id,
                 'institution': 'NYU',
@@ -289,12 +214,15 @@ class BuzsakiLabNWBConverter(NWBConverter):
             },
             'Subject': {
                 'subject_id': subject_id,
-                'age': '346 days',
-                'genotype': 'POMC-Cre::Arch',
-                'species': 'mouse' # should be Mus musculus?
+                'age': age,
+                'genotype': subject_data['genotype'],
+                'species': 'mouse' # should be Mus musculus? also not specified in the experiment file except by the phrase 'mouseID'
             },
             'NeuroscopeRecording': {
                 'Ecephys': {
+                    # This is not passed into SpikeInterface, but instead creates
+                    # SubRecordingExtractors from the full Extractor if passed
+                    'shank_channels': all_shank_channels,
                     # NwbRecordingExtractor expects metadata to be lists of dictionaries
                     'Device': [{
                         'description': session_id + '.xml'
@@ -307,7 +235,7 @@ class BuzsakiLabNWBConverter(NWBConverter):
                         {
                             'name': 'theta_reference',
                             'description': 'this electrode was used to calculate LFP canonical bands',
-                            'data':  list(np.concatenate(shank_channels) == lfp_channel)
+                            'data':  list(all_shank_channels == lfp_channel)
                         },
                         {
                             'name': 'shank_electrode_number',
@@ -320,10 +248,10 @@ class BuzsakiLabNWBConverter(NWBConverter):
                             'data': [x for _, channels in enumerate(shank_channels) for _, x in enumerate(channels)]
                         }
                     ],
-                    'ElectricalSeries': [{
+                    'ElectricalSeries': {
                         'name': 'ElectricalSeries',
                         'description': 'raw acquisition traces'
-                    }]
+                    }
                 }
             },
             'NeuroscopeSorting': {
@@ -349,38 +277,28 @@ class BuzsakiLabNWBConverter(NWBConverter):
                         'description': 'the electrode group that each spike unit came from',
                         'data': sorting_electrode_groups
                     }
-                    # Temporarily suppressing max_electrode until the function is verified
-                    #,
-                    # {
-                    #     'name': 'max_electrode',
-                    #     'description': 'electrode that has the maximum amplitude of the waveform',
-                    #     'data': max_electrodes
-                    # }
                   ]
             },
-            'BuzsakiLabBehavioral': {
-                'session_path': session_path,
-                'shank_channels': np.concatenate(shank_channels),
+            'YutaPosition': {
+            },
+            'YutaLFP': {
+                'shank_channels': all_shank_channels,
                 'nshanks': len(shank_channels),
-                'spikes_nsamples': spikes_nsamples,
-                'n_channels': n_channels,
-                'lfp_sampling_rate': lfp_sampling_rate,
-                'n_bits': n_bits,
-                'position_sensor_info': [{'name': 'position_sensor0',
-                                          'reference_frame': 'unknown',
-                                          'description': 'raw sensor data from sensor 0',
-                                          'colnames': ('x0', 'y0')},
-                                         {'name': 'position_sensor1',
-                                          'reference_frame': 'unknown',
-                                          'description': 'raw sensor data from sensor 1',
-                                          'colnames': ('x1', 'y1')}],
                 'special_electrodes': special_electrode_dict,
                 'lfp_channel': lfp_channel,
+                'lfp_sampling_rate': lfp_sampling_rate,
                 'lfp': {'name': 'lfp',
                         'description': 'lfp signal for all shank electrodes'},
                 'lfp_decomposition': {'name': 'LFPDecompositionSeries',
-                                      'description': 'Theta and Gamma phase for reference LFP'}
+                                      'description': 'Theta and Gamma phase for reference LFP'},
+                'spikes_nsamples': spikes_nsamples,
+            },
+            'YutaBehavior': {
             }
         }
             
         return metadata
+    
+    
+    
+    # TODO: override run_conversion with more specific behavioral experiment stuff
