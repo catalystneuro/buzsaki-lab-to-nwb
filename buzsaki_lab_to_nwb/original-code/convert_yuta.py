@@ -249,7 +249,7 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
     print('done.')
     
     print('reading spiking units...', end='', flush=True)
-    if not stub:
+    if stub:
         spike_times = [200, 300, 400]
         num_frames = 10000
         allshanks = []
