@@ -31,24 +31,10 @@ def conversion_function(source_paths, f_nwb, metafile, **kwargs):
         meta = yaml.safe_load(f)
 
     # Initialize a NWB object
-    nwb = NWBFile(
-        session_description=meta['NWBFile']['session_description'],
-        identifier=meta['NWBFile']['identifier'],
-        session_id=meta['NWBFile']['session_id'],
-        session_start_time=meta['NWBFile']['session_start_time'],
-        notes=meta['NWBFile']["notes"],
-        stimulus_notes=meta['NWBFile']["stimulus_notes"],
-        data_collection=meta['NWBFile']["data_collection"],
-        experimenter=meta['NWBFile']['experimenter'],
-        lab=meta['NWBFile']['lab'],
-        institution=meta['NWBFile']['institution'],
-        experiment_description=meta['NWBFile']['experiment_description'],
-        protocol=meta['NWBFile']["protocol"],
-        keywords=meta['NWBFile']["keywords"],
-    )
+    nwb = NWBFile(**meta['NWBFile'])
 
     # Create and add device
-    device = Device(name=meta['Ophys']['Device']['name'])
+    device = Device(**meta['Ophys']['Device'])
     nwb.add_device(device)
 
     # Saves to NWB file

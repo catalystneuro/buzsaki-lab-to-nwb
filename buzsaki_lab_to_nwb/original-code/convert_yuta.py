@@ -397,9 +397,9 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
                     spatial_series_object = SpatialSeries(
                         name=label + '_{}_spatial_series'.format(pos_type),
                         data=H5DataIO(pos_data_norm, compression='gzip'),
-                        reference_frame='unknown', conversion=conversion,
+                        reference_frame='unknown',
+                        conversion=conversion,
                         resolution=np.nan,
-                        #conversion=np.nan,
                         timestamps=H5DataIO(tt, compression='gzip'))
                     pos_obj.add_spatial_series(spatial_series_object)
 
