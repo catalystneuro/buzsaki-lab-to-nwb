@@ -232,18 +232,18 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
 
     print('reading raw electrode data...', end='', flush=True)
-    xml_filepath = os.path.join(session_path, session_id + '.xml')
-    xml_root = et.parse(xml_filepath).getroot()
-    acq_saampling_frequency = float(xml_root.find('acquisitionSystem').find('samplingRate').text)
     if stub:
         # example recording extractor for fast testing
+        xml_filepath = os.path.join(session_path, session_id + '.xml')
+        xml_root = et.parse(xml_filepath).getroot()
+        acq_sampling_frequency = float(xml_root.find('acquisitionSystem').find('samplingRate').text)
         num_channels = 4
         num_frames = 10000
         X = np.random.normal(0, 1, (num_channels, num_frames))
         geom = np.random.normal(0, 1, (num_channels, 2))
         X = (X * 100).astype(int)
         sre = se.NumpyRecordingExtractor(timeseries=X,
-                                         sampling_frequency=acq_saampling_frequency,
+                                         sampling_frequency=acq_sampling_frequency,
                                          geom=geom)
     else:
         nre = se.NeuroscopeRecordingExtractor('{}/{}.dat'.format(session_path, session_id))
@@ -264,7 +264,7 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
                 SX.add_unit(unit_id=j+1, times=np.sort(np.random.uniform(0, num_frames, spike_times[j])))
             allshanks.append(SX)
         se_allshanks = se.MultiSortingExtractor(allshanks)
-        se_allshanks.set_sampling_frequency(acq_saampling_frequency)
+        se_allshanks.set_sampling_frequency(acq_sampling_frequency)
     else:
         se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path, keep_mua_units=False)
 
