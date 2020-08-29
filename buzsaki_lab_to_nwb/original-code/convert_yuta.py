@@ -14,8 +14,9 @@ from pynwb.file import Subject, TimeIntervals
 from pynwb.misc import DecompositionSeries
 from scipy.io import loadmat
 import spikeextractors as se
-import neuroscope as ns
+import to_nwb.neuroscope as ns
 from to_nwb.utils import find_discontinuities, check_module
+from lxml import etree as et
 
 
 # taken from ReadMe
@@ -51,7 +52,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shank
     """
 
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'), # Cody: modified path a bit for my location
+    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'),
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
     nshanks = min((max_shanks, len(ns.get_shank_channels(session_path))))
@@ -138,8 +139,8 @@ def get_max_electrodes(nwbfile, session_path, max_shanks=max_shanks):
             elec_ids.append(elec_idx)
     return elec_ids
 
-def parse_states(fpath):
 
+def parse_states(fpath):
     state_map = {'H': 'Home', 'M': 'Maze', 'St': 'LDstim',
                  'O': 'Old open field', 'Oc': 'Old open field w/ curtain',
                  'N': 'New open field', 'Ns': 'New open field w/ LDstim',
@@ -164,10 +165,9 @@ def parse_states(fpath):
 
 
 def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903',
-             #'/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
+             # '/Users/bendichter/Desktop/Buzsaki/SenzaiBuzsaki2017/YutaMouse41/YutaMouse41-150903',
              subject_xls=None, include_spike_waveforms=True, stub=True, cache_spec=True):
 
-    # Cody: Done start
     subject_path, session_id = os.path.split(session_path)
     fpath_base = os.path.split(subject_path)[0]
     identifier = session_id
@@ -225,32 +225,36 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
     print('setting up electrodes...', end='', flush=True)
     hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
     lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
-    
-    
+
     custom_column = [{'name': 'theta_reference',
                       'description': 'this electrode was used to calculate LFP canonical bands',
                       'data': all_shank_channels == lfp_channel}]
     ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
-    
-    print('reading raw electrode data...', end='', flush = True)
+
+    print('reading raw electrode data...', end='', flush=True)
     if stub:
         # example recording extractor for fast testing
+        xml_filepath = os.path.join(session_path, session_id + '.xml')
+        xml_root = et.parse(xml_filepath).getroot()
+        acq_sampling_frequency = float(xml_root.find('acquisitionSystem').find('samplingRate').text)
         num_channels = 4
         num_frames = 10000
         X = np.random.normal(0, 1, (num_channels, num_frames))
         geom = np.random.normal(0, 1, (num_channels, 2))
         X = (X * 100).astype(int)
-        sre = se.NumpyRecordingExtractor(timeseries=X, sampling_frequency=20000, geom=geom)
+        sre = se.NumpyRecordingExtractor(timeseries=X,
+                                         sampling_frequency=acq_sampling_frequency,
+                                         geom=geom)
     else:
-        nre = se.NeuroscopeRecordingExtractor('{}/{}.dat'.format(session_path,session_id))
-        sre = se.SubRecordingExtractor(nre,channel_ids=all_shank_channels)
-        
+        nre = se.NeuroscopeRecordingExtractor('{}/{}.dat'.format(session_path, session_id))
+        sre = se.SubRecordingExtractor(nre, channel_ids=all_shank_channels)
+
     print('writing raw electrode data...', end='', flush=True)
-    se.NwbRecordingExtractor.add_electrical_series(sre,nwbfile)
+    se.NwbRecordingExtractor.add_electrical_series(sre, nwbfile)
     print('done.')
-    
+
     print('reading spiking units...', end='', flush=True)
-    if not stub:
+    if stub:
         spike_times = [200, 300, 400]
         num_frames = 10000
         allshanks = []
@@ -260,10 +264,10 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
                 SX.add_unit(unit_id=j+1, times=np.sort(np.random.uniform(0, num_frames, spike_times[j])))
             allshanks.append(SX)
         se_allshanks = se.MultiSortingExtractor(allshanks)
-        se_allshanks.set_sampling_frequency(20000)
+        se_allshanks.set_sampling_frequency(acq_sampling_frequency)
     else:
         se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path, keep_mua_units=False)
-    
+
     electrode_group = []
     for shankn in np.arange(1, nshanks+1, dtype=int):
         for id in se_allshanks.sortings[shankn-1].get_unit_ids():
@@ -393,9 +397,9 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
                     spatial_series_object = SpatialSeries(
                         name=label + '_{}_spatial_series'.format(pos_type),
                         data=H5DataIO(pos_data_norm, compression='gzip'),
-                        reference_frame='unknown', conversion=conversion,
+                        reference_frame='unknown',
+                        conversion=conversion,
                         resolution=np.nan,
-                        #conversion=np.nan,
                         timestamps=H5DataIO(tt, compression='gzip'))
                     pos_obj.add_spatial_series(spatial_series_object)
 
