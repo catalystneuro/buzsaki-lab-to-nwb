@@ -1,4 +1,4 @@
-
+"""Authors: Cody Baker and Ben Dichter."""
 from nwb_conversion_tools import NWBConverter, NeuroscopeDataInterface
 import YutaPositionDataInterface
 import YutaLFPDataInterface
@@ -15,8 +15,8 @@ from typing import Union
 from to_nwb.neuroscope import get_clusters_single_shank, read_spike_clustering
 
 PathType = Union[str, Path, None]
-    
-    
+
+
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
     df = pd.read_csv(hilus_csv_path)
     if session_id in df['session name'].values:
@@ -52,7 +52,7 @@ def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False
 
 
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
-    """Load features from matlab file. Handle occasional mismatches
+    """Load features from matlab file. Handle occasional mismatches.
 
     Parameters
     ----------
@@ -68,7 +68,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     """
     # TODO: add file existence checks
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base,'_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'),
+    matin = loadmat(os.path.join(fpath_base, '_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'),
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
     all_ids = []
@@ -95,14 +95,13 @@ class YutaNWBConverter(NWBConverter):
                               'YutaPosition': YutaPositionDataInterface.YutaPositionInterface,
                               'YutaLFP': YutaLFPDataInterface.YutaLFPInterface,
                               'YutaBehavior': YutaBehaviorDataInterface.YutaBehaviorInterface}
-    
-    
+
+
     def __init__(self, **input_paths):
         NWBConverter.__init__(self, **input_paths)
-    
-    
+
     def get_metadata(self, metadata: dict = None):
-        
+
         if metadata is None:
             metadata = {}
 
@@ -110,7 +109,8 @@ class YutaNWBConverter(NWBConverter):
         session_path = self.data_interface_objects['YutaPosition'].input_args['folder_path']
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]
-        mouse_number = session_id[9:11] # TODO: improve
+        # TODO: improve mouse_number extraction
+        mouse_number = session_id[9:11]
         # TODO: add error checking on file existence
         subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
         hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
@@ -120,9 +120,9 @@ class YutaNWBConverter(NWBConverter):
         else:
             subject_id, date_text = session_id.split('b')
             b = True
-        
-        session_start = dateparse(date_text, yearfirst = True)
-        
+
+        session_start = dateparse(date_text, yearfirst=True)
+
         subject_df = pd.read_excel(subject_xls)
         subject_data = {}
         for key in ['genotype', 'DOB', 'implantation', 'Probe', 'Surgery', 'virus injection', 'mouseID']:
@@ -133,27 +133,27 @@ class YutaNWBConverter(NWBConverter):
             age = str(session_start - subject_data['DOB'])
         else:
             age = None
-        
+
         # TODO: add error checking on file existence
         xml_filepath = os.path.join(session_path, session_id + '.xml')
         tree = et.parse(xml_filepath)
         root = tree.getroot()
-        
+
         shank_channels = [[int(channel.text)
-                            for channel in group.find('channels')]
-                            for group in root.find('spikeDetection').find('channelGroups').findall('group')]
+                          for channel in group.find('channels')]
+                          for group in root.find('spikeDetection').find('channelGroups').findall('group')]
         all_shank_channels = np.concatenate(shank_channels)
         nshanks = len(shank_channels)
         spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
         lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
-        
+
         lfp_channel = get_reference_elec(subject_xls,
                                          hilus_csv_path,
                                          dateparse(date_text, yearfirst=True),
                                          session_id,
                                          b=b)
         shank_electrode_number = [x for _, channels in enumerate(shank_channels) for x, _ in enumerate(channels)]
-        
+
         celltype_dict = {
             0: 'unknown',
             1: 'granule cells (DG) or pyramidal cells (CA3)  (need to use region info. see below.)',
@@ -166,20 +166,20 @@ class YutaNWBConverter(NWBConverter):
             9: 'positive waveform unit (bursty)',
             10: 'positive negative waveform unit'
         }
-        
+
         special_electrode_mapping = {'ch_wait': 79, 'ch_arm': 78, 'ch_solL': 76,
-                                  'ch_solR': 77, 'ch_dig1': 65, 'ch_dig2': 68,
-                                  'ch_entL': 72, 'ch_entR': 71, 'ch_SsolL': 73,
-                                  'ch_SsolR': 70}
-        
+                                     'ch_solR': 77, 'ch_dig1': 65, 'ch_dig2': 68,
+                                     'ch_entL': 72, 'ch_entR': 71, 'ch_SsolL': 73,
+                                     'ch_SsolR': 70}
+
         special_electrode_dict = []
         for special_electrode_name, channel in special_electrode_mapping.items():
             special_electrode_dict.append({'name': special_electrode_name,
                                            'channel': channel,
                                            'description': 'environmental electrode recorded inline with neural data'})
-            
+
         df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks)
-    
+
         # there are occasional mismatches between the matlab struct
         # and the neuroscope files regions: 3: 'CA3', 4: 'DG'
         celltype_names = []
@@ -196,13 +196,13 @@ class YutaNWBConverter(NWBConverter):
                 celltype_names.append('missing')
             else:
                 celltype_names.append(celltype_dict[celltype_id])
-                
-        sorting_electrode_groups = []        
+
+        sorting_electrode_groups = []
         for shankn in range(len(shank_channels)):
             df = get_clusters_single_shank(session_path, shankn+1)
             for shank_id, idf in df.groupby('id'):
                 sorting_electrode_groups.append('shank' + str(shankn+1))
-    
+
         metadata = {
             'NWBFile': {
                 'identifier': session_id,
@@ -216,7 +216,8 @@ class YutaNWBConverter(NWBConverter):
                 'subject_id': subject_id,
                 'age': age,
                 'genotype': subject_data['genotype'],
-                'species': 'mouse' # should be Mus musculus? also not specified in the experiment file except by the phrase 'mouseID'
+                # should be Mus musculus? also not specified in the experiment file except by the phrase 'mouseID'
+                'species': 'mouse'
             },
             'NeuroscopeRecording': {
                 'Ecephys': {
@@ -296,9 +297,6 @@ class YutaNWBConverter(NWBConverter):
             'YutaBehavior': {
             }
         }
-            
+
         return metadata
-    
-    
-    
-    # TODO: override run_conversion with more specific behavioral experiment stuff
+

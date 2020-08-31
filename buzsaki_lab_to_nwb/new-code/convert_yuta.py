@@ -1,6 +1,7 @@
-
+"""Authors: Cody Baker and Ben Dichter."""
 from YutaNWBConverter import YutaNWBConverter
-import os # temporarily until pathlib
+# temporarily until pathlib
+import os
 
 # List of folder paths to iterate over
 convert_sessions = ["D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903"]
@@ -23,34 +24,33 @@ session_specific_metadata[0]['YutaBehavior'].update({'task_types': [
 ]})
 
 
-for j,session in enumerate(convert_sessions):
+for j, session in enumerate(convert_sessions):
     # TODO: replace with pathlib
     session_name = os.path.split(session)[1]
-    
+
     # usage
     input_file_schema = YutaNWBConverter.get_input_schema()
-    
-    # construct input_args dict according to input schema, e.g.: 
+
+    # construct input_args dict according to input schema
     input_args = {
         'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
-        'NeuroscopeSorting': {'folder_path': session, 
+        'NeuroscopeSorting': {'folder_path': session,
                               'keep_mua_units': False},
         'YutaPosition': {'folder_path': session},
         'YutaLFP': {'folder_path': session},
         'YutaBehavior': {'folder_path': session}
     }
-    
+
     yuta_converter = YutaNWBConverter(**input_args)
-    
+
     expt_json_schema = yuta_converter.get_metadata_schema()
-    
+
     # expt_json_schema does not indicate device linking in ElectrodeGroup.
     # Also out of place 'type' in property levels?
-    
-    
+
     # construct metadata_dict according to expt_json_schema
     metadata = yuta_converter.get_metadata()
-    
+
     # TODO: better way to nest smart dictionary updates?
     for key1, val1 in session_specific_metadata[j].items():
         if type(val1) is dict:
@@ -58,16 +58,15 @@ for j,session in enumerate(convert_sessions):
                 metadata[key1].update({key2: val2})
         else:
             metadata.update({key1: val1})
-    
-    
+
     # Yuta specific info
     metadata['NWBFile'].update({'experimenter': 'Yuta Senzai'})
-    
+
     metadata['NeuroscopeRecording']['Ecephys']['Device'][0].update({'name': 'implant'})
-    
+
     for electrode_group_metadata in metadata['NeuroscopeRecording']['Ecephys']['ElectrodeGroup']:
         electrode_group_metadata.update({'location': 'unknown'})
         electrode_group_metadata.update({'device_name': 'implant'})
-    
+
     nwbfile_path = session + "_new_converter.nwb"
     yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
