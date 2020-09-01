@@ -49,15 +49,15 @@ for j, session in enumerate(convert_sessions):
     # Also out of place 'type' in property levels?
 
     # construct metadata_dict according to expt_json_schema
-    metadata = yuta_converter.get_metadata()
+    metadata = yuta_converter.get_metadata(metadata=session_specific_metadata)
 
     # TODO: better way to nest smart dictionary updates?
-    for key1, val1 in session_specific_metadata[j].items():
-        if type(val1) is dict:
-            for key2, val2 in val1.items():
-                metadata[key1].update({key2: val2})
-        else:
-            metadata.update({key1: val1})
+    # for key1, val1 in session_specific_metadata[j].items():
+    #     if type(val1) is dict:
+    #         for key2, val2 in val1.items():
+    #             metadata[key1].update({key2: val2})
+    #     else:
+    #         metadata.update({key1: val1})
 
     # Yuta specific info
     metadata['NWBFile'].update({'experimenter': 'Yuta Senzai'})
