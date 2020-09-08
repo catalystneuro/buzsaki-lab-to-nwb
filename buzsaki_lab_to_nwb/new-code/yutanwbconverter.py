@@ -1,8 +1,9 @@
 """Authors: Cody Baker and Ben Dichter."""
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
-import YutaPositionDataInterface
-import YutaLFPDataInterface
-import YutaBehaviorDataInterface
+import yutapositiondatainterface
+import yutalfpdatainterface
+import yutabehaviordatainterface
+import yutanorecording
 import pandas as pd
 import numpy as np
 from scipy.io import loadmat
@@ -90,18 +91,46 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
 
 
 class YutaNWBConverter(NWBConverter):
+    # The order of this dictionary matter significantly, but python dictionaries are supposed to be unordered
+    # This is compensated for the time being, but should this conceptually be a list instead?
     data_interface_classes = {'NeuroscopeRecording': neuroscopedatainterface.NeuroscopeRecordingInterface,
                               'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
-                              'YutaPosition': YutaPositionDataInterface.YutaPositionInterface,
-                              'YutaLFP': YutaLFPDataInterface.YutaLFPInterface,
-                              'YutaBehavior': YutaBehaviorDataInterface.YutaBehaviorInterface}
+                              'YutaPosition': yutapositiondatainterface.YutaPositionInterface,
+                              'YutaLFP': yutalfpdatainterface.YutaLFPInterface,
+                              'YutaBehavior': yutabehaviordatainterface.YutaBehaviorInterface}
 
-    def __init__(self, **input_paths):
-        NWBConverter.__init__(self, **input_paths)
+    def __init__(self, **input_args):
+        dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
+        if not os.path.isfile(dat_filepath):
+            new_data_interface_classes = {}
+            
+            new_data_interface_classes.update({'YutaNoRecording': yutanorecording.YutaNoRecording})
+            for name, val in self.data_interface_classes.items():
+                new_data_interface_classes.update({name: val})
+            new_data_interface_classes.pop('NeuroscopeRecording')
 
-    def get_metadata(self, metadata: dict = {}):
+            session_id = os.path.split(input_args['NeuroscopeSorting']['folder_path'])[1]
+            xml_filepath = os.path.join(input_args['NeuroscopeSorting']['folder_path'], session_id + '.xml')
+            root = et.parse(xml_filepath).getroot()
+            n_channels = len([[int(channel.text)
+                              for channel in group.find('channels')]
+                              for group in root.find('spikeDetection').find('channelGroups').findall('group')])
+            # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
+            input_args.update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
+                                                   'sampling_frequency': 1}})
+            input_args.pop('NeuroscopeRecording')
+            self.data_interface_classes = new_data_interface_classes
+            self._recording_type = 'YutaNoRecording'
+        else:
+            self._recording_type = 'NeuroscopeRecording'
+        super().__init__(**input_args)
+
+    def get_recording_type(self):
+        return self._recording_type
+
+    def get_metadata(self):
         # TODO: could be vastly improved with pathlib
-        session_path = self.data_interface_objects['YutaPosition'].input_args['folder_path']
+        session_path = self.data_interface_objects['NeuroscopeSorting'].input_args['folder_path']
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]
         # TODO: improve mouse_number extraction
@@ -131,20 +160,21 @@ class YutaNWBConverter(NWBConverter):
 
         # TODO: add error checking on file existence
         xml_filepath = os.path.join(session_path, session_id + '.xml')
-        tree = et.parse(xml_filepath)
-        root = tree.getroot()
+        root = et.parse(xml_filepath).getroot()
 
+        n_total_channels = int(root.find('acquisitionSystem').find('nChannels').text)
         shank_channels = [[int(channel.text)
                           for channel in group.find('channels')]
                           for group in root.find('spikeDetection').find('channelGroups').findall('group')]
-        all_shank_channels = np.concatenate(shank_channels).sort()
+        all_shank_channels = np.concatenate(shank_channels)
+        all_shank_channels.sort()
         nshanks = len(shank_channels)
         spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
         lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
 
         lfp_channel = get_reference_elec(subject_xls,
                                          hilus_csv_path,
-                                         dateparse(date_text, yearfirst=True),
+                                         session_start,
                                          session_id,
                                          b=b)
         shank_electrode_number = [x for _, channels in enumerate(shank_channels) for x, _ in enumerate(channels)]
@@ -162,14 +192,26 @@ class YutaNWBConverter(NWBConverter):
             10: 'positive negative waveform unit'
         }
 
+        task_types = [
+            {'name': 'OpenFieldPosition_ExtraLarge'},
+            {'name': 'OpenFieldPosition_New_Curtain', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_New', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_Old_Curtain', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_Old', 'conversion': 0.46},
+            {'name': 'OpenFieldPosition_Oldlast', 'conversion': 0.46},
+            {'name': 'EightMazePosition', 'conversion': 0.65 / 2}
+        ]
+
+        # Would these special electrode have the same exact IDs across different sessions/experiments?
+        # assuming so in the min() check below
         special_electrode_mapping = {'ch_wait': 79, 'ch_arm': 78, 'ch_solL': 76,
                                      'ch_solR': 77, 'ch_dig1': 65, 'ch_dig2': 68,
                                      'ch_entL': 72, 'ch_entR': 71, 'ch_SsolL': 73,
                                      'ch_SsolR': 70}
-
-        special_electrode_dict = []
+        special_electrodes = []
         for special_electrode_name, channel in special_electrode_mapping.items():
-            special_electrode_dict.append({'name': special_electrode_name,
+            if channel <= n_total_channels-1:
+                special_electrodes.append({'name': special_electrode_name,
                                            'channel': channel,
                                            'description': 'environmental electrode recorded inline with neural data'})
 
@@ -214,7 +256,7 @@ class YutaNWBConverter(NWBConverter):
                 # should be Mus musculus? also not specified in the experiment file except by the phrase 'mouseID'
                 'species': 'mouse'
             },
-            'NeuroscopeRecording': {
+            self.get_recording_type(): {
                 'Ecephys': {
                     'subset_channels': all_shank_channels,
                     'Device': [{
@@ -277,7 +319,7 @@ class YutaNWBConverter(NWBConverter):
             'YutaLFP': {
                 'shank_channels': all_shank_channels,
                 'nshanks': len(shank_channels),
-                'special_electrodes': special_electrode_dict,
+                'special_electrodes': special_electrodes,
                 'lfp_channel': lfp_channel,
                 'lfp_sampling_rate': lfp_sampling_rate,
                 'lfp': {'name': 'lfp',
@@ -287,8 +329,8 @@ class YutaNWBConverter(NWBConverter):
                 'spikes_nsamples': spikes_nsamples,
             },
             'YutaBehavior': {
+                'task_types': task_types
             }
         }
 
         return metadata
-

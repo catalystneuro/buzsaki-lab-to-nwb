@@ -345,7 +345,6 @@ def yuta2nwb(session_path='D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903
         for shankn in np.arange(nshanks, dtype=int) + 1:
             # Get spike activty from .spk file on a per-shank and per-sample basis
             ns.write_spike_waveforms(nwbfile, session_path, shankn, stub=stub)
-            
         print('done.', flush=True)
 
     

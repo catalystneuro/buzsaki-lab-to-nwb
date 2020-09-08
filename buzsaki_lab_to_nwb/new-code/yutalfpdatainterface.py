@@ -64,8 +64,7 @@ class YutaLFPInterface(BaseDataInterface):
             ts = TimeSeries(name=special_electrode['name'],
                             description=special_electrode['description'],
                             data=all_channels_lfp_data[:, special_electrode['channel']],
-                            rate=lfp_sampling_rate, unit='V',
-                            resolution=np.nan)
+                            rate=lfp_sampling_rate, unit='V', resolution=np.nan)
             nwbfile.add_acquisition(ts)
 
         all_lfp_phases = []
