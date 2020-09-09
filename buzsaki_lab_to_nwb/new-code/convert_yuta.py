@@ -4,19 +4,21 @@ from yutanwbconverter import YutaNWBConverter
 import os
 
 # List of folder paths to iterate over
-convert_sessions = ["D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903",
+convert_sessions = [#"D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903",
                     "D:/BuzsakiData/SenzaiY/YutaMouse20/YutaMouse20-140225",
                     "D:/BuzsakiData/SenzaiY/YutaMouse55/YutaMouse55-160907"]
 
+session_descriptions = [#"mouse in open exploration and theta maze",
+                        "mouse in open exploration and theta maze",
+                        "mouse in open exploration and theta maze"]
+
 # Session specific info
-session_specific_metadata = [{}] * 3
-session_specific_metadata[0]['NWBFile'] = {}
-session_specific_metadata[0]['NWBFile'].update({'session_description': 'mouse in open exploration and theta maze'})
-session_specific_metadata[0]['NWBFile'].update({'related_publications': 'DOI:10.1016/j.neuron.2016.12.011'})
-session_specific_metadata[1]['NWBFile'] = {}
-session_specific_metadata[1]['NWBFile'].update({'session_description': 'mouse in open exploration and theta maze'})
-session_specific_metadata[2]['NWBFile'] = {}
-session_specific_metadata[2]['NWBFile'].update({'session_description': 'mouse in open exploration and theta maze'})
+n_sessions = len(convert_sessions)
+session_specific_metadata = [{}] * n_sessions
+for j in range(n_sessions):
+    session_specific_metadata[j]['NWBFile'] = {}
+    session_specific_metadata[j]['NWBFile'].update({'session_description': session_descriptions[j]})
+# session_specific_metadata[0]['NWBFile'].update({'related_publications': 'DOI:10.1016/j.neuron.2016.12.011'})
 
 for j, session in enumerate(convert_sessions):
     # TODO: replace with pathlib

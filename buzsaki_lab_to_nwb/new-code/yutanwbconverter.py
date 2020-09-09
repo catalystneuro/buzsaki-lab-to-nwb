@@ -147,16 +147,23 @@ class YutaNWBConverter(NWBConverter):
 
         session_start = dateparse(date_text, yearfirst=True)
 
-        subject_df = pd.read_excel(subject_xls)
-        subject_data = {}
-        for key in ['genotype', 'DOB', 'implantation', 'Probe', 'Surgery', 'virus injection', 'mouseID']:
-            names = subject_df.iloc[:, 0]
-            if key in names.values:
-                subject_data[key] = subject_df.iloc[np.argmax(names == key), 1]
-        if isinstance(subject_data['DOB'], datetime):
-            age = str(session_start - subject_data['DOB'])
+        if os.path.isfile(subject_xls):
+            subject_df = pd.read_excel(subject_xls)
+            subject_data = {}
+            for key in ['genotype', 'DOB', 'implantation', 'Probe', 'Surgery', 'virus injection', 'mouseID']:
+                names = subject_df.iloc[:, 0]
+                if key in names.values:
+                    subject_data[key] = subject_df.iloc[np.argmax(names == key), 1]
+            if isinstance(subject_data['DOB'], datetime):
+                age = str(session_start - subject_data['DOB'])
+            else:
+                age = None
         else:
-            age = None
+            # TODO: figure better way of handling this, espepcially since it also determines LFP type info
+            age = 'unknown'
+            subject_data = {}
+            subject_data.update({'genotype': 'unknown'})
+            print("Warning: no subject file detected!")
 
         # TODO: add error checking on file existence
         xml_filepath = os.path.join(session_path, session_id + '.xml')

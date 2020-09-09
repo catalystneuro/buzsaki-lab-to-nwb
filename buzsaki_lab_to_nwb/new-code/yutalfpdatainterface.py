@@ -67,30 +67,36 @@ class YutaLFPInterface(BaseDataInterface):
                             rate=lfp_sampling_rate, unit='V', resolution=np.nan)
             nwbfile.add_acquisition(ts)
 
-        all_lfp_phases = []
-        for passband in ('theta', 'gamma'):
-            lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(),
-                                 lfp_sampling_rate,
-                                 passband=passband)
-            lfp_phase, _ = hilbert_lfp(lfp_fft)
-            all_lfp_phases.append(lfp_phase[:, np.newaxis])
-        decomp_series_data = np.dstack(all_lfp_phases)
+        # TODO: discuss/consider more robust checking well prior to this
+        # when missing experimental sheets for a subject, the lfp_channel cannot be determined(?)
+        # which causes uninformative downstream errors at this step because lfp_channel is None
+        # (get_reference_electrode does throw a warning, though)
+        if lfp_channel:
+            all_lfp_phases = []
+            for passband in ('theta', 'gamma'):
+                lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(),
+                                     lfp_sampling_rate,
+                                     passband=passband)
+                lfp_phase, _ = hilbert_lfp(lfp_fft)
+                all_lfp_phases.append(lfp_phase[:, np.newaxis])
+            decomp_series_data = np.dstack(all_lfp_phases)
+
+            # TODO: should units or metrics be metadata?
+            decomp_series = DecompositionSeries(name=metadata_dict['lfp_decomposition']['name'],
+                                                description=metadata_dict['lfp_decomposition']['description'],
+                                                data=decomp_series_data,
+                                                rate=lfp_sampling_rate,
+                                                source_timeseries=lfp_ts,
+                                                metric='phase', unit='radians')
+            # TODO: the band limits should be extracted from parse_passband in band_analysis?
+            decomp_series.add_band(band_name='theta', band_limits=(4, 10))
+            decomp_series.add_band(band_name='gamma', band_limits=(30, 80))
+
+            check_module(nwbfile, 'ecephys',
+                         'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
 
         # TODO: not tested; also might be replaced with the new doubly jagged features?
         if include_spike_waveforms:
             for shankn in np.arange(nshanks, dtype=int) + 1:
                 write_spike_waveforms(nwbfile, session_path, shankn=shankn,
                                       spikes_nsamples=spikes_nsamples, stub_test=stub_test)
-
-        # TODO: should units or metrics be metadata?
-        decomp_series = DecompositionSeries(name=metadata_dict['lfp_decomposition']['name'],
-                                            description=metadata_dict['lfp_decomposition']['description'],
-                                            data=decomp_series_data,
-                                            rate=lfp_sampling_rate,
-                                            source_timeseries=lfp_ts,
-                                            metric='phase', unit='radians')
-        decomp_series.add_band(band_name='theta', band_limits=(4, 10))
-        decomp_series.add_band(band_name='gamma', band_limits=(30, 80))
-
-        check_module(nwbfile, 'ecephys',
-                     'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
