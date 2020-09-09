@@ -1,19 +1,64 @@
 NWBFile:
-  data_collection: ''
-  experiment_description: ADDME
-  experimenter: Experimenter
-  identifier: ABC123
-  institution: NYU
-  keywords:
-  - ''
+  experimenter:  Yuta Senzai
+  identifier: ADDME
+  institution: New York University
   lab: Buzsaki lab
-  notes: ''
-  pharmacology: ''
-  protocol: ''
-  related_publications: ''
-  session_description: ''
-  session_id: ''
+  session_description: mouse in open exploration and theta maze
   session_start_time: 2018-08-09 10:00:00
-  slices: ''
-  stimulus_notes: ''
-  surgery: ''
+  related_publications: DOI:10.1016/j.neuron.2016.12.011
+Subject:
+  age: ADDME
+  description: ADDME
+  genotype: ADDME
+  sex: ADDME
+  species: ADDME
+  subject_id: ADDME
+  weight: ADDME
+Ecephys:
+  Device:
+    - name: implant
+  ElectrodeGroup:
+    - description: ADDME
+      device: implant
+      location: location_1
+      name: shank1
+    - description: ADDME
+      device: implant
+      location: location_2
+      name: shank2
+    - description: ADDME
+      device: implant
+      location: location_3
+      name: shank3
+    - description: ADDME
+      device: implant
+      location: location_1
+      name: shank4
+    - description: ADDME
+      device: implant
+      location: location_2
+      name: shank5
+    - description: ADDME
+      device: implant
+      location: location_3
+      name: shank6
+    - description: ADDME
+      device: implant
+      location: location_1
+      name: shank7
+    - description: ADDME
+      device: implant
+      location: location_2
+      name: shank8
+Behavior:
+  BehavioralTimeSeries:
+    name: BehavioralTimeSeries
+    time_series:
+      - name: Open_X
+        description: ADDME
+      - name: Open_Y
+        description: ADDME
+      - name: Theta_X
+        description: ADDME
+      - name: Theta_Y
+        description: ADDME

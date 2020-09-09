@@ -2,12 +2,9 @@
 # authors: Luiz Tauffer and Ben Dichter
 # written for Buzsaki Lab
 # ------------------------------------------------------------------------------
-from pynwb import NWBFile, NWBHDF5IO, ProcessingModule
-
-import matplotlib.pyplot as plt
+from nwbn_conversion_tools.ecephys.neuroscope import Neuroscope2NWB
+from pathlib import Path
 import yaml
-import numpy as np
-import os
 
 
 def conversion_function(source_paths, f_nwb, metafile, **kwargs):
@@ -28,19 +25,26 @@ def conversion_function(source_paths, f_nwb, metafile, **kwargs):
 
     # Load meta data from YAML file
     with open(metafile) as f:
-        meta = yaml.safe_load(f)
+        metadata = yaml.safe_load(f)
 
-    # Initialize a NWB object
-    nwb = NWBFile(**meta['NWBFile'])
+    # Prepare paths for Neuroscope converter
+    source_paths = {}
 
-    # Create and add device
-    device = Device(**meta['Ophys']['Device'])
-    nwb.add_device(device)
+    # Instantiate a Neuroscope converter
+    converter = Neuroscope2NWB(
+        metadata=metadata,
+        source_paths=source_paths
+    )
+
+    # TODO ---------------------------------
+    raise NotImplementedError('TODO')
+    # --------------------------------------
 
     # Saves to NWB file
-    with NWBHDF5IO(f_nwb, mode='w') as io:
-        io.write(nwb)
-    print('NWB file saved with size: ', os.stat(f_nwb).st_size/1e6, ' mb')
+    converter.save(
+        to_path=Path.cwd(),
+        read_check=True
+    )
 
 
 # If called directly fom terminal
@@ -54,14 +58,15 @@ if __name__ == '__main__':
     f2 = sys.argv[2]
     f3 = sys.argv[3]
     source_paths = {
-        'processed data': {'type': 'file', 'path': f1},
-        'sparse matrix': {'type': 'file', 'path': f2},
-        'ref image': {'type': 'file', 'path': f3}
+        'paths1': {'type': 'file', 'path': f1},
+        'paths2': {'type': 'file', 'path': f2},
+        'paths3': {'type': 'file', 'path': f3}
     }
     f_nwb = sys.argv[4]
     metafile = sys.argv[5]
-    plot_rois = False
-    conversion_function(source_paths=source_paths,
-                        f_nwb=f_nwb,
-                        metafile=metafile,
-                        plot_rois=plot_rois)
+
+    conversion_function(
+        source_paths=source_paths,
+        f_nwb=f_nwb,
+        metafile=metafile,
+    )
