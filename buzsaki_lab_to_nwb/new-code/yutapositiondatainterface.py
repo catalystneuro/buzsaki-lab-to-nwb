@@ -5,13 +5,9 @@ from pynwb import NWBFile
 from pynwb.behavior import SpatialSeries
 import os
 from copy import deepcopy
-from pathlib import Path
-from typing import Union
 # TODO: there doesn't seem to be a pypi for to_nwb...
 # we can always have them on our own end locally, but what about users?
 from to_nwb.neuroscope import add_position_data
-
-PathType = Union[str, Path, None]
 
 
 class YutaPositionInterface(BaseDataInterface):

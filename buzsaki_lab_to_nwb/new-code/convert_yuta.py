@@ -1,6 +1,6 @@
 """Authors: Cody Baker and Ben Dichter."""
 from yutanwbconverter import YutaNWBConverter
-# temporarily until pathlib
+# TODO: add pathlib
 import os
 
 # List of folder paths to iterate over
