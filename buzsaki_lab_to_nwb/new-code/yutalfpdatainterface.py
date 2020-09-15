@@ -5,15 +5,12 @@ from pynwb import NWBFile, TimeSeries
 from pynwb.misc import DecompositionSeries
 import os
 import numpy as np
-from pathlib import Path
-from typing import Union
+
 # TODO: there doesn't seem to be a pypi for to_nwb...
 # we can always have them on our own end locally, but what about users?
 from ephys_analysis.band_analysis import filter_lfp, hilbert_lfp
 from to_nwb.neuroscope import read_lfp, write_lfp, write_spike_waveforms
 from to_nwb.utils import check_module
-
-PathType = Union[str, Path, None]
 
 
 class YutaLFPInterface(BaseDataInterface):
