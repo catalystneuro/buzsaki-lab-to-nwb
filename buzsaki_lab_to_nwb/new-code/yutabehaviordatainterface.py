@@ -9,14 +9,10 @@ import os
 import numpy as np
 from scipy.io import loadmat
 from copy import deepcopy
-from pathlib import Path
-from typing import Union
 # TODO: there doesn't seem to be a pypi for to_nwb...
 # we can always have them on our own end locally, but what about users?
 from to_nwb.neuroscope import get_events
 from to_nwb.utils import find_discontinuities, check_module
-
-PathType = Union[str, Path, None]
 
 
 class YutaBehaviorInterface(BaseDataInterface):
