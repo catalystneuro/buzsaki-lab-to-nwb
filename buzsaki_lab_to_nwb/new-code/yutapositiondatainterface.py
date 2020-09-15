@@ -4,7 +4,6 @@ from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 from pynwb.behavior import SpatialSeries
 import os
-from copy import deepcopy
 from pathlib import Path
 from typing import Union
 # TODO: there doesn't seem to be a pypi for to_nwb...
@@ -24,7 +23,7 @@ class YutaPositionInterface(BaseDataInterface):
         super().__init__(**input_args)
 
     def get_metadata_schema(self):
-        metadata_schema = deepcopy(get_base_schema())
+        metadata_schema = get_base_schema()
 
         # ideally most of this be automatically determined from pynwb docvals
         metadata_schema['properties']['SpatialSeries'] = get_schema_from_hdmf_class(SpatialSeries)
