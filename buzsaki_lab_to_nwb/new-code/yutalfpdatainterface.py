@@ -5,7 +5,7 @@ from pynwb import NWBFile, TimeSeries
 from pynwb.misc import DecompositionSeries
 import os
 import numpy as np
-from copy import deepcopy
+
 # TODO: there doesn't seem to be a pypi for to_nwb...
 # we can always have them on our own end locally, but what about users?
 from ephys_analysis.band_analysis import filter_lfp, hilbert_lfp
@@ -24,7 +24,7 @@ class YutaLFPInterface(BaseDataInterface):
         super().__init__(**input_args)
 
     def get_metadata_schema(self):
-        metadata_schema = deepcopy(get_base_schema())
+        metadata_schema = get_base_schema()
 
         # ideally most of this be automatically determined from pynwb docvals
         metadata_schema['properties']['TimeSeries'] = get_schema_from_hdmf_class(TimeSeries)
