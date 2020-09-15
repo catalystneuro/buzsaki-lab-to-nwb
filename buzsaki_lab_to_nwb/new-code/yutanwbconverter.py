@@ -13,7 +13,7 @@ from datetime import datetime
 from dateutil.parser import parse as dateparse
 from pathlib import Path
 from typing import Union
-from to_nwb.neuroscope import get_clusters_single_shank, read_spike_clustering
+from neuroscope import get_clusters_single_shank, read_spike_clustering
 
 PathType = Union[str, Path, None]
 
