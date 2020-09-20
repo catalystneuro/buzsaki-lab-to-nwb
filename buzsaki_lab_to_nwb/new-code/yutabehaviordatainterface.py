@@ -8,14 +8,9 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 import os
 import numpy as np
 from scipy.io import loadmat
-from copy import deepcopy
-from pathlib import Path
-from typing import Union
 # TODO: there doesn't seem to be a pypi for to_nwb...
 # we can always have them on our own end locally, but what about users?
 from neuroscope import get_events, find_discontinuities, check_module
-
-PathType = Union[str, Path, None]
 
 
 class YutaBehaviorInterface(BaseDataInterface):
@@ -28,7 +23,7 @@ class YutaBehaviorInterface(BaseDataInterface):
         super().__init__(**input_args)
 
     def get_metadata_schema(self):
-        metadata_schema = deepcopy(get_base_schema())
+        metadata_schema = get_base_schema()
 
         # ideally most of this be automatically determined from pynwb docvals
         metadata_schema['properties']['SpatialSeries'] = get_schema_from_hdmf_class(SpatialSeries)
