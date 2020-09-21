@@ -14,6 +14,6 @@ setup(name='buzsaki_lab_to_nwb',
       email='ben.dichter@gmail.com',
       packages=find_packages(),
       include_package_data=True,
-      install_requires=['matplotlib', 'cycler', 'scipy', 'numpy', 'jupyter',
+      install_requires=['matplotlib', 'cycler', 'scipy', 'numpy', 'jupyter', 'xlrd',
                         'h5py', 'pynwb', 'spikeextractors', 'lxml', 'typing', 'nwbn-conversion-tools'],
       )
