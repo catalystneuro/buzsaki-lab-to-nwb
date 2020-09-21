@@ -12,10 +12,10 @@ from hdmf.data_utils import DataChunkIterator
 from pynwb.misc import AnnotationSeries
 from tqdm import tqdm
 from typing import Optional, List, Iterable
-import sys
-if sys.version >= '3.8':
+
+try:
     from typing import ArrayLike
-else:
+except:
     from numpy import ndarray
     from typing import Union, Sequence
     # adapted from numpy typing
