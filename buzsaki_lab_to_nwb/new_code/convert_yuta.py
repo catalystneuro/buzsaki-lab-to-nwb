@@ -1,14 +1,15 @@
 """Authors: Cody Baker and Ben Dichter."""
-from yutanwbconverter import YutaNWBConverter
+from buzsaki_lab_to_nwb import YutaNWBConverter
+
 # TODO: add pathlib
 import os
 
 # List of folder paths to iterate over
-convert_sessions = [#"D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903",
+convert_sessions = ["D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903",
                     "D:/BuzsakiData/SenzaiY/YutaMouse20/YutaMouse20-140225",
                     "D:/BuzsakiData/SenzaiY/YutaMouse55/YutaMouse55-160907"]
 
-session_descriptions = [#"mouse in open exploration and theta maze",
+session_descriptions = ["mouse in open exploration and theta maze",
                         "mouse in open exploration and theta maze",
                         "mouse in open exploration and theta maze"]
 

@@ -7,13 +7,13 @@ with open('README.md', 'r') as f:
 
 setup(name='buzsaki_lab_to_nwb',
       version='0.0.1',
-      description='NWB conversion scripts and tutorials.',
+      description='NWB conversion scripts, functions, and classes for the Buzsaki lab.',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      author='Luiz Tauffer and Ben Dichter',
+      author='Cody Baker, Luiz Tauffer and Ben Dichter',
       email='ben.dichter@gmail.com',
       packages=find_packages(),
       include_package_data=True,
-      install_requires=['matplotlib', 'cycler', 'scipy', 'numpy', 'jupyter',
-                        'h5py', 'pynwb', 'spikeextractors'],
+      install_requires=['matplotlib', 'cycler', 'scipy', 'numpy', 'jupyter', 'xlrd',
+                        'h5py', 'pynwb', 'spikeextractors', 'lxml', 'typing', 'nwbn-conversion-tools'],
       )
