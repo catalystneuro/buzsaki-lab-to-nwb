@@ -277,13 +277,8 @@ class YutaNWBConverter(NWBConverter):
                         },
                         {
                             'name': 'shank_electrode_number',
-                            'description': '1-indexed channel within a shank',
+                            'description': '0-indexed channel within a shank',
                             'data': shank_electrode_number
-                        },
-                        {
-                            'name': 'amp_channel',
-                            'description': 'order in which the channels were plugged into amp',
-                            'data': [x for _, channels in enumerate(shank_channels) for _, x in enumerate(channels)]
                         }
                     ],
                     'ElectricalSeries': {
