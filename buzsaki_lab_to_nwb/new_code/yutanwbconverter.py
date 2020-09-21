@@ -1,9 +1,9 @@
 """Authors: Cody Baker and Ben Dichter."""
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
-import yutapositiondatainterface
-import yutalfpdatainterface
-import yutabehaviordatainterface
-import yutanorecording
+from .yutapositiondatainterface import YutaPositionInterface
+from .yutalfpdatainterface import YutaLFPInterface
+from .yutabehaviordatainterface import YutaBehaviorInterface
+from .yutanorecording import YutaNoRecording
 import pandas as pd
 import numpy as np
 from scipy.io import loadmat
@@ -11,7 +11,7 @@ import os
 from lxml import etree as et
 from datetime import datetime
 from dateutil.parser import parse as dateparse
-from neuroscope import get_clusters_single_shank, read_spike_clustering
+from .neuroscope import get_clusters_single_shank, read_spike_clustering
 
 
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
@@ -91,16 +91,16 @@ class YutaNWBConverter(NWBConverter):
     # This is compensated for the time being, but should this conceptually be a list instead?
     data_interface_classes = {'NeuroscopeRecording': neuroscopedatainterface.NeuroscopeRecordingInterface,
                               'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
-                              'YutaPosition': yutapositiondatainterface.YutaPositionInterface,
-                              'YutaLFP': yutalfpdatainterface.YutaLFPInterface,
-                              'YutaBehavior': yutabehaviordatainterface.YutaBehaviorInterface}
+                              'YutaPosition': YutaPositionInterface,
+                              'YutaLFP': YutaLFPInterface,
+                              'YutaBehavior': YutaBehaviorInterface}
 
     def __init__(self, **input_args):
         dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
             
-            new_data_interface_classes.update({'YutaNoRecording': yutanorecording.YutaNoRecording})
+            new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
             new_data_interface_classes.pop('NeuroscopeRecording')

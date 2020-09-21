@@ -2,7 +2,7 @@
 # authors: Luiz Tauffer and Ben Dichter
 # written for Buzsaki Lab
 # ------------------------------------------------------------------------------
-from nwbn_conversion_tools.ecephys.neuroscope import Neuroscope2NWB
+from nwb_conversion_tools.ecephys.neuroscope import Neuroscope2NWB
 from pathlib import Path
 import yaml
 

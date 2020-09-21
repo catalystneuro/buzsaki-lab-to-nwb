@@ -1,5 +1,6 @@
 """Authors: Cody Baker and Ben Dichter."""
-from yutanwbconverter import YutaNWBConverter
+from buzsaki_lab_to_nwb import YutaNWBConverter
+
 # TODO: add pathlib
 import os
 
