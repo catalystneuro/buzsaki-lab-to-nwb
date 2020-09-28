@@ -8,9 +8,7 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 import os
 import numpy as np
 from scipy.io import loadmat
-# TODO: there doesn't seem to be a pypi for to_nwb...
-# we can always have them on our own end locally, but what about users?
-from .neuroscope import get_events, find_discontinuities, check_module
+from ..neuroscope import get_events, find_discontinuities, check_module
 
 
 class YutaBehaviorInterface(BaseDataInterface):

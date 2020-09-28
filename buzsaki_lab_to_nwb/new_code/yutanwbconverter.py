@@ -11,7 +11,7 @@ import os
 from lxml import etree as et
 from datetime import datetime
 from dateutil.parser import parse as dateparse
-from .neuroscope import get_clusters_single_shank, read_spike_clustering
+from ..neuroscope import get_clusters_single_shank, read_spike_clustering
 
 
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
