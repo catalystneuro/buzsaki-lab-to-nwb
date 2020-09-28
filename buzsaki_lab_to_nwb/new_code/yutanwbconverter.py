@@ -11,7 +11,7 @@ import os
 from lxml import etree as et
 from datetime import datetime
 from dateutil.parser import parse as dateparse
-from .neuroscope import get_clusters_single_shank, read_spike_clustering
+from ..neuroscope import get_clusters_single_shank, read_spike_clustering
 
 
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
@@ -277,13 +277,8 @@ class YutaNWBConverter(NWBConverter):
                         },
                         {
                             'name': 'shank_electrode_number',
-                            'description': '1-indexed channel within a shank',
+                            'description': '0-indexed channel within a shank',
                             'data': shank_electrode_number
-                        },
-                        {
-                            'name': 'amp_channel',
-                            'description': 'order in which the channels were plugged into amp',
-                            'data': [x for _, channels in enumerate(shank_channels) for _, x in enumerate(channels)]
                         }
                     ],
                     'ElectricalSeries': {
