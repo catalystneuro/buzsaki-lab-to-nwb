@@ -1,8 +1,6 @@
 from scipy.signal import hilbert, butter, filtfilt
 import numpy as np
 
-from . import circstats
-
 
 def parse_passband(passband):
     """
