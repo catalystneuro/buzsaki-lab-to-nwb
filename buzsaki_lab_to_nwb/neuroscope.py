@@ -575,9 +575,8 @@ def write_events(nwbfile: NWBFile, session_path: str, suffixes: Iterable[str], m
                   "Unable to write annotation_series.")
 
 
-def write_spike_waveforms(nwbfile: NWBFile, session_path: str, shankn: int,
-                          stub: bool = False,
-                          compression: Optional[str] = 'gzip'):
+def write_spike_waveforms(nwbfile: NWBFile, session_path: str, nshanks: int,
+                          stub_test: bool = False, compression: Optional[str] = 'gzip'):
     """Write spike waveforms to NWBFile.
 
     Parameters
@@ -591,38 +590,45 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: str, shankn: int,
     """
     session_name = os.path.split(session_path)[1]
     xml_filepath = os.path.join(session_path, session_name + '.xml')
-    group = nwbfile.electrode_groups['shank' + str(shankn)]
-    elec_idx = list(np.where(np.array(nwbfile.ec_electrodes['group']) == group)[0])
-    table_region = nwbfile.create_electrode_table_region(elec_idx, group.name + ' region')
-    nchan = len(elec_idx)
     root = load_xml(xml_filepath)
     nsamps = int(root.find('neuroscope').find('spikes').find('nSamples').text)
+    shank_channels = [[int(channel.text)
+                      for channel in group.find('channels')]
+                      for group in root.find('spikeDetection').find('channelGroups').findall('group')]
+    n_stub_spikes = 50
 
-    if stub:
-        spks = np.random.randn(10, nsamps, nchan)
-        spike_times = np.arange(10)
-    else:
-        spk_file = os.path.join(session_path, session_name + '.spk.' + str(shankn))
+    for shankn in range(nshanks):
+        spk_file = os.path.join(session_path, session_name + '.spk.{}'.format(shankn+1))
+        # TODO: perform more general error checking on files before access attempts, at top of this function
         if not os.path.isfile(spk_file):
-            print('spike waveforms for shank{} not found'.format(shankn))
+            print('spike waveforms for shank{} not found'.format(shankn+1))
             return
-        spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, nsamps, nchan)
-        spike_times = read_spike_times(session_path, shankn)
-    if compression:
-        data = H5DataIO(spks, compression=compression)
-    else:
-        data = spks
+        nchan_on_shank = len(shank_channels[shankn])
+        group = nwbfile.electrode_groups['shank{}'.format(shankn+1)]
+        elec_idx = list(np.where(np.array(nwbfile.ec_electrodes['group']) == group)[0])
+        table_region = nwbfile.create_electrode_table_region(elec_idx, group.name + ' region')
 
-    spike_event_series = SpikeEventSeries(name='SpikeEventSeries' + str(shankn),
-                                          data=data,
-                                          timestamps=spike_times,
-                                          electrodes=table_region)
+        if stub_test:
+            # TODO: double check that "reshape" follows correct order of elements for three-tensor
+            spks = np.fromfile(spk_file, dtype=np.int16,
+                               count=n_stub_spikes*nsamps*nchan_on_shank).reshape(n_stub_spikes, nsamps, nchan_on_shank)
+            spk_times = read_spike_times(session_path, shankn+1)[:n_stub_spikes]
+        else:
+            # TODO: double check that "reshape" follows correct order of elements for three-tensor
+            spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, nsamps, nchan_on_shank)
+            spk_times = read_spike_times(session_path, shankn+1)
 
-    # if 'shank' + str(shankn) in nwbfile.electrode_groups:
-    #     nwbfile.electrode_groups['shank' + str(shankn)].event_waveform = EventWaveform(
-    #         spike_event_series=spike_event_series)
+        if compression:
+            data = H5DataIO(spks, compression=compression)
+        else:
+            data = spks
 
-    check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
+        spike_event_series = SpikeEventSeries(name='SpikeWaveforms{}'.format(shankn+1),
+                                              data=data,
+                                              timestamps=spk_times,
+                                              electrodes=table_region)
+
+        check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
 
 
 def add_units(nwbfile: NWBFile, session_path: str,

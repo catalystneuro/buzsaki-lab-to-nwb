@@ -315,7 +315,7 @@ class YutaNWBConverter(NWBConverter):
             'YutaPosition': {
             },
             'YutaLFP': {
-                'shank_channels': all_shank_channels,
+                'all_shank_channels': all_shank_channels,
                 'nshanks': len(shank_channels),
                 'special_electrodes': special_electrodes,
                 'lfp_channel': lfp_channel,
