@@ -20,29 +20,16 @@ class WatsonBehaviorInterface(BaseDataInterface):
     def __init__(self, **input_args):
         super().__init__(**input_args)
 
-    def get_metadata_schema(self):
-        metadata_schema = get_base_schema()
-
-        # ideally most of this be automatically determined from pynwb docvals
-        metadata_schema['properties']['SpatialSeries'] = get_schema_from_hdmf_class(SpatialSeries)
-        required_fields = ['SpatialSeries']
-        for field in required_fields:
-            metadata_schema['required'].append(field)
-
-        return metadata_schema
-
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False, include_spike_waveforms: bool = False):
         session_path = self.input_args['folder_path']
         # TODO: check/enforce format?
-        task_types = metadata_dict['task_types']
+        task_types = metadata_dict.get('task_types', None)
 
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]
 
         [nwbfile.add_stimulus(x) for x in get_events(session_path)]
-
-        sleep_state_fpath = os.path.join(session_path, '{}--StatePeriod.mat'.format(session_id))
 
         exist_pos_data = any(os.path.isfile(os.path.join(session_path,
                                                          '{}__{}.mat'.format(session_id, task_type['name'])))
@@ -103,16 +90,19 @@ class WatsonBehaviorInterface(BaseDataInterface):
                 nwbfile.add_trial(start_time=trial_data[0], stop_time=trial_data[1], condition=cond,
                                   error_run=trial_data[4], stim_run=trial_data[5], both_visit=trial_data[6])
 
+        sleep_state_fpath = os.path.join(session_path, '{}.SleepState.states.mat'.format(session_id))
+        # label renaming specific to Watson
+        state_label_names = {'WAKEstate': "Awake", 'NREMstate': "Non-REM", 'REMstate': "REM"}
         if os.path.isfile(sleep_state_fpath):
-            matin = loadmat(sleep_state_fpath)['StatePeriod']
+            matin = loadmat(sleep_state_fpath)['SleepState']['ints'][0][0]
 
-            table = TimeIntervals(name='states', description='sleep states of animal')
-            table.add_column(name='label', description='sleep state')
+            table = TimeIntervals(name='states', description="Sleep states of animal.")
+            table.add_column(name='label', description="Sleep state.")
 
             data = []
             for name in matin.dtype.names:
                 for row in matin[name][0][0]:
-                    data.append({'start_time': row[0], 'stop_time': row[1], 'label': name})
+                    data.append({'start_time': row[0], 'stop_time': row[1], 'label': state_label_names[name]})
             [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
 
             check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)

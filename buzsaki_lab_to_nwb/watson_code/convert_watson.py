@@ -45,9 +45,6 @@ for j, session in enumerate(convert_sessions):
 
     expt_json_schema = yuta_converter.get_metadata_schema()
 
-    # expt_json_schema does not indicate device linking in ElectrodeGroup.
-    # Also out of place 'type' in property levels?
-
     # construct metadata_dict according to expt_json_schema
     metadata = yuta_converter.get_metadata()
 

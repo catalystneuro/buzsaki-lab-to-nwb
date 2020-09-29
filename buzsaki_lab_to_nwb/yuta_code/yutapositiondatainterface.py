@@ -4,9 +4,6 @@ from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 from pynwb.behavior import SpatialSeries
 import os
-
-# TODO: there doesn't seem to be a pypi for to_nwb...
-# we can always have them on our own end locally, but what about users?
 from ..neuroscope import add_position_data
 
 

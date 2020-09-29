@@ -193,16 +193,6 @@ class WatsonNWBConverter(NWBConverter):
             10: 'positive negative waveform unit'
         }
 
-        task_types = [
-            {'name': 'OpenFieldPosition_ExtraLarge'},
-            {'name': 'OpenFieldPosition_New_Curtain', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_New', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_Old_Curtain', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_Old', 'conversion': 0.46},
-            {'name': 'OpenFieldPosition_Oldlast', 'conversion': 0.46},
-            {'name': 'EightMazePosition', 'conversion': 0.65 / 2}
-        ]
-
         # Would these special electrode have the same exact IDs across different sessions/experiments?
         # assuming so in the min() check below
         special_electrode_mapping = {'ch_wait': 79, 'ch_arm': 78, 'ch_solL': 76,
@@ -310,9 +300,7 @@ class WatsonNWBConverter(NWBConverter):
                     }
                   ]
             },
-            'YutaPosition': {
-            },
-            'YutaLFP': {
+            'WatsonLFP': {
                 'all_shank_channels': all_shank_channels,
                 'special_electrodes': special_electrodes,
                 'lfp_channel': lfp_channel,
@@ -324,8 +312,7 @@ class WatsonNWBConverter(NWBConverter):
                 'spikes_nsamples': spikes_nsamples,
                 'shank_channels': shank_channels
             },
-            'YutaBehavior': {
-                'task_types': task_types
+            'WatsonBehavior': {
             }
         }
 
