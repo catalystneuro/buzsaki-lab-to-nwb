@@ -9,7 +9,11 @@ base_path = "D:/BuzsakiData/WatsonBO"
 convert_sessions = ["BWRat17-121712", "BWRat17-121912", "BWRat18-020513", "BWRat19-032513", "BWRat19-032413",
                     "BWRat20-101013", "BWRat20-101513", "BWRat21-121113", "BWRat21-121613", "BWRat21-121813"]
 
-session_descriptions = ["mouse in open exploration and theta maze" for x in range(len(convert_sessions))]
+paper_descr = "Data was recorded using silicon probe electrodes in the frontal cortices of male Long " \
+              "Evans rats between 4-7 months of age. The design was to have no specific behavior, " \
+              "task or stimulus, rather the animal was left alone in it’s home cage (which it lives in at all " \
+              "times)."
+session_descriptions = [paper_descr for x in range(len(convert_sessions))]
 
 # Session specific info
 n_sessions = len(convert_sessions)
