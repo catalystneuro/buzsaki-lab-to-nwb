@@ -592,7 +592,8 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: 
     """
     for shankn in range(1, len(shank_channels)+1):
         write_spike_waveforms_single_shank(nwbfile=nwbfile, session_path=session_path, shankn=shankn,
-                                           spikes_nsamples=spikes_nsamples, nchan_on_shank=len(shank_channels[shankn-1]),
+                                           spikes_nsamples=spikes_nsamples,
+                                           nchan_on_shank=len(shank_channels[shankn-1]),
                                            stub_test=stub_test, compression=compression)
 
 
@@ -606,7 +607,9 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
     nwbfile: pynwb.NWBFile
     session_path: str
     shankn: int
-    stub: bool, optional
+    spikes_nsamples: int
+    nchan_on_shank: int
+    stub_test: bool, optional
         default: False
     compression: str (optional)
         default: 'gzip'
