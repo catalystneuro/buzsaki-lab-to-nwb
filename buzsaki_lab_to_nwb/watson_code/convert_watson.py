@@ -5,13 +5,11 @@ from buzsaki_lab_to_nwb import YutaNWBConverter
 import os
 
 # List of folder paths to iterate over
-convert_sessions = ["D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903",
-                    "D:/BuzsakiData/SenzaiY/YutaMouse20/YutaMouse20-140225",
-                    "D:/BuzsakiData/SenzaiY/YutaMouse55/YutaMouse55-160907"]
+base_path = "D:/BuzsakiData/WatsonBO"
+convert_sessions = ["BWRat17-121712", "BWRat17-121912", "BWRat18-020513", "BWRat19-032513", "BWRat19-032413",
+                    "BWRat20-101013", "BWRat20-101513", "BWRat21-121113", "BWRat21-121613", "BWRat21-121813"]
 
-session_descriptions = ["mouse in open exploration and theta maze",
-                        "mouse in open exploration and theta maze",
-                        "mouse in open exploration and theta maze"]
+session_descriptions = ["mouse in open exploration and theta maze" for x in range(len(convert_sessions))]
 
 # Session specific info
 n_sessions = len(convert_sessions)
