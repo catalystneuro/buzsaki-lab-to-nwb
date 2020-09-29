@@ -13,15 +13,18 @@ paper_descr = "Data was recorded using silicon probe electrodes in the frontal c
               "Evans rats between 4-7 months of age. The design was to have no specific behavior, " \
               "task or stimulus, rather the animal was left alone in it’s home cage (which it lives in at all " \
               "times)."
-session_descriptions = [paper_descr for x in range(len(convert_sessions))]
+paper_info = "Network Homeostasis and State Dynamics of Neocortical Sleep" \
+             "Watson BO, Levenstein D, Greene JP, Gelinas JN, Buzsáki G." \
+             "Neuron. 2016 Apr 27. pii: S0896-6273(16)30056-3." \
+             "doi: 10.1016/j.neuron.2016.03.036"
 
 # Session specific info
 n_sessions = len(convert_sessions)
 session_specific_metadata = [{}] * n_sessions
 for j in range(n_sessions):
     session_specific_metadata[j]['NWBFile'] = {}
-    session_specific_metadata[j]['NWBFile'].update({'session_description': session_descriptions[j]})
-# session_specific_metadata[0]['NWBFile'].update({'related_publications': 'DOI:10.1016/j.neuron.2016.12.011'})
+    session_specific_metadata[j]['NWBFile'].update({'session_description': paper_descr})
+    session_specific_metadata[0]['NWBFile'].update({'related_publications': paper_info})
 
 for j, session in enumerate(convert_sessions):
     # TODO: replace with pathlib
