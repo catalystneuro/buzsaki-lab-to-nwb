@@ -10,7 +10,7 @@ from ..band_analysis import filter_lfp, hilbert_lfp
 from ..neuroscope import read_lfp, write_lfp, write_spike_waveforms, check_module
 
 
-class YutaLFPInterface(BaseDataInterface):
+class WatsonLFPInterface(BaseDataInterface):
 
     @classmethod
     def get_input_schema(cls):

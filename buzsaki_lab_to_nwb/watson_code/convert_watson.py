@@ -37,7 +37,6 @@ for j, session in enumerate(convert_sessions):
         'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
         'NeuroscopeSorting': {'folder_path': session,
                               'keep_mua_units': False},
-        'YutaPosition': {'folder_path': session},
         'YutaLFP': {'folder_path': session},
         'YutaBehavior': {'folder_path': session}
     }

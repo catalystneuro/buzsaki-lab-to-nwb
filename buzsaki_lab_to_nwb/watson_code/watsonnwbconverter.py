@@ -1,9 +1,8 @@
 """Authors: Cody Baker and Ben Dichter."""
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
-from .yutapositiondatainterface import YutaPositionInterface
-from .yutalfpdatainterface import YutaLFPInterface
-from .yutabehaviordatainterface import YutaBehaviorInterface
-from .yutanorecording import YutaNoRecording
+from .watsonlfpdatainterface import WatsonLFPInterface
+from .watsonbehaviordatainterface import WatsonBehaviorInterface
+from .watsonnorecording import WatsonNoRecording
 import pandas as pd
 import numpy as np
 from scipy.io import loadmat
@@ -86,21 +85,20 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     return pd.merge(clu_df, mat_df, how='left', on=('unitIDshank', 'shank'))
 
 
-class YutaNWBConverter(NWBConverter):
+class WatsonNWBConverter(NWBConverter):
     # The order of this dictionary matter significantly, but python dictionaries are supposed to be unordered
     # This is compensated for the time being, but should this conceptually be a list instead?
     data_interface_classes = {'NeuroscopeRecording': neuroscopedatainterface.NeuroscopeRecordingInterface,
                               'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
-                              'YutaPosition': YutaPositionInterface,
-                              'YutaLFP': YutaLFPInterface,
-                              'YutaBehavior': YutaBehaviorInterface}
+                              'WatsonLFP': WatsonLFPInterface,
+                              'WatsonBehavior': WatsonBehaviorInterface}
 
     def __init__(self, **input_args):
         dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
             
-            new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
+            new_data_interface_classes.update({'WatsonNoRecording': WatsonNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
             new_data_interface_classes.pop('NeuroscopeRecording')
@@ -112,11 +110,11 @@ class YutaNWBConverter(NWBConverter):
                               for channel in group.find('channels')]
                               for group in root.find('spikeDetection').find('channelGroups').findall('group')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
-            input_args.update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
-                                                   'sampling_frequency': 1}})
+            input_args.update({'WatsonNoRecording': {'timeseries': np.array(range(n_channels)),
+                                                     'sampling_frequency': 1}})
             input_args.pop('NeuroscopeRecording')
             self.data_interface_classes = new_data_interface_classes
-            self._recording_type = 'YutaNoRecording'
+            self._recording_type = 'WatsonNoRecording'
         else:
             self._recording_type = 'NeuroscopeRecording'
         super().__init__(**input_args)

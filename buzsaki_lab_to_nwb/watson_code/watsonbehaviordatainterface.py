@@ -11,7 +11,7 @@ from scipy.io import loadmat
 from ..neuroscope import get_events, find_discontinuities, check_module
 
 
-class YutaBehaviorInterface(BaseDataInterface):
+class WatsonBehaviorInterface(BaseDataInterface):
 
     @classmethod
     def get_input_schema(cls):
