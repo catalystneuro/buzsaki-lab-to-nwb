@@ -576,7 +576,7 @@ def write_events(nwbfile: NWBFile, session_path: str, suffixes: Iterable[str], m
 
 
 def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: int, shank_channels: ArrayLike,
-                          stub_test: bool = False, compression: Optional[str] = 'gzip'):
+                          stub_test: bool = False, compression: Optional[str] = "gzip"):
     """Write spike waveforms to NWBFile.
 
     Parameters
@@ -599,7 +599,7 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: 
 
 def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shankn: int, spikes_nsamples: int,
                                        nchan_on_shank: int, stub_test: bool = False,
-                                       compression: Optional[str] = 'gzip'):
+                                       compression: Optional[str] = "gzip"):
     """Write spike waveforms to NWBFile.
 
     Parameters
@@ -615,7 +615,7 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
         default: 'gzip'
     """
     session_name = os.path.split(session_path)[1]
-    spk_file = os.path.join(session_path, session_name + '.spk.{}'.format(shankn))
+    spk_file = os.path.join(session_path, session_name + ".spk.{}".format(shankn))
 
     assert os.path.isfile(spk_file), "No .spk.{} file found at the path location!" \
                                      "Unable to retrieve spike waveforms.".format(shankn)
@@ -639,7 +639,7 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
     else:
         data = spks
 
-    spike_event_series = SpikeEventSeries(name='SpikeWaveforms{}'.format(shankn),
+    spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
                                           data=data,
                                           timestamps=spk_times,
                                           electrodes=table_region)
