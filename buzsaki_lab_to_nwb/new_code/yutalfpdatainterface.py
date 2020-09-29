@@ -36,11 +36,11 @@ class YutaLFPInterface(BaseDataInterface):
         session_path = self.input_args['folder_path']
         # TODO: check/enforce format?
         all_shank_channels = metadata_dict['all_shank_channels']
-        nshanks = metadata_dict['nshanks']
         special_electrode_dict = metadata_dict['special_electrodes']
         lfp_channel = metadata_dict['lfp_channel']
         lfp_sampling_rate = metadata_dict['lfp_sampling_rate']
         spikes_nsamples = metadata_dict['spikes_nsamples']
+        shank_channels = metadata_dict['shank_channels']
 
         subject_path, session_id = os.path.split(session_path)
 
@@ -87,4 +87,5 @@ class YutaLFPInterface(BaseDataInterface):
             check_module(nwbfile, 'ecephys',
                          'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
 
-        write_spike_waveforms(nwbfile, session_path, nshanks=metadata_dict['nshanks'], stub_test=stub_test)
+        write_spike_waveforms(nwbfile, session_path, spikes_nsamples=spikes_nsamples, shank_channels=shank_channels,
+                              stub_test=stub_test)
