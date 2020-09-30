@@ -36,8 +36,8 @@ class WatsonLFPInterface(BaseDataInterface):
         session_path = self.input_args['folder_path']
         # TODO: check/enforce format?
         all_shank_channels = metadata_dict['all_shank_channels']
-        special_electrode_dict = metadata_dict['special_electrodes']
-        lfp_channel = metadata_dict['lfp_channel']
+        special_electrode_dict = metadata_dict.get('special_electrodes', None)
+        lfp_channels = metadata_dict['lfp_channels']
         lfp_sampling_rate = metadata_dict['lfp_sampling_rate']
         spikes_nsamples = metadata_dict['spikes_nsamples']
         shank_channels = metadata_dict['shank_channels']
@@ -59,11 +59,7 @@ class WatsonLFPInterface(BaseDataInterface):
                             rate=lfp_sampling_rate, unit='V', resolution=np.nan)
             nwbfile.add_acquisition(ts)
 
-        # TODO: discuss/consider more robust checking well prior to this
-        # when missing experimental sheets for a subject, the lfp_channel cannot be determined(?)
-        # which causes uninformative downstream errors at this step because lfp_channel is None
-        # (get_reference_electrode does throw a warning, though)
-        if lfp_channel is not None:
+        for ref_name, lfp_channel in lfp_channels.items():
             all_lfp_phases = []
             for passband in ('theta', 'gamma'):
                 lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(),
@@ -74,8 +70,8 @@ class WatsonLFPInterface(BaseDataInterface):
             decomp_series_data = np.dstack(all_lfp_phases)
 
             # TODO: should units or metrics be metadata?
-            decomp_series = DecompositionSeries(name=metadata_dict['lfp_decomposition']['name'],
-                                                description=metadata_dict['lfp_decomposition']['description'],
+            decomp_series = DecompositionSeries(name=metadata_dict['lfp_decomposition'][ref_name]['name'],
+                                                description=metadata_dict['lfp_decomposition'][ref_name]['description'],
                                                 data=decomp_series_data,
                                                 rate=lfp_sampling_rate,
                                                 source_timeseries=lfp_ts,

@@ -1,10 +1,10 @@
 """Authors: Cody Baker and Ben Dichter."""
 from buzsaki_lab_to_nwb import YutaNWBConverter
-
 # TODO: add pathlib
 import os
 
 # List of folder paths to iterate over
+experimenter = "Brendon Watson"
 base_path = "D:/BuzsakiData/WatsonBO"
 convert_sessions = ["BWRat17-121712", "BWRat17-121912", "BWRat18-020513", "BWRat19-032513", "BWRat19-032413",
                     "BWRat20-101013", "BWRat20-101513", "BWRat21-121113", "BWRat21-121613", "BWRat21-121813"]
@@ -18,27 +18,19 @@ paper_info = "Network Homeostasis and State Dynamics of Neocortical Sleep" \
              "Neuron. 2016 Apr 27. pii: S0896-6273(16)30056-3." \
              "doi: 10.1016/j.neuron.2016.03.036"
 
-# Session specific info
-n_sessions = len(convert_sessions)
-session_specific_metadata = [{}] * n_sessions
-for j in range(n_sessions):
-    session_specific_metadata[j]['NWBFile'] = {}
-    session_specific_metadata[j]['NWBFile'].update({'session_description': paper_descr})
-    session_specific_metadata[0]['NWBFile'].update({'related_publications': paper_info})
-
 for j, session in enumerate(convert_sessions):
     # TODO: replace with pathlib
-    session_name = os.path.split(session)[1]
+    session_id = os.path.split(session)[1]
 
     input_file_schema = YutaNWBConverter.get_input_schema()
 
     # construct input_args dict according to input schema
     input_args = {
-        'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
+        'NeuroscopeRecording': {'file_path': os.path.join(session, session_id) + ".dat"},
         'NeuroscopeSorting': {'folder_path': session,
                               'keep_mua_units': False},
-        'YutaLFP': {'folder_path': session},
-        'YutaBehavior': {'folder_path': session}
+        'WatsonLFP': {'folder_path': session},
+        'WatsonBehavior': {'folder_path': session}
     }
 
     yuta_converter = YutaNWBConverter(**input_args)
@@ -48,22 +40,20 @@ for j, session in enumerate(convert_sessions):
     # construct metadata_dict according to expt_json_schema
     metadata = yuta_converter.get_metadata()
 
-    # TODO: better way to nest smart dictionary updates?
-    for key1, val1 in session_specific_metadata[j].items():
-        if type(val1) is dict:
-            for key2, val2 in val1.items():
-                metadata[key1].update({key2: val2})
-        else:
-            metadata.update({key1: val1})
-
     # Yuta specific info
-    metadata['NWBFile'].update({'experimenter': 'Yuta Senzai'})
+    metadata['NWBFile'].update({'experimenter': experimenter})
+    metadata['NWBFile'].update({'session_description': paper_descr})
+    metadata['NWBFile'].update({'related_publications': paper_info})
 
-    metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update({'name': 'implant'})
+    metadata['Subject'].update({'species': 'Rat'})
+    metadata['Subject'].update({'strain': 'Long Evans'})
+    metadata['Subject'].update({'genotype': 'Wild type'})
+    metadata['Subject'].update({'age': '3-7 months'})  # No age data avilable per subject without contacting lab
+    metadata['Subject'].update({'weight': '250-500g'})
 
-    for electrode_group_metadata in metadata[yuta_converter.get_recording_type()]['Ecephys']['ElectrodeGroup']:
-        electrode_group_metadata.update({'location': 'unknown'})
-        electrode_group_metadata.update({'device_name': 'implant'})
+    device_descr = "silicon probe electrodes; see {}.xml or {}.sessionInfo.mat for more information".format(session_id,
+                                                                                                            session_id)
+    metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update({'description': device_descr})
 
-    nwbfile_path = session + "_new_converter.nwb"
+    nwbfile_path = session + "_stub.nwb"
     yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
