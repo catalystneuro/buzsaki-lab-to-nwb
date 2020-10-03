@@ -1,1 +1,2 @@
-from .new_code.yutanwbconverter import YutaNWBConverter
+from .watson_code.watsonnwbconverter import WatsonNWBConverter
+from .yuta_code.yutanwbconverter import YutaNWBConverter

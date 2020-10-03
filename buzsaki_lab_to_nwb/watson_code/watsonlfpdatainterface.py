@@ -36,15 +36,16 @@ class WatsonLFPInterface(BaseDataInterface):
         session_path = self.input_args['folder_path']
         # TODO: check/enforce format?
         all_shank_channels = metadata_dict['all_shank_channels']
-        special_electrode_dict = metadata_dict.get('special_electrodes', None)
+        special_electrode_dict = metadata_dict.get('special_electrodes', [])
         lfp_channels = metadata_dict['lfp_channels']
         lfp_sampling_rate = metadata_dict['lfp_sampling_rate']
         spikes_nsamples = metadata_dict['spikes_nsamples']
         shank_channels = metadata_dict['shank_channels']
+        n_total_channels = metadata_dict['n_total_channels']
 
         subject_path, session_id = os.path.split(session_path)
 
-        _, all_channels_lfp_data = read_lfp(session_path, stub=stub_test)
+        _, all_channels_lfp_data = read_lfp(session_path, stub=stub_test, n_channels=n_total_channels)
         lfp_data = all_channels_lfp_data[:, all_shank_channels]
         lfp_ts = write_lfp(nwbfile, lfp_data, lfp_sampling_rate,
                            name=metadata_dict['lfp']['name'],

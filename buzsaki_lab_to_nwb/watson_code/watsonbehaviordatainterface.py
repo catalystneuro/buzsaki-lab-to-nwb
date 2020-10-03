@@ -20,11 +20,15 @@ class WatsonBehaviorInterface(BaseDataInterface):
     def __init__(self, **input_args):
         super().__init__(**input_args)
 
+    def get_metadata_schema(self):
+        metadata_schema = get_base_schema()
+        return metadata_schema
+
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False, include_spike_waveforms: bool = False):
         session_path = self.input_args['folder_path']
         # TODO: check/enforce format?
-        task_types = metadata_dict.get('task_types', None)
+        task_types = metadata_dict.get('task_types', [])
 
         subject_path, session_id = os.path.split(session_path)
         fpath_base = os.path.split(subject_path)[0]

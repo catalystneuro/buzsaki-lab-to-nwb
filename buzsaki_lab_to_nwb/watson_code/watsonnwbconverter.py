@@ -1,16 +1,16 @@
 """Authors: Cody Baker and Ben Dichter."""
+import spikeextractors as se
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
 from .watsonlfpdatainterface import WatsonLFPInterface
 from .watsonbehaviordatainterface import WatsonBehaviorInterface
 from .watsonnorecording import WatsonNoRecording
-import pandas as pd
 import numpy as np
 from scipy.io import loadmat
 import os
 from lxml import etree as et
 from datetime import datetime
 from dateutil.parser import parse as dateparse
-from ..neuroscope import get_clusters_single_shank, read_spike_clustering
+from ..neuroscope import get_clusters_single_shank
 
 
 class WatsonNWBConverter(NWBConverter):
@@ -25,7 +25,7 @@ class WatsonNWBConverter(NWBConverter):
         dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
-            
+
             new_data_interface_classes.update({'WatsonNoRecording': WatsonNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
@@ -34,9 +34,9 @@ class WatsonNWBConverter(NWBConverter):
             session_id = os.path.split(input_args['NeuroscopeSorting']['folder_path'])[1]
             xml_filepath = os.path.join(input_args['NeuroscopeSorting']['folder_path'], session_id + '.xml')
             root = et.parse(xml_filepath).getroot()
-            n_channels = len([[int(channel.text)
-                              for channel in group.find('channels')]
-                              for group in root.find('spikeDetection').find('channelGroups').findall('group')])
+            n_channels = len([int(channel.text)
+                              for group in root.find('spikeDetection').find('channelGroups').findall('group')
+                              for channel in group.find('channels')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
             input_args.update({'WatsonNoRecording': {'timeseries': np.array(range(n_channels)),
                                                      'sampling_frequency': 1}})
@@ -59,7 +59,7 @@ class WatsonNWBConverter(NWBConverter):
         session_start = dateparse(date_text)
 
         # TODO: add error checking on file existence
-        xml_filepath = os.path.join(session_path, session_id + '.xml')
+        xml_filepath = os.path.join(session_path, "{}.xml".format(session_id))
         root = et.parse(xml_filepath).getroot()
 
         shank_channels = [[int(channel.text)
@@ -70,27 +70,30 @@ class WatsonNWBConverter(NWBConverter):
         spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
         lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
 
-        session_info_filepath = os.path.join(session_path, session_id, ".sessionInfo.mat")
+        session_info_filepath = os.path.join(session_path, "{}.sessionInfo.mat".format(session_id))
         if os.path.isfile(session_info_filepath):
-            sw_reference = loadmat(session_info_filepath)['sessionInfo']['channelTags'][0][0]['SWChan'][0][0][0][0]
+            n_total_channels = loadmat(session_info_filepath)['sessionInfo']['nChannels'][0][0][0][0]
 
-        basic_metadata_filepath = os.path.join(session_path, session_id, "_BasicMetaData.mat")
+        basic_metadata_filepath = os.path.join(session_path, "{}_BasicMetaData.mat".format(session_id))
         if os.path.isfile(basic_metadata_filepath):
             matin = loadmat(basic_metadata_filepath)['bmd']
             up_reference = matin['UPstatechannel'][0][0][0][0]
             spindle_reference = matin['Spindlechannel'][0][0][0][0]
             theta_reference = matin['Thetachannel'][0][0][0][0]
 
-        shank_electrode_number = [x for _, channels in enumerate(shank_channels) for x, _ in enumerate(channels)]
+        shank_electrode_number = [x for channels in shank_channels for x, _ in enumerate(channels)]
+        shank_group = [n for n, channels in enumerate(shank_channels) for _ in channels]
+        shank_group_name = ["shank{}".format(n+1) for n, channels in enumerate(shank_channels) for _ in channels]
 
-        cell_filepath = os.path.join(session_path, session_id, ".spikes.cellinfo.mat")
+        cell_filepath = os.path.join(session_path, "{}.spikes.cellinfo.mat".format(session_id))
         if os.path.isfile(cell_filepath):
             cell_info = loadmat(cell_filepath)['spikes']
 
         celltype_mapping = {'pE': "excitatory", 'pI': "inhibitory"}
-        celltype_filepath = os.path.join(session_path, session_id, ".CellClass.cellinfo.mat")
+        celltype_filepath = os.path.join(session_path, "{}.CellClass.cellinfo.mat".format(session_id))
         if os.path.isfile(celltype_filepath):
-            celltype_info = [celltype_mapping[x[0]] for x in loadmat(celltype_filepath)['CellClass']['label'][0][0][0]]
+            celltype_info = [str(celltype_mapping[x[0]])
+                             for x in loadmat(celltype_filepath)['CellClass']['label'][0][0][0]]
 
         device_name = "implant"
 
@@ -131,29 +134,19 @@ class WatsonNWBConverter(NWBConverter):
                     } for n, _ in enumerate(shank_channels)],
                     'Electrodes': [
                         {
-                            'name': 'sw_reference',
-                            'description': 'this electrode was used to calculate slow-wave sleep',
-                            'data':  list(all_shank_channels == sw_reference)
-                        },
-                        {
-                            'name': 'up_reference',
-                            'description': 'this electrode was used to calculate slow-wave sleep',
-                            'data':  list(all_shank_channels == up_reference)
-                        },
-                        {
-                            'name': 'spindle_reference',
-                            'description': 'this electrode was used to calculate slow-wave sleep',
-                            'data':  list(all_shank_channels == spindle_reference)
-                        },
-                        {
-                            'name': 'theta_reference',
-                            'description': 'this electrode was used to calculate slow-wave sleep',
-                            'data':  list(all_shank_channels == theta_reference)
-                        },
-                        {
                             'name': 'shank_electrode_number',
                             'description': '0-indexed channel within a shank',
                             'data': shank_electrode_number
+                        },
+                        {
+                            'name': 'group',
+                            'description': 'a reference to the ElectrodeGroup this electrode is a part of',
+                            'data': shank_group_name
+                        },
+                        {
+                            'name': 'group_name',
+                            'description': 'the name of the ElectrodeGroup this electrode is a part of',
+                            'data': shank_group_name
                         }
                     ],
                     'ElectricalSeries': {
@@ -163,7 +156,6 @@ class WatsonNWBConverter(NWBConverter):
                 }
             },
             'NeuroscopeSorting': {
-                # TODO: should add if checks for conditions on whether these metadata were instantiated earlier
                 'UnitProperties': [
                     {
                         'name': 'cell_type',
@@ -173,50 +165,94 @@ class WatsonNWBConverter(NWBConverter):
                     {
                         'name': 'global_id',
                         'description': 'global id for cell for entire experiment',
-                        'data': list(cell_info['UID'][0][0][0])
+                        'data': [int(x) for x in cell_info['UID'][0][0][0]]
                     },
                     {
                         'name': 'shank_id',
                         'description': '0-indexed id of cluster from shank',
                         # - 2 b/c the 0 and 1 IDs from each shank have been removed
-                        'data': [x - 2 for x in cell_info['cluID'][0][0][0]]
+                        'data': [int(x - 2) for x in cell_info['cluID'][0][0][0]]
                     },
                     {
                         'name': 'electrode_group',
                         'description': 'the electrode group that each spike unit came from',
-                        'data': list(cell_info['shankID'][0][0][0])
+                        'data': ["shank" + str(x) for x in cell_info['shankID'][0][0][0]]
                     },
                     {
                         'name': 'region',
                         'description': 'brain region where unit was detected',
-                        'data': [x[0] for x in cell_info['region'][0][0][0]]
+                        'data': [str(x[0]) for x in cell_info['region'][0][0][0]]
                     }
                   ]
             },
             'WatsonLFP': {
                 'all_shank_channels': all_shank_channels,
-                'lfp_channels': {'sw_reference': sw_reference,
-                                 'up_reference': up_reference,
-                                 'spindle_reference': spindle_reference,
-                                 'theta_reference': theta_reference},
+                'lfp_channels': {},
                 'lfp_sampling_rate': lfp_sampling_rate,
                 'lfp': {'name': 'lfp',
                         'description': 'lfp signal for all shank electrodes'},
-                'lfp_decomposition': {'sw_reference': {'name': 'SWDecompositionSeries',
-                                                       'description': 'Theta and Gamma phase for sw-reference LFP'},
-                                      'up_reference': {'name': 'UPDecompositionSeries',
-                                                       'description': 'Theta and Gamma phase for up-reference LFP'},
-                                      'spindle_reference': {'name': 'SpindleDecompositionSeries',
-                                                            'description':
-                                                                'Theta and Gamma phase for spindle-reference LFP'},
-                                      'theta_reference': {'name': 'ThetaDecompositionSeries',
-                                                          'description':
-                                                              'Theta and Gamma phase for theta-reference LFP'}},
+                'lfp_decomposition': {},
                 'spikes_nsamples': spikes_nsamples,
-                'shank_channels': shank_channels
+                'shank_channels': shank_channels,
+                'n_total_channels': n_total_channels
             },
             'WatsonBehavior': {
             }
         }
+
+        # If reference channels are auto-detected for a given session, add them to the various metadata fields
+        test_list = list(all_shank_channels == up_reference)
+        if any(test_list):
+            metadata[self.get_recording_type()]['Ecephys']['Electrodes'].append({
+                'name': 'up_reference',
+                'description': 'this electrode was used to calculate UP-states',
+                'data':  test_list
+            })
+            metadata['WatsonLFP']['lfp_channels'].update({'up_reference': up_reference})
+            metadata['WatsonLFP']['lfp_decomposition'].update({
+                'up_reference': {'name': 'UPDecompositionSeries',
+                                 'description': 'Theta and Gamma phase for up-reference LFP'}
+            })
+
+        test_list = list(all_shank_channels == spindle_reference)
+        if any(test_list):
+            metadata[self.get_recording_type()]['Ecephys']['Electrodes'].append({
+                'name': 'spindle_reference',
+                'description': 'this electrode was used to calculate slow-wave sleep',
+                'data':  test_list
+            })
+            metadata['WatsonLFP']['lfp_channels'].update({'spindle_reference': spindle_reference})
+            metadata['WatsonLFP']['lfp_decomposition'].update({
+                'spindle_reference': {'name': 'SpindleDecompositionSeries',
+                                      'description': 'Theta and Gamma phase for spindle-reference LFP'}
+            })
+
+        test_list = list(all_shank_channels == theta_reference)
+        if any(test_list):
+            metadata[self.get_recording_type()]['Ecephys']['Electrodes'].append({
+                'name': 'theta_reference',
+                'description': 'this electrode was used to calculate theta canonical bands',
+                'data':  test_list
+            })
+            metadata['WatsonLFP']['lfp_channels'].update({'theta_reference': theta_reference})
+            metadata['WatsonLFP']['lfp_decomposition'].update({
+                'theta_reference': {'name': 'ThetaDecompositionSeries',
+                                    'description': 'Theta and Gamma phase for theta-reference LFP'}
+            })
+
+        # If there is missing auto-detected metadata for unit properties, truncate those units from the extractor
+        se_ids = set(self.data_interface_objects['NeuroscopeSorting'].sorting_extractor.get_unit_ids())
+        if len(celltype_info) < len(se_ids):
+            defaults = {'cell_type': "unknown", 'region': "unknown"}
+            missing_ids = se_ids - set(np.arange(len(celltype_info)))
+            unit_map = self.data_interface_objects['NeuroscopeSorting'].sorting_extractor._unit_map
+            for missing_id in missing_ids:
+                metadata['NeuroscopeSorting']['UnitProperties'][0]['data'].append(defaults['cell_type'])
+                metadata['NeuroscopeSorting']['UnitProperties'][1]['data'].append(int(missing_id))
+                metadata['NeuroscopeSorting']['UnitProperties'][2]['data'].append(int(unit_map[missing_id]['unit_id']
+                                                                                      - 1))
+                metadata['NeuroscopeSorting']['UnitProperties'][3]['data'].append(
+                    "shank{}".format(unit_map[missing_id]['sorting_id']))
+                metadata['NeuroscopeSorting']['UnitProperties'][4]['data'].append(defaults['region'])
 
         return metadata

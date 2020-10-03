@@ -99,7 +99,7 @@ class YutaNWBConverter(NWBConverter):
         dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
-            
+
             new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
@@ -108,9 +108,9 @@ class YutaNWBConverter(NWBConverter):
             session_id = os.path.split(input_args['NeuroscopeSorting']['folder_path'])[1]
             xml_filepath = os.path.join(input_args['NeuroscopeSorting']['folder_path'], session_id + '.xml')
             root = et.parse(xml_filepath).getroot()
-            n_channels = len([[int(channel.text)
-                              for channel in group.find('channels')]
-                              for group in root.find('spikeDetection').find('channelGroups').findall('group')])
+            n_channels = len([int(channel.text)
+                              for group in root.find('spikeDetection').find('channelGroups').findall('group')
+                              for channel in group.find('channels')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
             input_args.update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
                                                    'sampling_frequency': 1}})

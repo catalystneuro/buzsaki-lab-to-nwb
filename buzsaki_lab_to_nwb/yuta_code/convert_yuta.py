@@ -61,5 +61,5 @@ for j, session in enumerate(convert_sessions):
         electrode_group_metadata.update({'location': 'unknown'})
         electrode_group_metadata.update({'device_name': 'implant'})
 
-    nwbfile_path = session + "_new_converter.nwb"
+    nwbfile_path = session + "_stub.nwb"
     yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
