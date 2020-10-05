@@ -6,8 +6,6 @@ from pynwb.misc import DecompositionSeries
 import os
 import numpy as np
 
-# TODO: there doesn't seem to be a pypi for to_nwb...
-# we can always have them on our own end locally, but what about users?
 from ..band_analysis import filter_lfp, hilbert_lfp
 from ..neuroscope import read_lfp, write_lfp, write_spike_waveforms, check_module
 
@@ -34,16 +32,15 @@ class YutaLFPInterface(BaseDataInterface):
 
         return metadata_schema
 
-    def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
-                     stub_test: bool = False, include_spike_waveforms: bool = False):
+    def convert_data(self, nwbfile: NWBFile, metadata_dict: dict, stub_test: bool = False):
         session_path = self.input_args['folder_path']
         # TODO: check/enforce format?
-        all_shank_channels = metadata_dict['shank_channels']
-        nshanks = metadata_dict['nshanks']
+        all_shank_channels = metadata_dict['all_shank_channels']
         special_electrode_dict = metadata_dict['special_electrodes']
         lfp_channel = metadata_dict['lfp_channel']
         lfp_sampling_rate = metadata_dict['lfp_sampling_rate']
         spikes_nsamples = metadata_dict['spikes_nsamples']
+        shank_channels = metadata_dict['shank_channels']
 
         subject_path, session_id = os.path.split(session_path)
 
@@ -66,7 +63,7 @@ class YutaLFPInterface(BaseDataInterface):
         # when missing experimental sheets for a subject, the lfp_channel cannot be determined(?)
         # which causes uninformative downstream errors at this step because lfp_channel is None
         # (get_reference_electrode does throw a warning, though)
-        if lfp_channel:
+        if lfp_channel is not None:
             all_lfp_phases = []
             for passband in ('theta', 'gamma'):
                 lfp_fft = filter_lfp(lfp_data[:, all_shank_channels == lfp_channel].ravel(),
@@ -90,8 +87,5 @@ class YutaLFPInterface(BaseDataInterface):
             check_module(nwbfile, 'ecephys',
                          'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
 
-        # TODO: not tested; also might be replaced with the new doubly jagged features?
-        if include_spike_waveforms:
-            for shankn in np.arange(nshanks, dtype=int) + 1:
-                write_spike_waveforms(nwbfile, session_path, shankn=shankn,
-                                      spikes_nsamples=spikes_nsamples, stub_test=stub_test)
+        write_spike_waveforms(nwbfile, session_path, spikes_nsamples=spikes_nsamples, shank_channels=shank_channels,
+                              stub_test=stub_test)

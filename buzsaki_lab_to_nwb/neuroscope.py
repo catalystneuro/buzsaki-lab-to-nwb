@@ -575,52 +575,74 @@ def write_events(nwbfile: NWBFile, session_path: str, suffixes: Iterable[str], m
                   "Unable to write annotation_series.")
 
 
-def write_spike_waveforms(nwbfile: NWBFile, session_path: str, shankn: int,
-                          stub: bool = False,
-                          compression: Optional[str] = 'gzip'):
+def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: int, shank_channels: ArrayLike,
+                          stub_test: bool = False, compression: Optional[str] = "gzip"):
     """Write spike waveforms to NWBFile.
 
     Parameters
     ----------
-    nwbfile: pynwb.NWBFiles
+    nwbfile: pynwb.NWBFile
     session_path: str
-    shankn: int
-    stub: bool, optional
+    spikes_nsamples: int
+    shank_channels: ArrayLike
+    stub_test: bool, optional
         default: False
     compression: str (optional)
+        default: 'gzip'
+    """
+    for shankn in range(1, len(shank_channels)+1):
+        write_spike_waveforms_single_shank(nwbfile=nwbfile, session_path=session_path, shankn=shankn,
+                                           spikes_nsamples=spikes_nsamples,
+                                           nchan_on_shank=len(shank_channels[shankn-1]),
+                                           stub_test=stub_test, compression=compression)
+
+
+def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shankn: int, spikes_nsamples: int,
+                                       nchan_on_shank: int, stub_test: bool = False,
+                                       compression: Optional[str] = "gzip"):
+    """Write spike waveforms to NWBFile.
+
+    Parameters
+    ----------
+    nwbfile: pynwb.NWBFile
+    session_path: str
+    shankn: int
+    spikes_nsamples: int
+    nchan_on_shank: int
+    stub_test: bool, optional
+        default: False
+    compression: str (optional)
+        default: 'gzip'
     """
     session_name = os.path.split(session_path)[1]
-    xml_filepath = os.path.join(session_path, session_name + '.xml')
-    group = nwbfile.electrode_groups['shank' + str(shankn)]
+    spk_file = os.path.join(session_path, session_name + ".spk.{}".format(shankn))
+
+    assert os.path.isfile(spk_file), "No .spk.{} file found at the path location!" \
+                                     "Unable to retrieve spike waveforms.".format(shankn)
+
+    group = nwbfile.electrode_groups['shank{}'.format(shankn)]
     elec_idx = list(np.where(np.array(nwbfile.ec_electrodes['group']) == group)[0])
     table_region = nwbfile.create_electrode_table_region(elec_idx, group.name + ' region')
-    nchan = len(elec_idx)
-    root = load_xml(xml_filepath)
-    nsamps = int(root.find('neuroscope').find('spikes').find('nSamples').text)
 
-    if stub:
-        spks = np.random.randn(10, nsamps, nchan)
-        spike_times = np.arange(10)
+    if stub_test:
+        n_stub_spikes = 50
+        spks = np.fromfile(spk_file, dtype=np.int16,
+                           count=n_stub_spikes*spikes_nsamples*nchan_on_shank).reshape(n_stub_spikes,
+                                                                                       spikes_nsamples, nchan_on_shank)
+        spk_times = read_spike_times(session_path, shankn)[:n_stub_spikes]
     else:
-        spk_file = os.path.join(session_path, session_name + '.spk.' + str(shankn))
-        if not os.path.isfile(spk_file):
-            print('spike waveforms for shank{} not found'.format(shankn))
-            return
-        spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, nsamps, nchan)
-        spike_times = read_spike_times(session_path, shankn)
+        spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
+        spk_times = read_spike_times(session_path, shankn)
+
     if compression:
         data = H5DataIO(spks, compression=compression)
     else:
         data = spks
 
-    spike_event_series = SpikeEventSeries(name='SpikeEventSeries' + str(shankn),
+    spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
                                           data=data,
-                                          timestamps=spike_times,
+                                          timestamps=spk_times,
                                           electrodes=table_region)
-
-    # if 'shank' + str(shankn) in nwbfile.electrode_groups:
-    #     nwbfile.electrode_groups['shank' + str(shankn)].event_waveform = EventWaveform(
-    #         spike_event_series=spike_event_series)
 
     check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
 

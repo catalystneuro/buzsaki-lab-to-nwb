@@ -315,8 +315,7 @@ class YutaNWBConverter(NWBConverter):
             'YutaPosition': {
             },
             'YutaLFP': {
-                'shank_channels': all_shank_channels,
-                'nshanks': len(shank_channels),
+                'all_shank_channels': all_shank_channels,
                 'special_electrodes': special_electrodes,
                 'lfp_channel': lfp_channel,
                 'lfp_sampling_rate': lfp_sampling_rate,
@@ -325,6 +324,7 @@ class YutaNWBConverter(NWBConverter):
                 'lfp_decomposition': {'name': 'LFPDecompositionSeries',
                                       'description': 'Theta and Gamma phase for reference LFP'},
                 'spikes_nsamples': spikes_nsamples,
+                'shank_channels': shank_channels
             },
             'YutaBehavior': {
                 'task_types': task_types
