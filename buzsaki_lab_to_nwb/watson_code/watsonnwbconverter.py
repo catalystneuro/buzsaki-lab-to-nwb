@@ -4,6 +4,7 @@ from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
 from .watsonlfpdatainterface import WatsonLFPInterface
 from .watsonbehaviordatainterface import WatsonBehaviorInterface
 from .watsonnorecording import WatsonNoRecording
+from .watsonsortinginterface import WatsonSortingInterface
 import numpy as np
 from scipy.io import loadmat
 import os
@@ -31,8 +32,8 @@ class WatsonNWBConverter(NWBConverter):
                 new_data_interface_classes.update({name: val})
             new_data_interface_classes.pop('NeuroscopeRecording')
 
-            session_id = os.path.split(input_args['NeuroscopeSorting']['folder_path'])[1]
-            xml_filepath = os.path.join(input_args['NeuroscopeSorting']['folder_path'], session_id + '.xml')
+            session_id = os.path.split(input_args['WatsonLFP']['folder_path'])[1]
+            xml_filepath = os.path.join(input_args['WatsonLFP']['folder_path'], session_id + '.xml')
             root = et.parse(xml_filepath).getroot()
             n_channels = len([int(channel.text)
                               for group in root.find('spikeDetection').find('channelGroups').findall('group')
@@ -45,14 +46,26 @@ class WatsonNWBConverter(NWBConverter):
             self._recording_type = 'WatsonNoRecording'
         else:
             self._recording_type = 'NeuroscopeRecording'
+            
+        # Very special case for only one session
+        special_sorting = input_args.get('CellExplorerSorting', None)
+        if special_sorting is not None:
+            self.data_interface_classes.pop('NeuroscopeSorting')
+            self.data_interface_classes.update({'CellExplorerSorting': WatsonSortingInterface})
+            self._sorting_type = 'CellExplorerSorting'
+        else:
+            self._sorting_type = 'NeuroscopeSorting'
         super().__init__(**input_args)
 
     def get_recording_type(self):
         return self._recording_type
+    
+    def get_sorting_type(self):
+        return self._sorting_type
 
     def get_metadata(self):
         # TODO: could be vastly improved with pathlib
-        session_path = self.data_interface_objects['NeuroscopeSorting'].input_args['folder_path']
+        session_path = self.data_interface_objects['WatsonLFP'].input_args['folder_path']
         subject_path, session_id = os.path.split(session_path)
         if '_' in session_id:
             subject_id, date_text = session_id.split('_')
@@ -82,7 +95,6 @@ class WatsonNWBConverter(NWBConverter):
             theta_reference = matin['Thetachannel'][0][0][0][0]
 
         shank_electrode_number = [x for channels in shank_channels for x, _ in enumerate(channels)]
-        shank_group = [n for n, channels in enumerate(shank_channels) for _ in channels]
         shank_group_name = ["shank{}".format(n+1) for n, channels in enumerate(shank_channels) for _ in channels]
 
         cell_filepath = os.path.join(session_path, "{}.spikes.cellinfo.mat".format(session_id))
@@ -101,12 +113,6 @@ class WatsonNWBConverter(NWBConverter):
             cortex_region = loadmat(basic_metadata_filepath)['CortexRegion'][0][0][0]
         else:
             cortex_region = "unknown"
-
-        sorting_electrode_groups = []
-        for shankn in range(len(shank_channels)):
-            df = get_clusters_single_shank(session_path, shankn+1)
-            for shank_id, idf in df.groupby('id'):
-                sorting_electrode_groups.append('shank' + str(shankn+1))
 
         metadata = {
             'NWBFile': {
@@ -155,7 +161,7 @@ class WatsonNWBConverter(NWBConverter):
                     }
                 }
             },
-            'NeuroscopeSorting': {
+            self.get_sorting_type(): {
                 'UnitProperties': [
                     {
                         'name': 'cell_type',
@@ -241,18 +247,18 @@ class WatsonNWBConverter(NWBConverter):
             })
 
         # If there is missing auto-detected metadata for unit properties, truncate those units from the extractor
-        se_ids = set(self.data_interface_objects['NeuroscopeSorting'].sorting_extractor.get_unit_ids())
+        se_ids = set(self.data_interface_objects[self.get_sorting_type()].sorting_extractor.get_unit_ids())
         if len(celltype_info) < len(se_ids):
             defaults = {'cell_type': "unknown", 'region': "unknown"}
             missing_ids = se_ids - set(np.arange(len(celltype_info)))
-            unit_map = self.data_interface_objects['NeuroscopeSorting'].sorting_extractor._unit_map
+            unit_map = self.data_interface_objects[self.get_sorting_type()].sorting_extractor._unit_map
             for missing_id in missing_ids:
-                metadata['NeuroscopeSorting']['UnitProperties'][0]['data'].append(defaults['cell_type'])
-                metadata['NeuroscopeSorting']['UnitProperties'][1]['data'].append(int(missing_id))
-                metadata['NeuroscopeSorting']['UnitProperties'][2]['data'].append(int(unit_map[missing_id]['unit_id']
+                metadata[self.get_sorting_type()]['UnitProperties'][0]['data'].append(defaults['cell_type'])
+                metadata[self.get_sorting_type()]['UnitProperties'][1]['data'].append(int(missing_id))
+                metadata[self.get_sorting_type()]['UnitProperties'][2]['data'].append(int(unit_map[missing_id]['unit_id']
                                                                                       - 1))
-                metadata['NeuroscopeSorting']['UnitProperties'][3]['data'].append(
+                metadata[self.get_sorting_type()]['UnitProperties'][3]['data'].append(
                     "shank{}".format(unit_map[missing_id]['sorting_id']))
-                metadata['NeuroscopeSorting']['UnitProperties'][4]['data'].append(defaults['region'])
+                metadata[self.get_sorting_type()]['UnitProperties'][4]['data'].append(defaults['region'])
 
         return metadata

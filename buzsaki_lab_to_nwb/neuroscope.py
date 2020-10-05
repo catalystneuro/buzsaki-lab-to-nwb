@@ -417,8 +417,15 @@ def read_lfp(session_path: str, n_channels: int, stub: bool = False):
                                         dtype=np.int16,
                                         count=max_size*n_channels).reshape(-1, n_channels)
     else:
-        all_channels_data = np.fromfile(filepath,
-                                        dtype=np.int16).reshape(-1, n_channels)
+        data = np.fromfile(filepath, dtype=np.int16)
+        cont = True
+        while cont:
+            try:
+                all_channels_data = data.reshape(-1, n_channels)
+                cont = False
+            except:
+                cont = True
+                n_channels -= 1
 
     return lfp_fs, all_channels_data
 
@@ -596,10 +603,13 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: 
         default: 'gzip'
     """
     for shankn in range(1, len(shank_channels)+1):
-        write_spike_waveforms_single_shank(nwbfile=nwbfile, session_path=session_path, shankn=shankn,
-                                           spikes_nsamples=spikes_nsamples,
-                                           nchan_on_shank=len(shank_channels[shankn-1]),
-                                           stub_test=stub_test, compression=compression)
+        try:
+            write_spike_waveforms_single_shank(nwbfile=nwbfile, session_path=session_path, shankn=shankn,
+                                               spikes_nsamples=spikes_nsamples,
+                                               nchan_on_shank=len(shank_channels[shankn-1]),
+                                               stub_test=stub_test, compression=compression)
+        except:
+            print('here2')
 
 
 def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shankn: int, spikes_nsamples: int,
