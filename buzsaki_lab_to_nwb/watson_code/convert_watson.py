@@ -5,18 +5,17 @@ import os
 
 # List of folder paths to iterate over
 base_path = "D:/BuzsakiData/WatsonBO"
-convert_sessions = [#"BWRat17/BWRat17_121712", "BWRat17/BWRat17_121912", "BWRat18/BWRat18_020513",
-                    #"BWRat19/BWRat19_032513", "BWRat19/BWRat19_032413", "BWRat20/BWRat20_101013",
-                    #"BWRat20/BWRat20_101513", "BWRat21/BWRat21_121113", "BWRat21/BWRat21_121613",
-                    #"BWRat21/BWRat21_121813", "Bogey/Bogey_012615",
-                    #"Dino/Dino_061814",
-                    #"Dino/Dino_061914",
-                    "Dino/Dino_062014",  # incorrect # of channels for full lfp reshaping...
-                    #"Dino/Dino_072114"#, # missing clu files...
-                    #"Dino/Dino_072314", "Dino/Dino_072414", "Rizzo/Rizzo_022615",
-                    #"Rizzo/Rizzo_022715",
-                    #"Splinter/Splinter_020515", "Splinter/Splinter_020915",
-                    #"Templeton/Templeton_032415"
+convert_sessions = ["BWRat17/BWRat17_121712", "BWRat17/BWRat17_121912", "BWRat18/BWRat18_020513",
+                    "BWRat19/BWRat19_032513", "BWRat19/BWRat19_032413", "BWRat20/BWRat20_101013",
+                    "BWRat20/BWRat20_101513", "BWRat21/BWRat21_121113", "BWRat21/BWRat21_121613",
+                    "BWRat21/BWRat21_121813", "Bogey/Bogey_012615",
+                    "Dino/Dino_061814",
+                    "Dino/Dino_061914", "Dino/Dino_062014",  # incorrect # of channels for full lfp reshaping...
+                    "Dino/Dino_072114"#, # missing clu files...
+                    "Dino/Dino_072314", "Dino/Dino_072414", "Rizzo/Rizzo_022615",
+                    "Rizzo/Rizzo_022715",
+                    "Splinter/Splinter_020515", "Splinter/Splinter_020915",
+                    "Templeton/Templeton_032415"
                     ]
 
 experimenter = "Brendon Watson"
@@ -74,5 +73,5 @@ for session in convert_sessions:
                                                                                                             session_id)
     metadata[watson_converter.get_recording_type()]['Ecephys']['Device'][0].update({'description': device_descr})
 
-    nwbfile_path = os.path.join(folder_path, "{}.nwb".format(session_id))
-    watson_converter.run_conversion(nwbfile_path, metadata, stub_test=False)
+    nwbfile_path = os.path.join(folder_path, "{}_stub.nwb".format(session_id))
+    watson_converter.run_conversion(nwbfile_path, metadata, stub_test=True)

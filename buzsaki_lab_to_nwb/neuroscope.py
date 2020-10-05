@@ -609,7 +609,7 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: 
                                                nchan_on_shank=len(shank_channels[shankn-1]),
                                                stub_test=stub_test, compression=compression)
         except:
-            print('here2')
+            print(f"\nError finding waveforms for shank{shankn} - skipping")
 
 
 def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shankn: int, spikes_nsamples: int,
