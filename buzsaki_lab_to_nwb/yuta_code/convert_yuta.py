@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from joblib import Parallel, delayed
 
-n_cores = 1  # number of parallel streams to run
+n_jobs = 1  # number of parallel streams to run
 
 # List of folder paths to iterate over
 base_path = "D:/BuzsakiData/SenzaiY"
@@ -81,5 +81,5 @@ def run_yuta_conv(session, nwbfile_path):
         print(f"The folder ({session}) does not exist!")
 
 
-Parallel(n_jobs=n_cores)(delayed(run_yuta_conv)(session, nwbfile_path)
+Parallel(n_jobs=n_jobs)(delayed(run_yuta_conv)(session, nwbfile_path)
                          for session, nwbfile_path in zip(session_strings, nwbfile_paths))
