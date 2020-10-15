@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from joblib import Parallel, delayed
 
-n_jobs = 1  # number of parallel streams to run
+n_jobs = 4  # number of parallel streams to run
 
 # List of folder paths to iterate over
 base_path = "D:/BuzsakiData/SenzaiY"
