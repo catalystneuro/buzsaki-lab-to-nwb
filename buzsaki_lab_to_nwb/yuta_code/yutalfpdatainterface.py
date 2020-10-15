@@ -14,8 +14,14 @@ class YutaLFPInterface(BaseDataInterface):
 
     @classmethod
     def get_input_schema(cls):
-        return {}
-
+        return dict(
+            source_data=dict(
+                required=['folder_path'],
+                properties=dict(
+                    folder_path=dict(type='string')
+                )
+            )
+        )
 
     def __init__(self, **input_args):
         super().__init__(**input_args)
@@ -44,7 +50,7 @@ class YutaLFPInterface(BaseDataInterface):
 
         subject_path, session_id = os.path.split(session_path)
 
-        _, all_channels_lfp_data = read_lfp(session_path, stub=stub_test)
+        _, all_channels_lfp_data = read_lfp(session_path, stub=stub_test, n_channels=80) # temporary hard-code
         lfp_data = all_channels_lfp_data[:, all_shank_channels]
         lfp_ts = write_lfp(nwbfile, lfp_data, lfp_sampling_rate,
                            name=metadata_dict['lfp']['name'],

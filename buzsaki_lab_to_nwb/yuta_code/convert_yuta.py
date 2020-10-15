@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from joblib import Parallel, delayed
 
-n_jobs = 4  # number of parallel streams to run
+n_cores = 1  # number of parallel streams to run
 
 # List of folder paths to iterate over
 base_path = "D:/BuzsakiData/SenzaiY"
@@ -42,14 +42,19 @@ def run_yuta_conv(session, nwbfile_path):
             session_name = os.path.split(session)[1]
 
             # construct input_args dict according to input schema
-            input_args = {
-                'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
-                'NeuroscopeSorting': {'folder_path': session,
-                                      'keep_mua_units': False},
-                'YutaPosition': {'folder_path': session},
-                'YutaLFP': {'folder_path': session},
-                'YutaBehavior': {'folder_path': session}
-            }
+            input_args = dict(
+                source_data=dict(
+                    NeuroscopeRecording=dict(file_path=os.path.join(session, session_name) + ".dat"),
+                    NeuroscopeSorting=dict(
+                        folder_path=session,
+                        keep_mua_units=False,
+                        exclude_shanks=None
+                    ),
+                    YutaPosition=dict(folder_path=session),
+                    YutaLFP=dict(folder_path=session),
+                    YutaBehavior=dict(folder_path=session)
+                )
+            )
 
             yuta_converter = YutaNWBConverter(**input_args)
 
@@ -70,10 +75,11 @@ def run_yuta_conv(session, nwbfile_path):
                 electrode_group_metadata.update({'location': 'unknown'})
                 electrode_group_metadata.update({'device_name': 'implant'})
 
-            yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
+            yuta_converter.run_conversion(nwbfile_path=nwbfile_path, metadata_dict=metadata,
+                                          stub_test=True, save_to_file=True)
     else:
         print(f"The folder ({session}) does not exist!")
 
 
-Parallel(n_jobs=n_jobs)(delayed(run_yuta_conv)(session, nwbfile_path)
-                        for session, nwbfile_path in zip(session_strings, nwbfile_paths))
+Parallel(n_jobs=n_cores)(delayed(run_yuta_conv)(session, nwbfile_path)
+                         for session, nwbfile_path in zip(session_strings, nwbfile_paths))

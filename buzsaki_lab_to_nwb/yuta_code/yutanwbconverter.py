@@ -65,7 +65,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     """
     # TODO: add file existence checks
     cols_to_get = ('fineCellType', 'region', 'unitID', 'unitIDshank', 'shank')
-    matin = loadmat(os.path.join(fpath_base, '_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat'),
+    matin = loadmat(os.path.join(fpath_base, 'DGProject/DG_all_6__UnitFeatureSummary_add.mat'),
                     struct_as_record=False)['UnitFeatureCell'][0][0]
 
     all_ids = []
@@ -89,32 +89,35 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
 class YutaNWBConverter(NWBConverter):
     # The order of this dictionary matter significantly, but python dictionaries are supposed to be unordered
     # This is compensated for the time being, but should this conceptually be a list instead?
-    data_interface_classes = {'NeuroscopeRecording': neuroscopedatainterface.NeuroscopeRecordingInterface,
-                              'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
-                              'YutaPosition': YutaPositionInterface,
-                              'YutaLFP': YutaLFPInterface,
-                              'YutaBehavior': YutaBehaviorInterface}
+    data_interface_classes = dict(
+            NeuroscopeRecording=neuroscopedatainterface.NeuroscopeRecordingInterface,
+            NeuroscopeSorting=neuroscopedatainterface.NeuroscopeSortingInterface,
+            YutaPosition=YutaPositionInterface,
+            YutaLFP=YutaLFPInterface,
+            YutaBehavior=YutaBehaviorInterface
+    )
 
     def __init__(self, **input_args):
-        dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
+        dat_filepath = input_args['source_data'].get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
-            
+
             new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
             new_data_interface_classes.pop('NeuroscopeRecording')
 
-            session_id = os.path.split(input_args['NeuroscopeSorting']['folder_path'])[1]
-            xml_filepath = os.path.join(input_args['NeuroscopeSorting']['folder_path'], session_id + '.xml')
+            session_id = os.path.split(input_args['source_data']['NeuroscopeSorting']['folder_path'])[1]
+            xml_filepath = os.path.join(input_args['source_data']['NeuroscopeSorting']['folder_path'], session_id + '.xml')
             root = et.parse(xml_filepath).getroot()
-            n_channels = len([[int(channel.text)
-                              for channel in group.find('channels')]
-                              for group in root.find('spikeDetection').find('channelGroups').findall('group')])
+            n_channels = len([int(channel.text)
+                              for group in root.find('spikeDetection').find('channelGroups').findall('group')
+                              for channel in group.find('channels')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
-            input_args.update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
-                                                   'sampling_frequency': 1}})
-            input_args.pop('NeuroscopeRecording')
+            input_args['source_data'].update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
+                                                                  'sampling_frequency': 1,
+                                                                  'geom': None}})
+            input_args['source_data'].pop('NeuroscopeRecording')
             self.data_interface_classes = new_data_interface_classes
             self._recording_type = 'YutaNoRecording'
         else:
@@ -128,12 +131,11 @@ class YutaNWBConverter(NWBConverter):
         # TODO: could be vastly improved with pathlib
         session_path = self.data_interface_objects['NeuroscopeSorting'].input_args['folder_path']
         subject_path, session_id = os.path.split(session_path)
-        fpath_base = os.path.split(subject_path)[0]
         # TODO: improve mouse_number extraction
         mouse_number = session_id[9:11]
         # TODO: add error checking on file existence
         subject_xls = os.path.join(subject_path, 'YM' + mouse_number + ' exp_sheet.xlsx')
-        hilus_csv_path = os.path.join(fpath_base, 'early_session_hilus_chans.csv')
+        hilus_csv_path = os.path.join(subject_path, 'early_session_hilus_chans.csv')
         if '-' in session_id:
             subject_id, date_text = session_id.split('-')
             b = False
@@ -159,7 +161,7 @@ class YutaNWBConverter(NWBConverter):
             age = 'unknown'
             subject_data = {}
             subject_data.update({'genotype': 'unknown'})
-            print("Warning: no subject file detected!")
+            print(f"Warning: no subject file detected for session {session_path}!")
 
         # TODO: add error checking on file existence
         xml_filepath = os.path.join(session_path, session_id + '.xml')
@@ -169,6 +171,7 @@ class YutaNWBConverter(NWBConverter):
         shank_channels = [[int(channel.text)
                           for channel in group.find('channels')]
                           for group in root.find('spikeDetection').find('channelGroups').findall('group')]
+
         all_shank_channels = np.concatenate(shank_channels)
         all_shank_channels.sort()
         nshanks = len(shank_channels)
@@ -218,7 +221,7 @@ class YutaNWBConverter(NWBConverter):
                                            'channel': channel,
                                            'description': 'environmental electrode recorded inline with neural data'})
 
-        df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks)
+        df_unit_features = get_UnitFeatureCell_features(subject_path, session_id, session_path, nshanks)
 
         # there are occasional mismatches between the matlab struct
         # and the neuroscope files regions: 3: 'CA3', 4: 'DG'

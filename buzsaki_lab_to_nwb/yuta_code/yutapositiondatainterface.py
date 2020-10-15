@@ -4,9 +4,6 @@ from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 from pynwb.behavior import SpatialSeries
 import os
-
-# TODO: there doesn't seem to be a pypi for to_nwb...
-# we can always have them on our own end locally, but what about users?
 from ..neuroscope import add_position_data
 
 
@@ -14,7 +11,14 @@ class YutaPositionInterface(BaseDataInterface):
 
     @classmethod
     def get_input_schema(cls):
-        return {}
+        return dict(
+            source_data=dict(
+                required=['folder_path'],
+                properties=dict(
+                    folder_path=dict(type='string')
+                )
+            )
+        )
 
     def __init__(self, **input_args):
         super().__init__(**input_args)
