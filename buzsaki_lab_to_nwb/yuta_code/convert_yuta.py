@@ -87,4 +87,4 @@ def run_yuta_conv(session, nwbfile_path):
 
 Parallel(n_jobs=n_jobs)(delayed(run_yuta_conv)(session, nwbfile_path)
                         for session, nwbfile_path in zip(session_strings, nwbfile_paths)
-                        if session not in exlude_sessions)
+                        if os.path.split(session)[1] not in exlude_sessions)
