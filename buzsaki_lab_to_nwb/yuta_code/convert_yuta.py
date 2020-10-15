@@ -11,6 +11,10 @@ n_jobs = 1  # number of parallel streams to run
 # List of folder paths to iterate over
 base_path = "D:/BuzsakiData/SenzaiY"
 # base_path = "/mnt/scrap/cbaker239/SenzaiY"
+
+# Manual list of selected sessions that cause problems with the general functionality
+exlude_sessions = ["YutaMouse33-150218"]
+
 paper_sessions = pd.read_excel(os.path.join(base_path, "DGProject/DG_all_6_SessionShankList.xls"), header=None)[0]
 sessions = dict()
 for paper_session in paper_sessions:
@@ -82,4 +86,5 @@ def run_yuta_conv(session, nwbfile_path):
 
 
 Parallel(n_jobs=n_jobs)(delayed(run_yuta_conv)(session, nwbfile_path)
-                         for session, nwbfile_path in zip(session_strings, nwbfile_paths))
+                        for session, nwbfile_path in zip(session_strings, nwbfile_paths)
+                        if session not in exlude_sessions)
