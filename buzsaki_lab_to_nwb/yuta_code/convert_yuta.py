@@ -3,66 +3,78 @@ from buzsaki_lab_to_nwb import YutaNWBConverter
 
 # TODO: add pathlib
 import os
+import pandas as pd
+from joblib import Parallel, delayed
+
+n_cores = 4  # number of parallel streams to run
 
 # List of folder paths to iterate over
-convert_sessions = ["D:/BuzsakiData/SenzaiY/YutaMouse41/YutaMouse41-150903",
-                    "D:/BuzsakiData/SenzaiY/YutaMouse20/YutaMouse20-140225",
-                    "D:/BuzsakiData/SenzaiY/YutaMouse55/YutaMouse55-160907"]
+base_path = "D:/BuzsakiData/SenzaiY"
+# base_path = "/mnt/scrap/cbaker239/SenzaiY"
+paper_sessions = pd.read_excel(os.path.join(base_path, "DGProject/DG_all_6_SessionShankList.xls"), header=None)[0]
+sessions = dict()
+for paper_session in paper_sessions:
+    mouse_id = paper_session[9:11]  # could be generalized better
+    if mouse_id in sessions:
+        sessions[mouse_id].append(paper_session[11:])
+    else:
+        sessions.update({mouse_id: [paper_session[11:]]})
 
-session_descriptions = ["mouse in open exploration and theta maze",
-                        "mouse in open exploration and theta maze",
-                        "mouse in open exploration and theta maze"]
+experimenter = "Yuta Senzai"
+paper_descr = "mouse in open exploration and theta maze"
+paper_info = "DOI:10.1016/j.neuron.2016.12.011"
 
-# Session specific info
-n_sessions = len(convert_sessions)
-session_specific_metadata = [{}] * n_sessions
-for j in range(n_sessions):
-    session_specific_metadata[j]['NWBFile'] = {}
-    session_specific_metadata[j]['NWBFile'].update({'session_description': session_descriptions[j]})
-# session_specific_metadata[0]['NWBFile'].update({'related_publications': 'DOI:10.1016/j.neuron.2016.12.011'})
+session_strings = []
+nwbfile_paths = []
+for mouse_num, session_ids in sessions.items():
+    for session_id in session_ids:
+        # TODO: replace with pathlib
+        mouse_str = "YutaMouse" + str(mouse_num)
+        session_strings.append(os.path.join(base_path, mouse_str+str(session_id)))
+        nwbfile_paths.append(session_strings[-1] + "_stub.nwb")
 
-for j, session in enumerate(convert_sessions):
-    # TODO: replace with pathlib
-    session_name = os.path.split(session)[1]
 
-    input_file_schema = YutaNWBConverter.get_input_schema()
+def run_yuta_conv(session, nwbfile_path):
+    """Conversion function to be run in parallel."""
+    if os.path.exists(session):
+        print(f"Processsing {session}...")
+        if not os.path.isfile(nwbfile_path):
+            session_name = os.path.split(session)[1]
 
-    # construct input_args dict according to input schema
-    input_args = {
-        'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
-        'NeuroscopeSorting': {'folder_path': session,
-                              'keep_mua_units': False},
-        'YutaPosition': {'folder_path': session},
-        'YutaLFP': {'folder_path': session},
-        'YutaBehavior': {'folder_path': session}
-    }
+            # construct input_args dict according to input schema
+            input_args = {
+                'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
+                'NeuroscopeSorting': {'folder_path': session,
+                                      'keep_mua_units': False},
+                'YutaPosition': {'folder_path': session},
+                'YutaLFP': {'folder_path': session},
+                'YutaBehavior': {'folder_path': session}
+            }
 
-    yuta_converter = YutaNWBConverter(**input_args)
+            yuta_converter = YutaNWBConverter(**input_args)
 
-    expt_json_schema = yuta_converter.get_metadata_schema()
+            # construct metadata_dict according to expt_json_schema
+            metadata = yuta_converter.get_metadata()
 
-    # expt_json_schema does not indicate device linking in ElectrodeGroup.
-    # Also out of place 'type' in property levels?
+            # Yuta specific info
+            metadata['NWBFile'].update({'experimenter': experimenter})
+            metadata['NWBFile'].update({'session_description': paper_descr})
+            metadata['NWBFile'].update({'related_publications': paper_info})
 
-    # construct metadata_dict according to expt_json_schema
-    metadata = yuta_converter.get_metadata()
+            metadata['Subject'].update({'species': "Mus musculus"})
+            #metadata['Subject'].update({'weight': '250-500g'})
 
-    # TODO: better way to nest smart dictionary updates?
-    for key1, val1 in session_specific_metadata[j].items():
-        if type(val1) is dict:
-            for key2, val2 in val1.items():
-                metadata[key1].update({key2: val2})
-        else:
-            metadata.update({key1: val1})
+            metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update({'name': 'implant'})
 
-    # Yuta specific info
-    metadata['NWBFile'].update({'experimenter': 'Yuta Senzai'})
+            for electrode_group_metadata in \
+                    metadata[yuta_converter.get_recording_type()]['Ecephys']['ElectrodeGroup']:
+                electrode_group_metadata.update({'location': 'unknown'})
+                electrode_group_metadata.update({'device_name': 'implant'})
 
-    metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update({'name': 'implant'})
+            yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
+    else:
+        print(f"The folder ({session}) does not exist!")
 
-    for electrode_group_metadata in metadata[yuta_converter.get_recording_type()]['Ecephys']['ElectrodeGroup']:
-        electrode_group_metadata.update({'location': 'unknown'})
-        electrode_group_metadata.update({'device_name': 'implant'})
 
-    nwbfile_path = session + "_new_converter.nwb"
-    yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
+Parallel(n_jobs=n_cores)(delayed(run_yuta_conv)(session, nwbfile_path)
+                         for session, nwbfile_path in zip(session_strings, nwbfile_paths))
