@@ -1,10 +1,11 @@
 """Authors: Cody Baker and Ben Dichter."""
-from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
+import os
+
+import numpy as np
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
+from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
 from pynwb import NWBFile, TimeSeries
 from pynwb.misc import DecompositionSeries
-import os
-import numpy as np
 
 from ..band_analysis import filter_lfp, hilbert_lfp
 from ..neuroscope import read_lfp, write_lfp, write_spike_waveforms, check_module
@@ -15,7 +16,6 @@ class YutaLFPInterface(BaseDataInterface):
     @classmethod
     def get_input_schema(cls):
         return {}
-
 
     def __init__(self, **input_args):
         super().__init__(**input_args)

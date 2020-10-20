@@ -1,9 +1,10 @@
 """Authors: Cody Baker and Ben Dichter."""
-from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
+import os
+
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
+from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
 from pynwb import NWBFile
 from pynwb.behavior import SpatialSeries
-import os
 
 # TODO: there doesn't seem to be a pypi for to_nwb...
 # we can always have them on our own end locally, but what about users?
@@ -33,5 +34,4 @@ class YutaPositionInterface(BaseDataInterface):
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False):
         session_path = self.input_args['folder_path']
-        subject_path, session_id = os.path.split(session_path)
         add_position_data(nwbfile, session_path)

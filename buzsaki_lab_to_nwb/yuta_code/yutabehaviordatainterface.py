@@ -1,13 +1,15 @@
 """Authors: Cody Baker and Ben Dichter."""
-from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
-from nwb_conversion_tools.basedatainterface import BaseDataInterface
-from pynwb import NWBFile
-from pynwb.file import TimeIntervals
-from pynwb.behavior import SpatialSeries, Position
-from hdmf.backends.hdf5.h5_utils import H5DataIO
 import os
+
 import numpy as np
+from hdmf.backends.hdf5.h5_utils import H5DataIO
+from nwb_conversion_tools.basedatainterface import BaseDataInterface
+from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
+from pynwb import NWBFile
+from pynwb.behavior import SpatialSeries, Position
+from pynwb.file import TimeIntervals
 from scipy.io import loadmat
+
 from ..neuroscope import get_events, find_discontinuities, check_module
 
 

@@ -1,10 +1,11 @@
 """Authors: Cody Baker and Ben Dichter."""
-from buzsaki_lab_to_nwb import YutaNWBConverter
-
 # TODO: add pathlib
 import os
+
 import pandas as pd
 from joblib import Parallel, delayed
+
+from buzsaki_lab_to_nwb import YutaNWBConverter
 
 n_jobs = 4  # number of parallel streams to run
 
@@ -23,6 +24,7 @@ for paper_session in paper_sessions:
 experimenter = "Yuta Senzai"
 paper_descr = "mouse in open exploration and theta maze"
 paper_info = "DOI:10.1016/j.neuron.2016.12.011"
+species="Mus musculus"
 
 session_strings = []
 nwbfile_paths = []
@@ -30,7 +32,7 @@ for mouse_num, session_ids in sessions.items():
     for session_id in session_ids:
         # TODO: replace with pathlib
         mouse_str = "YutaMouse" + str(mouse_num)
-        session_strings.append(os.path.join(base_path, mouse_str+str(session_id)))
+        session_strings.append(os.path.join(base_path, mouse_str + str(session_id)))
         nwbfile_paths.append(session_strings[-1] + "_stub.nwb")
 
 
@@ -42,14 +44,24 @@ def run_yuta_conv(session, nwbfile_path):
             session_name = os.path.split(session)[1]
 
             # construct input_args dict according to input schema
-            input_args = {
-                'NeuroscopeRecording': {'file_path': os.path.join(session, session_name) + ".dat"},
-                'NeuroscopeSorting': {'folder_path': session,
-                                      'keep_mua_units': False},
-                'YutaPosition': {'folder_path': session},
-                'YutaLFP': {'folder_path': session},
-                'YutaBehavior': {'folder_path': session}
-            }
+            input_args = dict(
+                NeuroscopeRecording=dict(
+                    file_path=os.path.join(session, session_name) + ".dat"
+                ),
+                NeuroscopeSorting=dict(
+                    folder_path=session,
+                    keep_mua_units=False
+                ),
+                YutaPosition=dict(
+                    folder_path=session
+                ),
+                YutaLFP=dict(
+                    folder_path=session
+                ),
+                YutaBehavior=dict(
+                    folder_path=session
+                )
+            )
 
             yuta_converter = YutaNWBConverter(**input_args)
 
@@ -57,18 +69,19 @@ def run_yuta_conv(session, nwbfile_path):
             metadata = yuta_converter.get_metadata()
 
             # Yuta specific info
-            metadata['NWBFile'].update({'experimenter': experimenter})
-            metadata['NWBFile'].update({'session_description': paper_descr})
-            metadata['NWBFile'].update({'related_publications': paper_info})
+            metadata['NWBFile'].update(
+                experimenter=experimenter,
+                session_description=paper_descr,
+                related_publications=paper_info,
+            )
 
-            metadata['Subject'].update({'species': "Mus musculus"})
+            metadata['Subject'].update(species=species)
 
-            metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update({'name': 'implant'})
+            metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update(name='implant')
 
             for electrode_group_metadata in \
                     metadata[yuta_converter.get_recording_type()]['Ecephys']['ElectrodeGroup']:
-                electrode_group_metadata.update({'location': 'unknown'})
-                electrode_group_metadata.update({'device_name': 'implant'})
+                electrode_group_metadata.update(location='unknown', device_name='implant')
 
             yuta_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
     else:

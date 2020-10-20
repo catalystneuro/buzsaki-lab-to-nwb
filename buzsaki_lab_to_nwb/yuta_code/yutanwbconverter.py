@@ -1,16 +1,18 @@
 """Authors: Cody Baker and Ben Dichter."""
-from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
-from .yutapositiondatainterface import YutaPositionInterface
-from .yutalfpdatainterface import YutaLFPInterface
-from .yutabehaviordatainterface import YutaBehaviorInterface
-from .yutanorecording import YutaNoRecording
-import pandas as pd
-import numpy as np
-from scipy.io import loadmat
 import os
-from lxml import etree as et
 from datetime import datetime
+
+import numpy as np
+import pandas as pd
 from dateutil.parser import parse as dateparse
+from lxml import etree as et
+from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
+from scipy.io import loadmat
+
+from .yutabehaviordatainterface import YutaBehaviorInterface
+from .yutalfpdatainterface import YutaLFPInterface
+from .yutanorecording import YutaNoRecording
+from .yutapositiondatainterface import YutaPositionInterface
 from ..neuroscope import get_clusters_single_shank, read_spike_clustering
 
 
@@ -56,7 +58,7 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     fpath_base: str
     session_id: str
     session_path: str
-    max_shanks: int
+    nshanks: int
 
     Returns
     -------
@@ -99,7 +101,7 @@ class YutaNWBConverter(NWBConverter):
         dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
-            
+
             new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
@@ -109,7 +111,7 @@ class YutaNWBConverter(NWBConverter):
             xml_filepath = os.path.join(input_args['NeuroscopeSorting']['folder_path'], session_id + '.xml')
             root = et.parse(xml_filepath).getroot()
             n_channels = len([[int(channel.text)
-                              for channel in group.find('channels')]
+                               for channel in group.find('channels')]
                               for group in root.find('spikeDetection').find('channelGroups').findall('group')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
             input_args.update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
@@ -167,7 +169,7 @@ class YutaNWBConverter(NWBConverter):
 
         n_total_channels = int(root.find('acquisitionSystem').find('nChannels').text)
         shank_channels = [[int(channel.text)
-                          for channel in group.find('channels')]
+                           for channel in group.find('channels')]
                           for group in root.find('spikeDetection').find('channelGroups').findall('group')]
         all_shank_channels = np.concatenate(shank_channels)
         all_shank_channels.sort()
@@ -213,7 +215,7 @@ class YutaNWBConverter(NWBConverter):
                                      'ch_SsolR': 70}
         special_electrodes = []
         for special_electrode_name, channel in special_electrode_mapping.items():
-            if channel <= n_total_channels-1:
+            if channel <= n_total_channels - 1:
                 special_electrodes.append({'name': special_electrode_name,
                                            'channel': channel,
                                            'description': 'environmental electrode recorded inline with neural data'})
@@ -239,9 +241,9 @@ class YutaNWBConverter(NWBConverter):
 
         sorting_electrode_groups = []
         for shankn in range(len(shank_channels)):
-            df = get_clusters_single_shank(session_path, shankn+1)
-            for shank_id, idf in df.groupby('id'):
-                sorting_electrode_groups.append('shank' + str(shankn+1))
+            df = get_clusters_single_shank(session_path, shankn + 1)
+            for _, _ in df.groupby('id'):
+                sorting_electrode_groups.append('shank' + str(shankn + 1))
 
         metadata = {
             'NWBFile': {
@@ -266,14 +268,14 @@ class YutaNWBConverter(NWBConverter):
                         'description': session_id + '.xml'
                     }],
                     'ElectrodeGroup': [{
-                        'name': f'shank{n+1}',
-                        'description': f'shank{n+1} electrodes'
+                        'name': f'shank{n + 1}',
+                        'description': f'shank{n + 1} electrodes'
                     } for n, _ in enumerate(shank_channels)],
                     'Electrodes': [
                         {
                             'name': 'theta_reference',
                             'description': 'this electrode was used to calculate LFP canonical bands',
-                            'data':  list(all_shank_channels == lfp_channel)
+                            'data': list(all_shank_channels == lfp_channel)
                         },
                         {
                             'name': 'shank_electrode_number',
@@ -310,7 +312,7 @@ class YutaNWBConverter(NWBConverter):
                         'description': 'the electrode group that each spike unit came from',
                         'data': sorting_electrode_groups
                     }
-                  ]
+                ]
             },
             'YutaPosition': {
             },
