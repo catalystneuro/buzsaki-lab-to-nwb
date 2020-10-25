@@ -98,26 +98,25 @@ class YutaNWBConverter(NWBConverter):
     )
 
     def __init__(self, **input_args):
-        dat_filepath = input_args['source_data'].get('NeuroscopeRecording', {}).get('file_path', None)
+        dat_filepath = input_args['source_data'].get('file_path', None)
         if not os.path.isfile(dat_filepath):
-            new_data_interface_classes = {}
+            new_data_interface_classes = dict()
 
             new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
             new_data_interface_classes.pop('NeuroscopeRecording')
 
-            session_id = os.path.split(input_args['source_data']['NeuroscopeSorting']['folder_path'])[1]
-            xml_filepath = os.path.join(input_args['source_data']['NeuroscopeSorting']['folder_path'], session_id + '.xml')
+            session_id = os.path.split(input_args['source_data']['folder_path'])[1]
+            xml_filepath = os.path.join(input_args['source_data']['folder_path'], session_id + '.xml')
             root = et.parse(xml_filepath).getroot()
             n_channels = len([int(channel.text)
                               for group in root.find('spikeDetection').find('channelGroups').findall('group')
                               for channel in group.find('channels')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
-            input_args['source_data'].update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
-                                                                  'sampling_frequency': 1,
-                                                                  'geom': None}})
-            input_args['source_data'].pop('NeuroscopeRecording')
+            input_args['source_data'].update({'timeseries': np.array(range(n_channels)),
+                                              'sampling_frequency': 1,
+                                              'geom': None})
             self.data_interface_classes = new_data_interface_classes
             self._recording_type = 'YutaNoRecording'
         else:

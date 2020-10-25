@@ -12,11 +12,9 @@ class YutaPositionInterface(BaseDataInterface):
     @classmethod
     def get_input_schema(cls):
         return dict(
-            source_data=dict(
-                required=['folder_path'],
-                properties=dict(
-                    folder_path=dict(type='string')
-                )
+            required=['folder_path'],
+            properties=dict(
+                folder_path=dict(type='string')
             )
         )
 
