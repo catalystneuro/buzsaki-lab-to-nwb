@@ -47,14 +47,14 @@ def run_yuta_conv(session, nwbfile_path):
 
             # construct input_args dict according to input schema
             input_args = dict(
-                source_data=dict(
-                    file_path=os.path.join(session, session_name) + ".dat",
+                NeuroscopeRecording=dict(file_path=os.path.join(session, session_name) + ".dat"),
+                NeuroscopeSorting=dict(
                     folder_path=session,
+                    keep_mua_units=False
                 ),
-                conversion_options=dict(
-                    keep_mua_units=False,
-                    exclude_shanks=None
-                )
+                YutaPosition=dict(folder_path=session),
+                YutaLFP=dict(folder_path=session),
+                YutaBehavior=dict(folder_path=session)
             )
 
             yuta_converter = YutaNWBConverter(**input_args)
