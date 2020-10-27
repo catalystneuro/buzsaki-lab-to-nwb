@@ -1,77 +1,74 @@
 """Authors: Cody Baker and Ben Dichter."""
-from buzsaki_lab_to_nwb import WatsonNWBConverter
-# TODO: add pathlib
+from buzsaki_lab_to_nwb import GrosmarkNWBConverter
+from pathlib import Path
 import os
 
-# List of folder paths to iterate over
-base_path = "D:/BuzsakiData/WatsonBO"
-convert_sessions = ["BWRat17/BWRat17_121712", "BWRat17/BWRat17_121912", "BWRat18/BWRat18_020513",
-                    "BWRat19/BWRat19_032513", "BWRat19/BWRat19_032413", "BWRat20/BWRat20_101013",
-                    "BWRat20/BWRat20_101513", "BWRat21/BWRat21_121113", "BWRat21/BWRat21_121613",
-                    "BWRat21/BWRat21_121813", "Bogey/Bogey_012615",
-                    "Dino/Dino_061814",
-                    "Dino/Dino_061914", "Dino/Dino_062014",  # incorrect # of channels for full lfp reshaping...
-                    "Dino/Dino_072114"#, # missing clu files...
-                    "Dino/Dino_072314", "Dino/Dino_072414", "Rizzo/Rizzo_022615",
-                    "Rizzo/Rizzo_022715",
-                    "Splinter/Splinter_020515", "Splinter/Splinter_020915",
-                    "Templeton/Templeton_032415"
-                    ]
+base_path = Path("D:/BuzsakiData/GrosmarkAD")
+mice_names = ["Achilles", "Buddy", "Cicero", "Gatsby"]
 
-experimenter = "Brendon Watson"
-paper_descr = "Data was recorded using silicon probe electrodes in the frontal cortices of male Long " \
-              "Evans rats between 4-7 months of age. The design was to have no specific behavior, " \
-              "task or stimulus, rather the animal was left alone in it’s home cage (which it lives in at all " \
-              "times)."
-paper_info = "Network Homeostasis and State Dynamics of Neocortical Sleep" \
-             "Watson BO, Levenstein D, Greene JP, Gelinas JN, Buzsáki G." \
-             "Neuron. 2016 Apr 27. pii: S0896-6273(16)30056-3." \
-             "doi: 10.1016/j.neuron.2016.03.036"
+convert_sessions = [session for mouse_name in mice_names for session in (base_path / Path(mouse_name)).iterdir()]
 
-for session in convert_sessions:
-    print("Converting session {}...".format(session))
+experimenter = "Andres Grosmark"
+paper_descr = "This data set is composed of eight bilateral silicon-probe multi-cellular electrophysiological "
+"recordings performed on four male Long-Evans rats in the Buzsáki lab at NYU. These recordings were "
+"performed to assess the effect of novel spatial learning on hippocampal CA1 neural firing and LFP "
+"patterns in naïve animals. Each session consisted of a long (~4 hour) PRE rest/sleep epoch home-cage "
+"recordings performed in a familiar room, followed by a Novel MAZE running epoch (~45 minutes) in which "
+"the animals were transferred to a novel room, and water-rewarded to run on a novel maze. These mazes "
+"were either A) a wooden 1.6m linear platform, B) a wooden 1m diameter circular platform or C) a 2m "
+"metal linear platform. Animals were rewarded either at both ends of the linear platform, or at a "
+"predetermined location on the circular platform. The animal was gently encouraged to run "
+"unidirectionally on the circular platform. After the MAZE epochs the animals were transferred back "
+"to their home-cage in the familiar room where a long (~4 hour) POST rest/sleep was recorded. All eight "
+"sessions were concatenated from the PRE, MAZE, and POST recording epochs. In addition to hippocampal "
+"electrophysiological recordings, neck EMG and head-mounted accelerometer signals were recorded, and the "
+"animal’s position during MAZE running epochs was tracked via head-mounted LEDs."
+paper_info = ["Grosmark, A.D., and Buzsáki, G. (2016). "
+              "Diversity in neural firing dynamics supports both rigid and learned hippocampal sequences. "
+              "Science 351, 1440–1443.",
+              "Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). "
+              "Uncovering representations of sleep-associated hippocampal ensemble spike activity. "
+              "Sci. Rep. 6, 32193."]
 
-    # TODO: replace with pathlib
-    session_id = os.path.split(session)[1]
-    folder_path = os.path.join(base_path, session)
+for session_path in convert_sessions:
+    folder_path = session_path.absolute()
+    session_id = session_path.name
+    print(f"Converting session {session_id}...")
 
-    input_file_schema = WatsonNWBConverter.get_input_schema()
+    input_file_schema = GrosmarkNWBConverter.get_input_schema()
 
     # construct input_args dict according to input schema
-    input_args = {
-        'NeuroscopeRecording': {'file_path': os.path.join(folder_path, session_id) + ".dat"},
-        'WatsonLFP': {'folder_path': folder_path},
-        'WatsonBehavior': {'folder_path': folder_path}
-    }
+    input_args = dict(
+        NeuroscopeRecording=dict(file_path=os.path.join(folder_path, session_id) + ".dat"),
+        WatsonLFP=dict(folder_path=folder_path),
+        WatsonBehavior=dict(folder_path=folder_path)
+    )
 
     # Very special case
-    if session == "Dino/Dino_072114":
-        input_args.update({'CellExplorerSorting': {'spikes_file_path': os.path.join(folder_path, session_id)
-                                                   + ".spikes.cellinfo.mat"}})
-    else:
-        input_args.update({'NeuroscopeSorting': {'folder_path': folder_path,
-                                                 'keep_mua_units': False}})
+    # if session == "Dino/Dino_072114":
+    #     input_args.update({'CellExplorerSorting': {'spikes_file_path': os.path.join(folder_path, session_id)
+    #                                                + ".spikes.cellinfo.mat"}})
+    # else:
+    #     input_args.update({'NeuroscopeSorting': {'folder_path': folder_path,
+    #                                              'keep_mua_units': False}})
 
-    watson_converter = WatsonNWBConverter(**input_args)
+    grosmark_converter = GrosmarkNWBConverter(**input_args)
+    metadata = grosmark_converter.get_metadata()
 
-    expt_json_schema = watson_converter.get_metadata_schema()
+    # Specific info
+    metadata['NWBFile'].update(experimenter=experimenter)
+    metadata['NWBFile'].update(session_description=paper_descr)
+    metadata['NWBFile'].update(related_publication=paper_info)
 
-    # construct metadata_dict according to expt_json_schema
-    metadata = watson_converter.get_metadata()
+    metadata['Subject'].update(species="Rattus norvegicus domestica - Long Evans")
+    metadata['Subject'].update(genotype="Wild type")
+    metadata['Subject'].update(sex="male")
+    metadata['Subject'].update(weight="250-350g")
+    # No age information reported in either publication, not available on dataset or site
 
-    # Yuta specific info
-    metadata['NWBFile'].update({'experimenter': experimenter})
-    metadata['NWBFile'].update({'session_description': paper_descr})
-    metadata['NWBFile'].update({'related_publications': paper_info})
+    device_descr = "silicon probe electrodes; "
+    f"see {session_id}.xml or {session_id}.sessionInfo.mat for more information"
+    metadata[grosmark_converter.get_recording_type()]['Ecephys']['Device'][0].update(description=device_descr)
 
-    metadata['Subject'].update({'species': 'Rattus norvegicus domestica - Long Evans'})
-    metadata['Subject'].update({'genotype': 'Wild type'})
-    metadata['Subject'].update({'age': '3-7 months'})  # No age data avilable per subject without contacting lab
-    metadata['Subject'].update({'weight': '250-500g'})
-
-    device_descr = "silicon probe electrodes; see {}.xml or {}.sessionInfo.mat for more information".format(session_id,
-                                                                                                            session_id)
-    metadata[watson_converter.get_recording_type()]['Ecephys']['Device'][0].update({'description': device_descr})
-
-    nwbfile_path = os.path.join(folder_path, "{}_stub.nwb".format(session_id))
-    watson_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
+    nwbfile_path = os.path.join(folder_path, f"{session_id}_stub.nwb")
+    grosmark_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
