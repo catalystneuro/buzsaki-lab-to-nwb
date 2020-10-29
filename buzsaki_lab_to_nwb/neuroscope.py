@@ -384,36 +384,46 @@ def write_electrode_table(nwbfile: NWBFile, session_path: str,
                 shank_electrode_number=shank_electrode_number, **custom_data)
 
 
-def read_lfp(session_path: str, stub: bool = False):
+def read_lfp(session_path: str, n_channels: int, stub: bool = False):
     """Read LFP data from Neuroscope eeg file.
-
     Parameters
     ----------
     session_path: str
     stub: bool, optional
         Default is False. If True, don't read full LFP, but instead a
         truncated version of at most size (50, n_channels)
-
     Returns
     -------
     lfp_fs, all_channels_data
     """
     fpath_base, fname = os.path.split(session_path)
-    lfp_filepath = os.path.join(session_path, fname + '.eeg')
+    eeg_filepath = os.path.join(session_path, "{}.eeg".format(fname))
+    lfp_filepath = os.path.join(session_path, "{}.lfp".format(fname))
     lfp_fs = get_lfp_sampling_rate(session_path)
-    n_channels = sum(len(x) for x in get_channel_groups(session_path))
 
-    assert os.path.isfile(lfp_filepath), "No .eeg file found at the path location!" \
-                                         "Unable to retrieve all_channels_data."
+    assert os.path.isfile(eeg_filepath) or os.path.isfile(lfp_filepath), \
+        "No .eeg or .lfp file found at the path location! Unable to retrieve all_channels_data."
+
+    if os.path.isfile(eeg_filepath):
+        filepath = eeg_filepath
+    else:
+        filepath = lfp_filepath
 
     if stub:
         max_size = 50
-        all_channels_data = np.fromfile(lfp_filepath,
+        all_channels_data = np.fromfile(filepath,
                                         dtype=np.int16,
                                         count=max_size*n_channels).reshape(-1, n_channels)
     else:
-        all_channels_data = np.fromfile(lfp_filepath,
-                                        dtype=np.int16).reshape(-1, n_channels)
+        data = np.fromfile(filepath, dtype=np.int16)
+        cont = True
+        while cont:
+            try:
+                all_channels_data = data.reshape(-1, n_channels)
+                cont = False
+            except:
+                cont = True
+                n_channels -= 1
 
     return lfp_fs, all_channels_data
 
@@ -424,7 +434,6 @@ def write_lfp(nwbfile: NWBFile, data: ArrayLike, fs: float,
               description: Optional[str] = 'local field potential signal'):
     """
     Add LFP from neuroscope to a "ecephys" processing module of an NWBFile.
-
     Parameters
     ----------
     nwbfile: pynwb.NWBFile
@@ -433,11 +442,9 @@ def write_lfp(nwbfile: NWBFile, data: ArrayLike, fs: float,
     electrode_inds: list(int), optional
     name: str, optional
     description: str, optional
-
     Returns
     -------
     LFP pynwb.ecephys.ElectricalSeries
-
     """
     if electrode_inds is None:
         if nwbfile.electrodes is not None and data.shape[1] <= len(nwbfile.electrodes.id.data[:]):

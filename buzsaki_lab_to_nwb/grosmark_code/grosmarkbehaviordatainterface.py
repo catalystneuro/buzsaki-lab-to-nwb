@@ -7,15 +7,16 @@ from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 import os
 import numpy as np
+from pathlib import Path
 from scipy.io import loadmat
 from ..neuroscope import get_events, find_discontinuities, check_module
 
 
-class WatsonBehaviorInterface(BaseDataInterface):
+class GrosmarkBehaviorInterface(BaseDataInterface):
 
     @classmethod
     def get_input_schema(cls):
-        return {}
+        return dict(properties=dict(folder_path="string"))
 
     def __init__(self, **input_args):
         super().__init__(**input_args)
@@ -27,11 +28,9 @@ class WatsonBehaviorInterface(BaseDataInterface):
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False, include_spike_waveforms: bool = False):
         session_path = self.input_args['folder_path']
-        # TODO: check/enforce format?
         task_types = metadata_dict.get('task_types', [])
 
         subject_path, session_id = os.path.split(session_path)
-        fpath_base = os.path.split(subject_path)[0]
 
         [nwbfile.add_stimulus(x) for x in get_events(session_path)]
 
@@ -42,58 +41,7 @@ class WatsonBehaviorInterface(BaseDataInterface):
         if exist_pos_data:
             nwbfile.add_epoch_column('label', 'name of epoch')
 
-        for task_type in task_types:
-            label = task_type['name']
-
-            file = os.path.join(session_path, session_id + '__' + label + '.mat')
-            if os.path.isfile(file):
-                pos_obj = Position(name=label + '_position')
-
-                matin = loadmat(file)
-                tt = matin['twhl_norm'][:, 0]
-                exp_times = find_discontinuities(tt)
-
-                if 'conversion' in task_type:
-                    conversion = task_type['conversion']
-                else:
-                    conversion = np.nan
-
-                for pos_type in ('twhl_norm', 'twhl_linearized'):
-                    if pos_type in matin:
-                        pos_data_norm = matin[pos_type][:, 1:]
-
-                        spatial_series_object = SpatialSeries(
-                            name=label + '_{}_spatial_series'.format(pos_type),
-                            data=H5DataIO(pos_data_norm, compression='gzip'),
-                            reference_frame='unknown', conversion=conversion,
-                            resolution=np.nan,
-                            timestamps=H5DataIO(tt, compression='gzip'))
-                        pos_obj.add_spatial_series(spatial_series_object)
-
-                check_module(nwbfile, 'behavior', 'contains processed behavioral data').add_data_interface(pos_obj)
-                for i, window in enumerate(exp_times):
-                    nwbfile.add_epoch(start_time=window[0], stop_time=window[1],
-                                      label=label + '_' + str(i))
-
-        trialdata_path = os.path.join(session_path, session_id + '__EightMazeRun.mat')
-        if os.path.isfile(trialdata_path):
-            trials_data = loadmat(trialdata_path)['EightMazeRun']
-
-            trialdatainfo_path = os.path.join(fpath_base, 'EightMazeRunInfo.mat')
-            trialdatainfo = [x[0] for x in loadmat(trialdatainfo_path)['EightMazeRunInfo'][0]]
-
-            features = trialdatainfo[:7]
-            features[:2] = 'start_time', 'stop_time',
-            [nwbfile.add_trial_column(x, 'description') for x in features[4:] + ['condition']]
-
-            for trial_data in trials_data:
-                if trial_data[3]:
-                    cond = 'run_left'
-                else:
-                    cond = 'run_right'
-                nwbfile.add_trial(start_time=trial_data[0], stop_time=trial_data[1], condition=cond,
-                                  error_run=trial_data[4], stim_run=trial_data[5], both_visit=trial_data[6])
-
+        # States
         sleep_state_fpath = os.path.join(session_path, '{}.SleepState.states.mat'.format(session_id))
         # label renaming specific to Watson
         state_label_names = {'WAKEstate': "Awake", 'NREMstate': "Non-REM", 'REMstate': "REM"}
@@ -108,5 +56,38 @@ class WatsonBehaviorInterface(BaseDataInterface):
                 for row in matin[name][0][0]:
                     data.append({'start_time': row[0], 'stop_time': row[1], 'label': state_label_names[name]})
             [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
-
             check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)
+
+        # Position
+        pos_filepath = Path(session_path) / f"{session_id}.position.behavior.mat"
+        pos_mat = loadmat(str(pos_filepath.absolute()))
+        starting_time = float(pos_mat['position']['timestamps'][0][0][0])  # confirmed to be a regularly sampled series
+        rate = float(pos_mat['position']['timestamps'][0][0][1]) - starting_time
+        if pos_mat['position']['units'][0][0][0] == 'm':
+            conversion = 1.0
+        else:
+            conversion = np.nan
+        pos_data = [[float(x), float(y)] for x, y in zip(pos_mat['position']['position'][0][0]['x'][0][0],
+                                                         pos_mat['position']['position'][0][0]['y'][0][0])]
+
+        label = pos_mat['position']['behaviorinfo'][0][0]['MazeType'][0][0][0].replace(" ", "")
+        pos_obj = Position(name=label + 'Position')
+        spatial_series_object = SpatialSeries(
+            name=label + f"{label}SpatialSeries",
+            data=H5DataIO(pos_data, compression='gzip'),
+            reference_frame='unknown',
+            conversion=conversion,
+            starting_time=starting_time,
+            rate=rate,
+            resolution=np.nan
+        )
+        pos_obj.add_spatial_series(spatial_series_object)
+        check_module(nwbfile, 'behavior', 'contains processed behavioral data').add_data_interface(pos_obj)
+
+        # Epochs
+        epoch_names = list(pos_mat['position']['Epochs'][0][0].dtype.names)
+        epoch_windows = [[float(start), float(stop)]
+                         for x in pos_mat['position']['Epochs'][0][0][0][0] for start, stop in x]
+        nwbfile.add_epoch_column('label', 'name of epoch')
+        for j, epoch_name in enumerate(epoch_names):
+            nwbfile.add_epoch(start_time=epoch_windows[j][0], stop_time=epoch_windows[j][1], label=epoch_name)

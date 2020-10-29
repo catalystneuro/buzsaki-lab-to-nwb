@@ -35,13 +35,13 @@ for session_path in convert_sessions:
     session_id = session_path.name
     print(f"Converting session {session_id}...")
 
-    input_file_schema = GrosmarkNWBConverter.get_input_schema()
-
-    # construct input_args dict according to input schema
     input_args = dict(
-        NeuroscopeRecording=dict(file_path=os.path.join(folder_path, session_id) + ".dat"),
-        WatsonLFP=dict(folder_path=folder_path),
-        WatsonBehavior=dict(folder_path=folder_path)
+        # NeuroscopeSorting=dict(
+        #     folder_path=folder_path,
+        #     keep_mua_units=False
+        # ),
+        GrosmarkLFP=dict(folder_path=folder_path),
+        GrosmarkBehavior=dict(folder_path=folder_path)
     )
 
     # Very special case
@@ -58,7 +58,7 @@ for session_path in convert_sessions:
     # Specific info
     metadata['NWBFile'].update(experimenter=experimenter)
     metadata['NWBFile'].update(session_description=paper_descr)
-    metadata['NWBFile'].update(related_publication=paper_info)
+    metadata['NWBFile'].update(related_publications=paper_info)
 
     metadata['Subject'].update(species="Rattus norvegicus domestica - Long Evans")
     metadata['Subject'].update(genotype="Wild type")
@@ -71,4 +71,4 @@ for session_path in convert_sessions:
     metadata[grosmark_converter.get_recording_type()]['Ecephys']['Device'][0].update(description=device_descr)
 
     nwbfile_path = os.path.join(folder_path, f"{session_id}_stub.nwb")
-    grosmark_converter.run_conversion(nwbfile_path, metadata, stub_test=True)
+    grosmark_converter.run_conversion(nwbfile_path=nwbfile_path, metadata_dict=metadata, stub_test=True)
