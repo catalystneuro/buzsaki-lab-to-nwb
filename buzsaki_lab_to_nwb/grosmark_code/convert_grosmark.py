@@ -36,21 +36,13 @@ for session_path in convert_sessions:
     print(f"Converting session {session_id}...")
 
     input_args = dict(
-        # NeuroscopeSorting=dict(
-        #     folder_path=folder_path,
-        #     keep_mua_units=False
-        # ),
+        NeuroscopeSorting=dict(
+            folder_path=folder_path,
+            keep_mua_units=False
+        ),
         GrosmarkLFP=dict(folder_path=folder_path),
         GrosmarkBehavior=dict(folder_path=folder_path)
     )
-
-    # Very special case
-    # if session == "Dino/Dino_072114":
-    #     input_args.update({'CellExplorerSorting': {'spikes_file_path': os.path.join(folder_path, session_id)
-    #                                                + ".spikes.cellinfo.mat"}})
-    # else:
-    #     input_args.update({'NeuroscopeSorting': {'folder_path': folder_path,
-    #                                              'keep_mua_units': False}})
 
     grosmark_converter = GrosmarkNWBConverter(**input_args)
     metadata = grosmark_converter.get_metadata()

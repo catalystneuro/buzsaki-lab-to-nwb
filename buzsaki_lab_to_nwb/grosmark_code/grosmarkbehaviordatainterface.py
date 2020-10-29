@@ -1,5 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
-from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
+from nwb_conversion_tools.utils import get_base_schema
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 from pynwb.file import TimeIntervals
@@ -9,7 +9,7 @@ import os
 import numpy as np
 from pathlib import Path
 from scipy.io import loadmat
-from ..neuroscope import get_events, find_discontinuities, check_module
+from ..neuroscope import get_events, check_module
 
 
 class GrosmarkBehaviorInterface(BaseDataInterface):
@@ -28,23 +28,15 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
     def convert_data(self, nwbfile: NWBFile, metadata_dict: dict,
                      stub_test: bool = False, include_spike_waveforms: bool = False):
         session_path = self.input_args['folder_path']
-        task_types = metadata_dict.get('task_types', [])
-
         subject_path, session_id = os.path.split(session_path)
 
+        # Stimuli
         [nwbfile.add_stimulus(x) for x in get_events(session_path)]
 
-        exist_pos_data = any(os.path.isfile(os.path.join(session_path,
-                                                         '{}__{}.mat'.format(session_id, task_type['name'])))
-                             for task_type in task_types)
-
-        if exist_pos_data:
-            nwbfile.add_epoch_column('label', 'name of epoch')
-
         # States
-        sleep_state_fpath = os.path.join(session_path, '{}.SleepState.states.mat'.format(session_id))
+        sleep_state_fpath = os.path.join(session_path, "{session_id}.SleepState.states.mat")
         # label renaming specific to Watson
-        state_label_names = {'WAKEstate': "Awake", 'NREMstate': "Non-REM", 'REMstate': "REM"}
+        state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
         if os.path.isfile(sleep_state_fpath):
             matin = loadmat(sleep_state_fpath)['SleepState']['ints'][0][0]
 
@@ -54,7 +46,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             data = []
             for name in matin.dtype.names:
                 for row in matin[name][0][0]:
-                    data.append({'start_time': row[0], 'stop_time': row[1], 'label': state_label_names[name]})
+                    data.append(dict(start_time=row[0], stop_time=row[1], label=state_label_names[name]))
             [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
             check_module(nwbfile, 'behavior', 'contains behavioral data').add_data_interface(table)
 
@@ -71,7 +63,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
                                                          pos_mat['position']['position'][0][0]['y'][0][0])]
 
         label = pos_mat['position']['behaviorinfo'][0][0]['MazeType'][0][0][0].replace(" ", "")
-        pos_obj = Position(name=label + 'Position')
+        pos_obj = Position(name=f"{label}Position")
         spatial_series_object = SpatialSeries(
             name=label + f"{label}SpatialSeries",
             data=H5DataIO(pos_data, compression='gzip'),

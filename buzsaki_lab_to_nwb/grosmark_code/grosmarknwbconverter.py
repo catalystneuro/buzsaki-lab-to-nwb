@@ -1,10 +1,8 @@
 """Authors: Cody Baker and Ben Dichter."""
-import spikeextractors as se
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
 from .grosmarklfpdatainterface import GrosmarkLFPInterface
 from .grosmarkbehaviordatainterface import GrosmarkBehaviorInterface
 from .grosmarknorecording import GrosmarkNoRecording
-# from .grosmarksortinginterface import GrosmarkSortingInterface
 import numpy as np
 from scipy.io import loadmat
 import os
@@ -15,7 +13,7 @@ from dateutil.parser import parse as dateparse
 
 class GrosmarkNWBConverter(NWBConverter):
     data_interface_classes = {'GrosmarkNoRecording': GrosmarkNoRecording,
-                               # 'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
+                              'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
                               'GrosmarkLFP': GrosmarkLFPInterface,
                               'GrosmarkBehavior': GrosmarkBehaviorInterface}
 
@@ -33,13 +31,6 @@ class GrosmarkNWBConverter(NWBConverter):
                 sampling_frequency=1
             )
         )
-        # Very special case for only one session
-        # special_sorting = input_args.get('CellExplorerSorting', None)
-        # if special_sorting is not None:
-        #     self.data_interface_classes.pop('NeuroscopeSorting')
-        #     self.data_interface_classes.update({'CellExplorerSorting': GrosmarkSortingInterface})
-        #     self._sorting_type = 'CellExplorerSorting'
-        # else:
         self._sorting_type = 'NeuroscopeSorting'
         super().__init__(**input_args)
 
@@ -82,30 +73,35 @@ class GrosmarkNWBConverter(NWBConverter):
                              for x in loadmat(celltype_filepath)['CellClass']['label'][0][0][0]]
 
         device_name = "implant"
-        metadata = {
-            'NWBFile': {
-                'identifier': session_id,
-                'session_start_time': session_start.astimezone(),
-                'file_create_date': datetime.now().astimezone(),
-                'session_id': session_id,
-                'institution': 'NYU',
-                'lab': 'Buzsaki'
-            },
-            'Subject': {
-                'subject_id': subject_id,
-            },
-            self.get_recording_type(): {
-                'Ecephys': {
-                    'subset_channels': all_shank_channels,
-                    'Device': [{
-                        'name': device_name
-                    }],
-                    'ElectrodeGroup': [{
-                        'name': f'shank{n+1}',
-                        'description': f'shank{n+1} electrodes',
-                        'device_name': device_name
-                    } for n, _ in enumerate(shank_channels)],
-                    'Electrodes': [
+        metadata = dict(
+            NWBFile=dict(
+                identifier=session_id,
+                session_start_time=session_start.astimezone(),
+                file_create_date=datetime.now().astimezone(),
+                session_id=session_id,
+                institution="NYU",
+                lab="Buzsaki"
+            ),
+            Subject=dict(
+                subject_id=subject_id,
+            ),
+            GrosmarkNoRecording=dict(
+                Ecephys=dict(
+                    subset_channels=all_shank_channels,
+                    Device=[
+                        dict(
+                            name=device_name
+                        )
+                    ],
+                    ElectrodeGroup=[
+                        dict(
+                            name=f"shank{n+1}",
+                            description=f"shank{n+1} electrodes",
+                            device_name=device_name
+                        )
+                        for n, _ in enumerate(shank_channels)
+                    ],
+                    Electrodes=[
                         {
                             'name': 'shank_electrode_number',
                             'description': '0-indexed channel within a shank',
@@ -122,64 +118,50 @@ class GrosmarkNWBConverter(NWBConverter):
                             'data': shank_group_name
                         }
                     ],
-                }
-            },
-            self.get_sorting_type(): {
-                'UnitProperties': [
-                    {
-                        'name': 'cell_type',
-                        'description': 'name of cell type',
-                        'data': celltype_info
-                    },
-                    {
-                        'name': 'global_id',
-                        'description': 'global id for cell for entire experiment',
-                        'data': [int(x) for x in cell_info['UID'][0][0][0]]
-                    },
-                    {
-                        'name': 'shank_id',
-                        'description': '0-indexed id of cluster from shank',
+                )
+            ),
+            NeuroscopeSorting=dict(
+                UnitProperties=[
+                    dict(
+                        name="cell_type",
+                        description="name of cell type",
+                        data=celltype_info
+                    ),
+                    dict(
+                        name="global_id",
+                        description="global id for cell for entire experiment",
+                        data=[int(x) for x in cell_info['UID'][0][0][0]]
+                    ),
+                    dict(
+                        name="shank_id",
+                        description="0-indexed id of cluster from shank",
                         # - 2 b/c the 0 and 1 IDs from each shank have been removed
-                        'data': [int(x - 2) for x in cell_info['cluID'][0][0][0]]
-                    },
-                    {
-                        'name': 'electrode_group',
-                        'description': 'the electrode group that each spike unit came from',
-                        'data': ["shank" + str(x) for x in cell_info['shankID'][0][0][0]]
-                    },
-                    {
-                        'name': 'region',
-                        'description': 'brain region where unit was detected',
-                        'data': [str(x[0]) for x in cell_info['region'][0][0][0]]
-                    }
-                  ]
-            },
-            'GrosmarkLFP': {
-                'all_shank_channels': all_shank_channels,
-                'lfp_sampling_rate': lfp_sampling_rate,
-                'lfp': {'name': 'lfp',
-                        'description': 'lfp signal for all shank electrodes'},
-                'spikes_nsamples': spikes_nsamples,
-                'shank_channels': shank_channels,
-                'n_total_channels': n_total_channels
-            },
-            'GrosmarkBehavior': {
-            }
-        }
-
-        # If there is missing auto-detected metadata for unit properties, truncate those units from the extractor
-        # se_ids = set(self.data_interface_objects[self.get_sorting_type()].sorting_extractor.get_unit_ids())
-        # if len(celltype_info) < len(se_ids):
-        #     defaults = {'cell_type': "unknown", 'region': "unknown"}
-        #     missing_ids = se_ids - set(np.arange(len(celltype_info)))
-        #     unit_map = self.data_interface_objects[self.get_sorting_type()].sorting_extractor._unit_map
-        #     for missing_id in missing_ids:
-        #         metadata[self.get_sorting_type()]['UnitProperties'][0]['data'].append(defaults['cell_type'])
-        #         metadata[self.get_sorting_type()]['UnitProperties'][1]['data'].append(int(missing_id))
-        #         metadata[self.get_sorting_type()]['UnitProperties'][2]['data'].append(int(unit_map[missing_id]['unit_id']
-        #                                                                               - 1))
-        #         metadata[self.get_sorting_type()]['UnitProperties'][3]['data'].append(
-        #             "shank{}".format(unit_map[missing_id]['sorting_id']))
-        #         metadata[self.get_sorting_type()]['UnitProperties'][4]['data'].append(defaults['region'])
+                        data=[int(x - 2) for x in cell_info['cluID'][0][0][0]]
+                    ),
+                    dict(
+                        name="electrode_group",
+                        description="the electrode group that each spike unit came from",
+                        data=["shank" + str(x) for x in cell_info['shankID'][0][0][0]]
+                    ),
+                    dict(
+                        name="region",
+                        description="brain region where unit was detected",
+                        data=[str(x[0]) for x in cell_info['region'][0][0][0]]
+                    )
+                ]
+            ),
+            GrosmarkLFP=dict(
+                all_shank_channels=all_shank_channels,
+                lfp_sampling_rate=lfp_sampling_rate,
+                lfp=dict(
+                    name="lfp",
+                    description="lfp signal for all shank electrodes"
+                ),
+                spikes_nsamples=spikes_nsamples,
+                shank_channels=shank_channels,
+                n_total_channels=n_total_channels
+            ),
+            GrosmarkBehavior=dict()
+        )
 
         return metadata

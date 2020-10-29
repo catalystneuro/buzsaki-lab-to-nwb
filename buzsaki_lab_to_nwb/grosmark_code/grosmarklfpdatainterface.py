@@ -35,7 +35,6 @@ class GrosmarkLFPInterface(BaseDataInterface):
     def convert_data(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         session_path = self.input_args['folder_path']
         all_shank_channels = metadata['all_shank_channels']
-        special_electrode_dict = metadata.get('special_electrodes', [])
         lfp_sampling_rate = metadata['lfp_sampling_rate']
         spikes_nsamples = metadata['spikes_nsamples']
         shank_channels = metadata['shank_channels']
@@ -49,16 +48,18 @@ class GrosmarkLFPInterface(BaseDataInterface):
         except IndexError:
             warnings.warn("Encountered indexing issue for all_shank_channels on lfp_data subsetting; using entire lfp!")
             lfp_data = all_channels_lfp_data
-        write_lfp(nwbfile, lfp_data, lfp_sampling_rate, name=metadata['lfp']['name'],
-                  description=metadata['lfp']['description'], electrode_inds=None)
-
-        # TODO: error checking on format?
-        for special_electrode in special_electrode_dict:
-            ts = TimeSeries(name=special_electrode['name'],
-                            description=special_electrode['description'],
-                            data=all_channels_lfp_data[:, special_electrode['channel']],
-                            rate=lfp_sampling_rate, unit='V', resolution=np.nan)
-            nwbfile.add_acquisition(ts)
-
-        write_spike_waveforms(nwbfile, session_path, spikes_nsamples=spikes_nsamples, shank_channels=shank_channels,
-                              stub_test=stub_test)
+        write_lfp(
+            nwbfile,
+            lfp_data,
+            lfp_sampling_rate,
+            name=metadata['lfp']['name'],
+            description=metadata['lfp']['description'],
+            electrode_inds=None
+        )
+        write_spike_waveforms(
+            nwbfile,
+            session_path,
+            spikes_nsamples=spikes_nsamples,
+            shank_channels=shank_channels,
+            stub_test=stub_test
+        )
