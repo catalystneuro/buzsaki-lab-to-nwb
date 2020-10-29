@@ -1,8 +1,6 @@
 # Notes on GrosmarkAD of buzsaki-lab-to-nwb data mapping
 ## Open questions for Ben or Peter are in []
 
-This matlab file contains a struct named "log" which contains several fields relevant for conversion...
-
 ### NWBFile
 * datetext information for the session_start_time is in the session_id string.
 
