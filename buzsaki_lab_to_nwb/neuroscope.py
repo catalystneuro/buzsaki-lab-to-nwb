@@ -11,7 +11,6 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from hdmf.data_utils import DataChunkIterator
 from pynwb.misc import AnnotationSeries
 from tqdm import tqdm
-import warnings
 from typing import Optional, List, Iterable
 
 try:
@@ -385,46 +384,36 @@ def write_electrode_table(nwbfile: NWBFile, session_path: str,
                 shank_electrode_number=shank_electrode_number, **custom_data)
 
 
-def read_lfp(session_path: str, n_channels: int, stub: bool = False):
+def read_lfp(session_path: str, stub: bool = False):
     """Read LFP data from Neuroscope eeg file.
+
     Parameters
     ----------
     session_path: str
     stub: bool, optional
         Default is False. If True, don't read full LFP, but instead a
         truncated version of at most size (50, n_channels)
+
     Returns
     -------
     lfp_fs, all_channels_data
     """
     fpath_base, fname = os.path.split(session_path)
-    eeg_filepath = os.path.join(session_path, "{}.eeg".format(fname))
-    lfp_filepath = os.path.join(session_path, "{}.lfp".format(fname))
+    lfp_filepath = os.path.join(session_path, fname + '.eeg')
     lfp_fs = get_lfp_sampling_rate(session_path)
+    n_channels = sum(len(x) for x in get_channel_groups(session_path))
 
-    assert os.path.isfile(eeg_filepath) or os.path.isfile(lfp_filepath), \
-        "No .eeg or .lfp file found at the path location! Unable to retrieve all_channels_data."
-
-    if os.path.isfile(eeg_filepath):
-        filepath = eeg_filepath
-    else:
-        filepath = lfp_filepath
+    assert os.path.isfile(lfp_filepath), "No .eeg file found at the path location!" \
+                                         "Unable to retrieve all_channels_data."
 
     if stub:
         max_size = 50
-        all_channels_data = np.fromfile(filepath,
+        all_channels_data = np.fromfile(lfp_filepath,
                                         dtype=np.int16,
                                         count=max_size*n_channels).reshape(-1, n_channels)
     else:
-        data = np.fromfile(filepath, dtype=np.int16)
-        cont = True
-        while cont:
-            try:
-                all_channels_data = data.reshape(-1, n_channels)
-                cont = False
-            except:
-                cont = True
-                n_channels -= 1
+        all_channels_data = np.fromfile(lfp_filepath,
+                                        dtype=np.int16).reshape(-1, n_channels)
 
     return lfp_fs, all_channels_data
 
@@ -435,6 +424,7 @@ def write_lfp(nwbfile: NWBFile, data: ArrayLike, fs: float,
               description: Optional[str] = 'local field potential signal'):
     """
     Add LFP from neuroscope to a "ecephys" processing module of an NWBFile.
+
     Parameters
     ----------
     nwbfile: pynwb.NWBFile
@@ -443,9 +433,11 @@ def write_lfp(nwbfile: NWBFile, data: ArrayLike, fs: float,
     electrode_inds: list(int), optional
     name: str, optional
     description: str, optional
+
     Returns
     -------
     LFP pynwb.ecephys.ElectricalSeries
+
     """
     if electrode_inds is None:
         if nwbfile.electrodes is not None and data.shape[1] <= len(nwbfile.electrodes.id.data[:]):
@@ -639,10 +631,7 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
                                                                                        spikes_nsamples, nchan_on_shank)
         spk_times = read_spike_times(session_path, shankn)[:n_stub_spikes]
     else:
-        try:
-            spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
-        except ValueError:
-            warnings.warn(f"Could not reshape inner dimension of SpikeWaveforms{shankn}!")
+        spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
         spk_times = read_spike_times(session_path, shankn)
 
     if compression:
@@ -650,15 +639,12 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
     else:
         data = spks
 
-    try:
-        spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
-                                              data=data,
-                                              timestamps=spk_times,
-                                              electrodes=table_region)
-        check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
-    except Exception:
-        warnings.warn(f"SpikeWaveforms{shankn} could not be written since {len(spk_times)} "
-                      f"does not match first dimension of data size {data.shape}!")
+    spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
+                                          data=data,
+                                          timestamps=spk_times,
+                                          electrodes=table_region)
+
+    check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
 
 
 def add_units(nwbfile: NWBFile, session_path: str,
