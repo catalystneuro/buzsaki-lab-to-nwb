@@ -11,6 +11,7 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from hdmf.data_utils import DataChunkIterator
 from pynwb.misc import AnnotationSeries
 from tqdm import tqdm
+import warnings
 from typing import Optional, List, Iterable
 
 try:
@@ -638,7 +639,10 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
                                                                                        spikes_nsamples, nchan_on_shank)
         spk_times = read_spike_times(session_path, shankn)[:n_stub_spikes]
     else:
-        spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
+        try:
+            spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
+        except ValueError:
+            warnings.warn(f"Could not reshape inner dimension of SpikeWaveforms{shankn}!")
         spk_times = read_spike_times(session_path, shankn)
 
     if compression:
@@ -646,12 +650,15 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
     else:
         data = spks
 
-    spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
-                                          data=data,
-                                          timestamps=spk_times,
-                                          electrodes=table_region)
-
-    check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
+    try:
+        spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
+                                              data=data,
+                                              timestamps=spk_times,
+                                              electrodes=table_region)
+        check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
+    except Exception:
+        warnings.warn(f"SpikeWaveforms{shankn} could not be written since {len(spk_times)} "
+                      f"does not match first dimension of data size {data.shape}!")
 
 
 def add_units(nwbfile: NWBFile, session_path: str,
