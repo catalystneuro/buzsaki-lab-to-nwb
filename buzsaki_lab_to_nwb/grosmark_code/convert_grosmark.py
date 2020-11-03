@@ -62,14 +62,18 @@ for session_path in convert_sessions:
     metadata = grosmark_converter.get_metadata()
 
     # Specific info
-    metadata['NWBFile'].update(experimenter=experimenter)
-    metadata['NWBFile'].update(session_description=paper_descr)
-    metadata['NWBFile'].update(related_publications=paper_info)
+    metadata['NWBFile'].update(
+        experimenter=experimenter,
+        session_description=paper_descr,
+        related_publications=paper_info
+    )
 
-    metadata['Subject'].update(species="Rattus norvegicus domestica - Long Evans")
-    metadata['Subject'].update(genotype="Wild type")
-    metadata['Subject'].update(sex="male")
-    metadata['Subject'].update(weight="250-350g")
+    metadata['Subject'].update(
+        species="Rattus norvegicus domestica - Long Evans",
+        genotype="Wild type",
+        sex="male",
+        weight="250-350g"
+    )
     # No age information reported in either publication, not available on dataset or site
 
     f"see {session_id}.xml or {session_id}.sessionInfo.mat for more information"
