@@ -27,7 +27,6 @@ class GrosmarkLFPInterface(BaseDataInterface):
         xml_filepath = os.path.join(session_path, "{}.xml".format(session_id))
         root = et.parse(xml_filepath).getroot()
 
-        n_total_channels = int(root.find('acquisitionSystem').find('nChannels').text)
         shank_channels = [[int(channel.text)
                           for channel in group.find('channels')]
                           for group in root.find('spikeDetection').find('channelGroups').findall('group')]
@@ -36,11 +35,9 @@ class GrosmarkLFPInterface(BaseDataInterface):
         lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
         spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
 
-        n_total_channels = metadata['n_total_channels']
-
         subject_path, session_id = os.path.split(session_path)
 
-        _, all_channels_lfp_data = read_lfp(session_path, stub=stub_test, n_channels=n_total_channels)
+        _, all_channels_lfp_data = read_lfp(session_path, stub=stub_test)
         try:
             lfp_data = all_channels_lfp_data[:, all_shank_channels]
         except IndexError:

@@ -2,7 +2,7 @@
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
 from .grosmarklfpdatainterface import GrosmarkLFPInterface
 from .grosmarkbehaviordatainterface import GrosmarkBehaviorInterface
-from .grosmarknorecording import GrosmarkNoRecording
+from ..buzsakinorecording import BuzsakiNoRecording
 import numpy as np
 from scipy.io import loadmat
 import os
@@ -14,13 +14,13 @@ from dateutil.parser import parse as dateparse
 class GrosmarkNWBConverter(NWBConverter):
     """Primary conversion class for the GrosmarkAD dataset."""
 
-    data_interface_classes = {'GrosmarkNoRecording': GrosmarkNoRecording,
-                              'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
+    data_interface_classes = {'BuzsakiNoRecording': BuzsakiNoRecording,
+                              # 'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
                               'GrosmarkLFP': GrosmarkLFPInterface,
                               'GrosmarkBehavior': GrosmarkBehaviorInterface}
 
     def __init__(self, **input_args):
-        self._recording_type = 'GrosmarkNoRecording'
+        self._recording_type = 'BuzsakiNoRecording'
         session_id = os.path.split(input_args['GrosmarkLFP']['folder_path'])[1]
         xml_filepath = os.path.join(input_args['GrosmarkLFP']['folder_path'], session_id + '.xml')
         root = et.parse(xml_filepath).getroot()
@@ -28,7 +28,7 @@ class GrosmarkNWBConverter(NWBConverter):
                           for group in root.find('spikeDetection').find('channelGroups').findall('group')
                           for channel in group.find('channels')])
         input_args.update(
-            GrosmarkNoRecording=dict(
+            BuzsakiNoRecording=dict(
                 timeseries=np.array(range(n_channels)),
                 sampling_frequency=1
             )
@@ -86,7 +86,7 @@ class GrosmarkNWBConverter(NWBConverter):
             Subject=dict(
                 subject_id=subject_id,
             ),
-            GrosmarkNoRecording=dict(
+            BuzsakiNoRecording=dict(
                 Ecephys=dict(
                     subset_channels=all_shank_channels,
                     Device=[
@@ -151,17 +151,7 @@ class GrosmarkNWBConverter(NWBConverter):
                     )
                 ]
             ),
-            GrosmarkLFP=dict(
-                all_shank_channels=all_shank_channels,
-                lfp_sampling_rate=lfp_sampling_rate,
-                lfp=dict(
-                    name="lfp",
-                    description="lfp signal for all shank electrodes"
-                ),
-                spikes_nsamples=spikes_nsamples,
-                shank_channels=shank_channels,
-                n_total_channels=n_total_channels
-            ),
+            GrosmarkLFP=dict(),
             GrosmarkBehavior=dict()
         )
 
