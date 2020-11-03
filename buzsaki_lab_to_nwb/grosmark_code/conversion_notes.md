@@ -2,7 +2,7 @@
 ## Open questions for Ben or Peter are in []
 
 ### NWBFile
-* datetext information for the session_start_time is in the session_id string.
+datetext information for the session_start_time is in the session_id string.
 
 ### Subject
 Most information able to be found in the publication and added manually. Male wildtype Long Evans rats between 250-350g.
@@ -21,7 +21,7 @@ This .mat file has a single variable named 'position'. This variable is a struct
 ### Intervals
 See "Position" section for details on structure of that file.
 
-*position.Epochs contains the names and windows for the experimental eepochs.
+position.Epochs contains the names and windows for the experimental eepochs.
 
 
 ### LFP
