@@ -8,6 +8,8 @@ import os
 import numpy as np
 from pathlib import Path
 from scipy.io import loadmat
+import warnings
+
 from ..neuroscope import get_events, check_module
 
 
@@ -53,6 +55,8 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
         if pos_mat['position']['units'][0][0][0] == 'm':
             conversion = 1.0
         else:
+            warnings.warn(f"Spatial units ({pos_mat['position']['units'][0][0][0]}) not listed in meters; "
+                          "setting conversion to nan.")
             conversion = np.nan
         pos_data = [[x[0], y[0]] for x, y in zip(pos_mat['position']['position'][0][0]['x'][0][0],
                                                  pos_mat['position']['position'][0][0]['y'][0][0])]
