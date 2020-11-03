@@ -3,7 +3,7 @@ from nwb_conversion_tools.baserecordingextractorinterface import BaseRecordingEx
 import spikeextractors as se
 
 
-class YutaNoRecording(BaseRecordingExtractorInterface):
+class BuzsakiNoRecording(BaseRecordingExtractorInterface):
     RX = se.NumpyRecordingExtractor
 
     def convert_data(self, nwbfile, metadata, stub_test=False):
