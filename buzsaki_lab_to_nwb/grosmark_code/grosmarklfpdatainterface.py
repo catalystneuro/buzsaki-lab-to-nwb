@@ -50,8 +50,8 @@ class GrosmarkLFPInterface(BaseDataInterface):
             nwbfile,
             lfp_data,
             lfp_sampling_rate,
-            name=metadata['lfp']['name'],
-            description=metadata['lfp']['description'],
+            name="lfp",
+            description="lfp signal for all shank electrodes",
             electrode_inds=None
         )
         write_spike_waveforms(
