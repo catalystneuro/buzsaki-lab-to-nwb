@@ -3,6 +3,8 @@ from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 import os
 import warnings
+from lxml import etree as et
+import numpy as np
 
 from ..neuroscope import read_lfp, write_lfp, write_spike_waveforms
 
@@ -18,10 +20,22 @@ class GrosmarkLFPInterface(BaseDataInterface):
     def convert_data(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         """Convert the LFP portion of a particular session of the GrosmarkAD dataset."""
         session_path = self.input_args['folder_path']
-        all_shank_channels = metadata['all_shank_channels']
-        lfp_sampling_rate = metadata['lfp_sampling_rate']
-        spikes_nsamples = metadata['spikes_nsamples']
-        shank_channels = metadata['shank_channels']
+        subject_path, session_id = os.path.split(session_path)
+        if '_' in session_id:
+            subject_id, date_text = session_id.split('_')
+
+        xml_filepath = os.path.join(session_path, "{}.xml".format(session_id))
+        root = et.parse(xml_filepath).getroot()
+
+        n_total_channels = int(root.find('acquisitionSystem').find('nChannels').text)
+        shank_channels = [[int(channel.text)
+                          for channel in group.find('channels')]
+                          for group in root.find('spikeDetection').find('channelGroups').findall('group')]
+        all_shank_channels = np.concatenate(shank_channels)
+        all_shank_channels.sort()
+        lfp_sampling_rate = float(root.find('fieldPotentials').find('lfpSamplingRate').text)
+        spikes_nsamples = int(root.find('neuroscope').find('spikes').find('nSamples').text)
+
         n_total_channels = metadata['n_total_channels']
 
         subject_path, session_id = os.path.split(session_path)
