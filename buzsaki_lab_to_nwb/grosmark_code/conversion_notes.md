@@ -1,5 +1,6 @@
 # Notes on GrosmarkAD of buzsaki-lab-to-nwb data mapping
-## Open questions for Ben or Peter are in []
+## Open questions for Ben or Peter are in straight braces []
+## ToDo list items are in curley braces {}
 
 ### NWBFile
 datetext information for the session_start_time is in the session_id string.
