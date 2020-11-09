@@ -38,6 +38,12 @@ No .dat files are available in any of the GrosmarkAD set.
 .xml contains electrode structure used to create device and electrode groups.
 An extra custom column was added for this dataset, indicating if a particular electrode was "bad" in that it was removed from further analysis due to being unstable or low-amplitude.
 
+
+
+### Conversion notes
+
+I had to manually delete the Achilles_Default.xml in session 10252013; we only expect to find one properly formatted .xml in the directory.
+
 {If we ever return to this dataset later; TODO: a) include region associated with each electrode, remove that bit from the session description, and b) infer trial windows and reward results based on positional data (nothing included in session folder, but paper mentions water reward and other conditions)}
 
 
