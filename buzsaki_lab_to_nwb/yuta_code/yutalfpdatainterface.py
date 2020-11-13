@@ -14,8 +14,12 @@ class YutaLFPInterface(BaseDataInterface):
 
     @classmethod
     def get_input_schema(cls):
-        return {}
-
+        return dict(
+            required=['folder_path'],
+            properties=dict(
+                folder_path=dict(type='string')
+            )
+        )
 
     def __init__(self, **input_args):
         super().__init__(**input_args)
