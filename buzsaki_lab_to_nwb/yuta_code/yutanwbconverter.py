@@ -3,7 +3,7 @@ from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
 from .yutapositiondatainterface import YutaPositionInterface
 from .yutalfpdatainterface import YutaLFPInterface
 from .yutabehaviordatainterface import YutaBehaviorInterface
-from .yutanorecording import YutaNoRecording
+from ..buzsakinorecording import BuzsakiNoRecording
 import pandas as pd
 import numpy as np
 from scipy.io import loadmat
@@ -101,8 +101,8 @@ class YutaNWBConverter(NWBConverter):
         dat_filepath = input_args.get('NeuroscopeRecording', {}).get('file_path', None)
         if not os.path.isfile(dat_filepath):
             new_data_interface_classes = {}
+            new_data_interface_classes.update(BuzsakiNoRecording=BuzsakiNoRecording)
 
-            new_data_interface_classes.update({'YutaNoRecording': YutaNoRecording})
             for name, val in self.data_interface_classes.items():
                 new_data_interface_classes.update({name: val})
             new_data_interface_classes.pop('NeuroscopeRecording')
@@ -114,11 +114,15 @@ class YutaNWBConverter(NWBConverter):
                               for channel in group.find('channels')]
                               for group in root.find('spikeDetection').find('channelGroups').findall('group')])
             # The only information needed for this is .get_channel_ids() which is set by the shape of the input series
-            input_args.update({'YutaNoRecording': {'timeseries': np.array(range(n_channels)),
-                                                   'sampling_frequency': 1}})
+            input_args.update(
+                BuzsakiNoRecording=dict(
+                    timeseries=np.array(range(n_channels)),
+                    sampling_frequency=1
+                )
+            )
             input_args.pop('NeuroscopeRecording')
             self.data_interface_classes = new_data_interface_classes
-            self._recording_type = 'YutaNoRecording'
+            self._recording_type = 'BuzsakiNoRecording'
         else:
             self._recording_type = 'NeuroscopeRecording'
         super().__init__(**input_args)
