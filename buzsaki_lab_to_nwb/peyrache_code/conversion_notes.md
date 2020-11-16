@@ -13,7 +13,9 @@ datetext information for the session_start_time is in the session_id string. For
 
 ### Position (processed, not acquisition)
 Raw acquisition .whl file is found, will be added as such.
-No other processed position information found.
+No other processed position information found on globus, but there are some folders on CRCNS that called 'PosFiles'.
+
+{check out PosFiles and see if they correspond to certain or all sessions}
 
 ### Intervals
 {Find and add}
