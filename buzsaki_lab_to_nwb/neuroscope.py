@@ -445,25 +445,30 @@ def write_lfp(nwbfile: NWBFile, data: ArrayLike, fs: float,
         else:
             electrode_inds = list(range(len(nwbfile.electrodes.id.data[:])))
 
-    table_region = nwbfile.create_electrode_table_region(
-        electrode_inds, 'electrode table reference')
-
+    table_region = nwbfile.create_electrode_table_region(electrode_inds, 'electrode table reference')
     data = H5DataIO(
         DataChunkIterator(
             tqdm(data, desc='writing lfp data'),
-            buffer_size=int(fs * 3600)), compression='gzip')
-
+            buffer_size=int(fs * 3600)
+        ),
+        compression='gzip'
+    )
     lfp_electrical_series = ElectricalSeries(
-        name=name, description=description,
-        data=data, electrodes=table_region, conversion=np.nan,
-        rate=fs, resolution=np.nan)
-
+        name=name,
+        description=description,
+        data=data,
+        electrodes=table_region,
+        conversion=1e-6,
+        rate=fs,
+        resolution=np.nan
+    )
     ecephys_mod = check_module(
-        nwbfile, 'ecephys', 'intermediate data from extracellular electrophysiology recordings, e.g., LFP')
-
+        nwbfile,
+        'ecephys', 
+        "intermediate data from extracellular electrophysiology recordings, e.g., LFP"
+    )
     if 'LFP' not in ecephys_mod.data_interfaces:
         ecephys_mod.add_data_interface(LFP(name='LFP'))
-
     ecephys_mod.data_interfaces['LFP'].add_electrical_series(lfp_electrical_series)
 
     return lfp_electrical_series
@@ -591,10 +596,15 @@ def write_spike_waveforms(nwbfile: NWBFile, session_path: str, spikes_nsamples: 
         default: 'gzip'
     """
     for shankn in range(1, len(shank_channels)+1):
-        write_spike_waveforms_single_shank(nwbfile=nwbfile, session_path=session_path, shankn=shankn,
-                                           spikes_nsamples=spikes_nsamples,
-                                           nchan_on_shank=len(shank_channels[shankn-1]),
-                                           stub_test=stub_test, compression=compression)
+        write_spike_waveforms_single_shank(
+            nwbfile=nwbfile,
+            session_path=session_path,
+            shankn=shankn,
+            spikes_nsamples=spikes_nsamples,
+            nchan_on_shank=len(shank_channels[shankn-1]),
+            stub_test=stub_test,
+            compression=compression
+        )
 
 
 def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shankn: int, spikes_nsamples: int,
@@ -626,9 +636,10 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
 
     if stub_test:
         n_stub_spikes = 50
-        spks = np.fromfile(spk_file, dtype=np.int16,
-                           count=n_stub_spikes*spikes_nsamples*nchan_on_shank).reshape(n_stub_spikes,
-                                                                                       spikes_nsamples, nchan_on_shank)
+        spks = np.fromfile(
+            spk_file,
+            dtype=np.int16,
+            count=n_stub_spikes*spikes_nsamples*nchan_on_shank).reshape(n_stub_spikes, spikes_nsamples, nchan_on_shank)
         spk_times = read_spike_times(session_path, shankn)[:n_stub_spikes]
     else:
         spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
@@ -639,11 +650,13 @@ def write_spike_waveforms_single_shank(nwbfile: NWBFile, session_path: str, shan
     else:
         data = spks
 
-    spike_event_series = SpikeEventSeries(name="SpikeWaveforms{}".format(shankn),
-                                          data=data,
-                                          timestamps=spk_times,
-                                          electrodes=table_region)
-
+    spike_event_series = SpikeEventSeries(
+        name="SpikeWaveforms{}".format(shankn),
+        data=data,
+        timestamps=spk_times,
+        conversion=1e-6,
+        electrodes=table_region
+    )
     check_module(nwbfile, 'ecephys').add_data_interface(spike_event_series)
 
 
