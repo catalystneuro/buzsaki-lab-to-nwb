@@ -41,7 +41,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             for row in matin[name][0][0]:
                 data.append(dict(start_time=row[0], stop_time=row[1], label=state_label_names[name]))
         [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
-        check_module(nwbfile, 'behavior', "Contains behavioral data.").add_data_interface(table)
+        check_module(nwbfile, 'behavior', "Contains behavioral data.").add(table)
 
         # Position
         pos_filepath = session_path / f"{session_id}.position.behavior.mat"
@@ -86,7 +86,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             resolution=np.nan
         )
         lin_pos_obj.add_spatial_series(lin_spatial_series_object)
-        check_module(nwbfile, 'behavior', "Contains processed behavioral data.").add_data_interface(lin_pos_obj)
+        check_module(nwbfile, 'behavior', "Contains processed behavioral data.").add(lin_pos_obj)
 
         # Epochs
         epoch_names = list(pos_mat['position']['Epochs'][0][0].dtype.names)
