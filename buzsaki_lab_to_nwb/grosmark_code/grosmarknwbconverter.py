@@ -1,12 +1,11 @@
 """Authors: Cody Baker and Ben Dichter."""
 from pathlib import Path
 from datetime import datetime
+import warnings
 
 from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeLFPInterface
-from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
+from nwb_conversion_tools import NeuroscopeLFPInterface, CellExplorerSortingInterface
 
-from ..neuroscopewaveformdatainterface import NeuroscopeWaveformInterface
 from .grosmarkbehaviordatainterface import GrosmarkBehaviorInterface
 
 
@@ -16,8 +15,7 @@ class GrosmarkNWBConverter(NWBConverter):
     data_interface_classes = dict(
         CellExplorerSorting=CellExplorerSortingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
-        GrosmarkBehavior=GrosmarkBehaviorInterface,
-        NeuroscopeWaveform=NeuroscopeWaveformInterface
+        GrosmarkBehavior=GrosmarkBehaviorInterface
     )
 
     def get_metadata(self):
@@ -27,10 +25,10 @@ class GrosmarkNWBConverter(NWBConverter):
 
         metadata = super().get_metadata()
         metadata['NWBFile'].update(
-                session_start_time=session_start.astimezone(),
-                session_id=session_id,
-                institution="NYU",
-                lab="Buzsaki"
+            session_start_time=session_start.astimezone(),
+            session_id=session_id,
+            institution="NYU",
+            lab="Buzsaki"
         )
         metadata.update(
             Subject=dict(

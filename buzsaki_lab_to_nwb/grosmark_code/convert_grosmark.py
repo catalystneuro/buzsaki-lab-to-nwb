@@ -22,12 +22,14 @@ paper_descr = "This data set is composed of eight bilateral silicon-probe multi-
 "sessions were concatenated from the PRE, MAZE, and POST recording epochs. In addition to hippocampal "
 "electrophysiological recordings, neck EMG and head-mounted accelerometer signals were recorded, and the "
 "animal’s position during MAZE running epochs was tracked via head-mounted LEDs."
-paper_info = ["Grosmark, A.D., and Buzsáki, G. (2016). "
-              "Diversity in neural firing dynamics supports both rigid and learned hippocampal sequences. "
-              "Science 351, 1440–1443.",
-              "Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). "
-              "Uncovering representations of sleep-associated hippocampal ensemble spike activity. "
-              "Sci. Rep. 6, 32193."]
+paper_info = [
+    "Grosmark, A.D., and Buzsáki, G. (2016). "
+    "Diversity in neural firing dynamics supports both rigid and learned hippocampal sequences. "
+    "Science 351, 1440–1443.",
+    "Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). "
+    "Uncovering representations of sleep-associated hippocampal ensemble spike activity. "
+    "Sci. Rep. 6, 32193."
+]
 
 device_descr = "Silicon electrodes on Ampliplex probe; all probes were implanted parallel to the "
 "septo-temporal axis of the dorsal hippocampus. First eight shanks pertain to CA1 left hemisphere, "
@@ -60,17 +62,14 @@ for session_path in convert_sessions:
     source_data = dict(
         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)),
         NeuroscopeLFP=dict(file_path=str(eeg_file_path), gain=conversion_factor),
-        GrosmarkBehavior=dict(folder_path=folder_path),
-        NeuroscopeWaveform=dict(folder_path=folder_path)
+        GrosmarkBehavior=dict(folder_path=folder_path)
     )
     conversion_options = dict(
         CellExplorerSorting=dict(stub_test=stub_test),
-        NeuroscopeLFP=dict(stub_test=stub_test),
-        NeuroscopeWaveform=dict(stub_test=stub_test)
+        NeuroscopeLFP=dict(stub_test=stub_test)
     )
     grosmark_converter = GrosmarkNWBConverter(source_data)
     metadata = grosmark_converter.get_metadata()
-
     # Specific info
     metadata['NWBFile'].update(
         experimenter=experimenter,
@@ -102,3 +101,10 @@ for session_path in convert_sessions:
         conversion_options=conversion_options,
         overwrite=True
     )
+    # nwbfile = grosmark_converter.run_conversion(
+    #     nwbfile_path=str(nwbfile_path),
+    #     metadata=metadata,
+    #     conversion_options=conversion_options,
+    #     overwrite=True,
+    #     save_to_file=False
+    # )
