@@ -42,7 +42,7 @@ def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False
         if digit_stop:
             return int(out[:digit_stop])
         else:
-            print('invalid channel for ' + exp_sheet_path + ' ' + str(date) + ': ' + out)
+            print(f"invalid channel for {str(exp_sheet_path)} {str(date)}: {out}")
             return
 
     return out
