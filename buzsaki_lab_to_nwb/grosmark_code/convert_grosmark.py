@@ -41,7 +41,7 @@ bad_electrodes = dict(
     Achilles_10252013=[],
     Achilles_11012013=[],
     Cicero_09012014=[],
-    Cicero_091020114=[],
+    Cicero_09102014=[],
     Cicero_09172014=[]
 )
 
@@ -101,10 +101,3 @@ for session_path in convert_sessions:
         conversion_options=conversion_options,
         overwrite=True
     )
-    # nwbfile = grosmark_converter.run_conversion(
-    #     nwbfile_path=str(nwbfile_path),
-    #     metadata=metadata,
-    #     conversion_options=conversion_options,
-    #     overwrite=True,
-    #     save_to_file=False
-    # )
