@@ -1,2 +1,3 @@
 from .yuta_code.yutanwbconverter import YutaNWBConverter
 from .grosmark_code.grosmarknwbconverter import GrosmarkNWBConverter
+from .peyrache_code.peyrachenwbconverter import PeyracheNWBConverter
