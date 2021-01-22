@@ -47,7 +47,7 @@ overwrite = False
 for session_path in convert_sessions:
     folder_path = str(session_path)
     session_id = session_path.name
-    nwbfile_path = str((base_path / f"{session_id}_stub.nwb"))
+    nwbfile_path = base_path / f"{session_id}_stub.nwb"
 
     if nwbfile_path.is_file() and overwrite:
         print(f"Converting session {session_id}...")
@@ -91,7 +91,7 @@ for session_path in convert_sessions:
         metadata['Ecephys']['Device'][0].update(description=device_descr)
 
         peyrache_converter.run_conversion(
-            nwbfile_path=nwbfile_path,
+            nwbfile_path=str(nwbfile_path),
             metadata=metadata,
             conversion_options=conversion_options,
             overwrite=overwrite
