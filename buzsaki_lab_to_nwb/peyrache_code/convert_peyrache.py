@@ -42,54 +42,57 @@ device_descr = (
 
 stub_test = True
 conversion_factor = 0.3815  # Ampliplex
+overwrite = False
 
 for session_path in convert_sessions:
     folder_path = str(session_path)
     session_id = session_path.name
-    print(f"Converting session {session_id}...")
-
-    eeg_file_path = str((session_path / f"{session_id}.eeg"))
-    raw_data_folder_path = session_path / "raw"
-
-    source_data = dict(
-        NeuroscopeSorting=dict(folder_path=folder_path, write_waveforms=True),
-        NeuroscopeLFP=dict(file_path=eeg_file_path, gain=conversion_factor),
-        PeyracheMisc=dict(folder_path=folder_path)
-    )
-    conversion_options = dict(
-        NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True),
-        NeuroscopeLFP=dict(stub_test=stub_test)
-    )
-    if raw_data_folder_path.is_dir():
-        folder_path = str(raw_data_folder_path)
-        source_data.update(
-            NeuroscopeRecording=dict(folder_path=folder_path, gain=conversion_factor)
-        )
-        conversion_options.update(
-            NeuroscopeRecording=dict(stub_test=stub_test)
-        )
-    else:
-        conversion_options['NeuroscopeSorting'].update(write_ecephys_metadata=True)
-
-    peyrache_converter = PeyracheNWBConverter(source_data)
-    metadata = peyrache_converter.get_metadata()
-
-    # Specific info
-    metadata['NWBFile'].update(
-        experimenter=experimenter,
-        session_description=paper_descr,
-        related_publications=paper_info
-    )
-    metadata['Subject'].update(
-        genotype="Wild type",
-        weight="27-50g"
-    )
-    metadata['Ecephys']['Device'][0].update(description=device_descr)
-
     nwbfile_path = str((base_path / f"{session_id}_stub.nwb"))
-    peyrache_converter.run_conversion(
-        nwbfile_path=nwbfile_path,
-        metadata=metadata,
-        conversion_options=conversion_options,
-        overwrite=True
-    )
+
+    if nwbfile_path.is_file() and overwrite:
+        print(f"Converting session {session_id}...")
+
+        eeg_file_path = str((session_path / f"{session_id}.eeg"))
+        raw_data_folder_path = session_path / "raw"
+
+        source_data = dict(
+            NeuroscopeSorting=dict(folder_path=folder_path, write_waveforms=True),
+            NeuroscopeLFP=dict(file_path=eeg_file_path, gain=conversion_factor),
+            PeyracheMisc=dict(folder_path=folder_path)
+        )
+        conversion_options = dict(
+            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True),
+            NeuroscopeLFP=dict(stub_test=stub_test)
+        )
+        if raw_data_folder_path.is_dir():
+            folder_path = str(raw_data_folder_path)
+            source_data.update(
+                NeuroscopeRecording=dict(folder_path=folder_path, gain=conversion_factor)
+            )
+            conversion_options.update(
+                NeuroscopeRecording=dict(stub_test=stub_test)
+            )
+        else:
+            conversion_options['NeuroscopeSorting'].update(write_ecephys_metadata=True)
+
+        peyrache_converter = PeyracheNWBConverter(source_data)
+        metadata = peyrache_converter.get_metadata()
+
+        # Specific info
+        metadata['NWBFile'].update(
+            experimenter=experimenter,
+            session_description=paper_descr,
+            related_publications=paper_info
+        )
+        metadata['Subject'].update(
+            genotype="Wild type",
+            weight="27-50g"
+        )
+        metadata['Ecephys']['Device'][0].update(description=device_descr)
+
+        peyrache_converter.run_conversion(
+            nwbfile_path=nwbfile_path,
+            metadata=metadata,
+            conversion_options=conversion_options,
+            overwrite=overwrite
+        )
