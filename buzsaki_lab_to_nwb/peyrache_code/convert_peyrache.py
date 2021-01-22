@@ -49,7 +49,7 @@ for session_path in convert_sessions:
     session_id = session_path.name
     nwbfile_path = base_path / f"{session_id}_stub.nwb"
 
-    if nwbfile_path.is_file() and overwrite:
+    if not nwbfile_path.is_file() or overwrite:
         print(f"Converting session {session_id}...")
 
         eeg_file_path = str((session_path / f"{session_id}.eeg"))
