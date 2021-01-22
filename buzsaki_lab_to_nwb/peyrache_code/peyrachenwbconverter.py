@@ -49,6 +49,7 @@ class PeyracheNWBConverter(NWBConverter):
         sorting_metadata = sorting_metadata_interface.get_metadata()['UnitProperties']
         n_units = len(self.data_interface_objects['NeuroscopeSorting'].sorting_extractor.get_unit_ids())
         if len(sorting_metadata[0]) == n_units:
+            print(f"Updating UnitProperties for session {session_id}!")
             metadata['UnitProperties'] = sorting_metadata_interface['UnitProperties']
 
         if 'Ecephys' not in metadata:  # If NeuroscopeRecording was not in source_data
