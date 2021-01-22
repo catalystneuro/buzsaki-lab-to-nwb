@@ -2,6 +2,7 @@
 import numpy as np
 from pathlib import Path
 from scipy.io import loadmat
+from warnings import warn
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
@@ -76,20 +77,23 @@ class PeyracheMiscInterface(BaseDataInterface):
 
         # Processed position
         posfile_path = session_path / f"{session_id}.pos"
-        pos_data = np.loadtxt(posfile_path)
-        pos_obj = Position(name='SubjectPosition')
-        for name, idx_from, idx_to in zip(pos_names, pos_idx_from, pos_idx_to):
-            pos_obj.add_spatial_series(
-                peyrache_spatial_series(
-                    name=name,
-                    description=(
-                        "(x,y) coordinates tracking subject movement through the maze."
-                        "Values of -1 indicate that LED detection failed."
-                    ),
-                    data=pos_data[:, idx_from:idx_to]
+        try:
+            pos_data = np.loadtxt(posfile_path)
+            pos_obj = Position(name='SubjectPosition')
+            for name, idx_from, idx_to in zip(pos_names, pos_idx_from, pos_idx_to):
+                pos_obj.add_spatial_series(
+                    peyrache_spatial_series(
+                        name=name,
+                        description=(
+                            "(x,y) coordinates tracking subject movement through the maze."
+                            "Values of -1 indicate that LED detection failed."
+                        ),
+                        data=pos_data[:, idx_from:idx_to]
+                    )
                 )
-            )
-        check_module(nwbfile, 'behavior', 'contains processed behavioral data').add(pos_obj)
+            check_module(nwbfile, 'behavior', 'contains processed behavioral data').add(pos_obj)
+        except ValueError:  # data issue present in at least Mouse17-170201
+            warn(f"Skipping .pos file for session {session_id}!")
 
         # Epochs
         # epoch_names = list(pos_mat['position']['Epochs'][0][0].dtype.names)
