@@ -44,13 +44,14 @@ class PeyracheNWBConverter(NWBConverter):
 
         # Unit metadata retrieved from CellExplorer format
         # But still using Neuroscope for waveforms
-        spikes_matfile_path = str(session_path / f"{session_id}.spikes.cellinfo.mat")
-        sorting_metadata_interface = CellExplorerSortingInterface(spikes_matfile_path=spikes_matfile_path)
-        sorting_metadata = sorting_metadata_interface.get_metadata()['UnitProperties']
-        n_units = len(self.data_interface_objects['NeuroscopeSorting'].sorting_extractor.get_unit_ids())
-        if len(sorting_metadata[0]) == n_units:
-            print(f"Updating UnitProperties for session {session_id}!")
-            metadata['UnitProperties'] = sorting_metadata_interface['UnitProperties']
+        spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
+        if spikes_matfile_path.is_file():
+            sorting_metadata_interface = CellExplorerSortingInterface(spikes_matfile_path=str(spikes_matfile_path))
+            sorting_metadata = sorting_metadata_interface.get_metadata()['UnitProperties']
+            n_units = len(self.data_interface_objects['NeuroscopeSorting'].sorting_extractor.get_unit_ids())
+            if len(sorting_metadata[0]) == n_units:
+                print(f"Updating UnitProperties for session {session_id}!")
+                metadata['UnitProperties'] = sorting_metadata_interface['UnitProperties']
 
         if 'Ecephys' not in metadata:  # If NeuroscopeRecording was not in source_data
             xml_file_path = str(session_path / f"{session_id}.xml")
