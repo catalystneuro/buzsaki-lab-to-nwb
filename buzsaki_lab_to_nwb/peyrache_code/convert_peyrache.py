@@ -85,6 +85,7 @@ for session_path in convert_sessions:
             related_publications=paper_info
         )
         metadata['Subject'].update(
+            subject_id=session_path.parent.name,
             genotype="Wild type",
             weight="27-50g"
         )
