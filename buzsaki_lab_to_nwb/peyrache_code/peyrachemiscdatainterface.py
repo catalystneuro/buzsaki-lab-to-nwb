@@ -3,23 +3,25 @@ import numpy as np
 from pathlib import Path
 from scipy.io import loadmat
 from warnings import warn
+import pandas as pd
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 from pynwb.file import TimeIntervals
 from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
+from spikeextractors import NeuroscopeRecordingExtractor
 
 from ..neuroscope import get_events, check_module
 
 
-def peyrache_spatial_series(name: str, description: str, data: np.array, pos_sf: float = 1250 / 32):
+def peyrache_spatial_series(name: str, description: str, data: np.array, conversion: float, pos_sf: float = 1250 / 32):
     """Specific constructor for Peyrache style spatial series."""
     return SpatialSeries(
         name=name,
         description=description,
         data=H5DataIO(data, compression="gzip"),
-        conversion=1e-2,  # from cm to m
+        conversion=conversion,
         reference_frame="Unknown",
         starting_time=0.,
         rate=pos_sf,
@@ -71,7 +73,8 @@ class PeyracheMiscInterface(BaseDataInterface):
                 peyrache_spatial_series(
                     name=name,
                     description="Raw sensor data. Values of -1 indicate that LED detection failed.",
-                    data=whl_data[:, idx_from:idx_to]
+                    data=whl_data[:, idx_from:idx_to],
+                    conversion=np.nan  # whl file is in arbitrary grid units
                 )
             )
 
@@ -89,17 +92,35 @@ class PeyracheMiscInterface(BaseDataInterface):
                                 "(x,y) coordinates tracking subject movement through the maze."
                                 "Values of -1 indicate that LED detection failed."
                             ),
-                            data=pos_data[:, idx_from:idx_to]
+                            data=pos_data[:, idx_from:idx_to],
+                            conversion=1e-2  # from cm to m
                         )
                     )
                 check_module(nwbfile, 'behavior', 'contains processed behavioral data').add(pos_obj)
             except ValueError:  # data issue present in at least Mouse17-170201
                 warn(f"Skipping .pos file for session {session_id}!")
 
-        # Epochs
-        # epoch_names = list(pos_mat['position']['Epochs'][0][0].dtype.names)
-        # epoch_windows = [[float(start), float(stop)]
-        #                  for x in pos_mat['position']['Epochs'][0][0][0][0] for start, stop in x]
-        # nwbfile.add_epoch_column('label', 'name of epoch')
-        # for j, epoch_name in enumerate(epoch_names):
-        #     nwbfile.add_epoch(start_time=epoch_windows[j][0], stop_time=epoch_windows[j][1], label=epoch_name)
+        # Epochs - only available for session with raw data
+        epoch_file = session_path / "raw" / f"{session_id}-raw-info" / f"{session_id}-behaviors.txt"
+        if epoch_file.is_file():
+            epoch_data = pd.read_csv(epoch_file, header=1)[f'{session_id}:']
+            epoch_dat_inds = []
+            epoch_names = []
+            for epochs in epoch_data:
+                inds, name = epochs.split(": ")
+                epoch_dat_inds.append(inds.split(" "))
+                epoch_names.append(name)
+
+            epoch_windows = [0]
+            for epoch in epoch_dat_inds:
+                exp_end_times = []
+                for dat_ind in epoch:
+                    recording_file = session_path / "raw" / f"{session_id}{dat_ind}.dat"
+                    info_extractor = NeuroscopeRecordingExtractor(recording_file)
+                    dat_end_time = info_extractor.get_num_frames() / info_extractor.get_sampling_frequency()  # seconds
+                    exp_end_times.extend([dat_end_time])
+                epoch_windows.extend([epoch_windows[-1] + sum(exp_end_times)]*2)
+            epoch_windows = np.array(epoch_windows[:-1]).reshape(-1, 2)
+
+            for j, epoch_name in enumerate(epoch_names):
+                nwbfile.add_epoch(start_time=epoch_windows[j][0], stop_time=epoch_windows[j][1], tags=[epoch_name])
