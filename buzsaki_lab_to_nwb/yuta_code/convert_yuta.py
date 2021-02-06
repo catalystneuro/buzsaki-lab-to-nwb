@@ -64,9 +64,11 @@ def run_yuta_conv(session, nwbfile_path):
         yuta_converter = YutaNWBConverter(source_data)
         metadata = yuta_converter.get_metadata()
         # Yuta specific info
-        metadata['NWBFile'].update(experimenter=experimenter)
-        metadata['NWBFile'].update(session_description=paper_descr)
-        metadata['NWBFile'].update(related_publications=paper_info)
+        metadata['NWBFile'].update(
+            experimenter=experimenter,
+            session_description=paper_descr,
+            related_publications=paper_info
+        )
         metadata['Subject'].update(species="Mus musculus")
         metadata['Ecephys']['Device'][0].update(name='Implant', description=device_descr)
         for electrode_group_metadata in metadata['Ecephys']['ElectrodeGroup']:
