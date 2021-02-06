@@ -1,21 +1,20 @@
 """Authors: Cody Baker and Ben Dichter."""
-from buzsaki_lab_to_nwb import YutaNWBConverter
-
-# TODO: add pathlib
-import os
+from pathlib import Path
 import pandas as pd
 from joblib import Parallel, delayed
+
+from buzsaki_lab_to_nwb import YutaNWBConverter
 
 n_jobs = 1  # number of parallel streams to run
 
 # List of folder paths to iterate over
-base_path = "D:/BuzsakiData/SenzaiY"
-# base_path = "/mnt/scrap/cbaker239/SenzaiY"
+base_path = Path("D:/BuzsakiData/SenzaiY")
+# base_path = Path("/mnt/scrap/cbaker239/SenzaiY")
 
 # Manual list of selected sessions that cause problems with the general functionality
 exlude_sessions = ["YutaMouse33-150218"]
 
-paper_sessions = pd.read_excel(os.path.join(base_path, "DGProject/DG_all_6_SessionShankList.xls"), header=None)[0]
+paper_sessions = pd.read_excel(base_path / "DGProject/DG_all_6_SessionShankList.xls", header=None)[0]
 sessions = dict()
 for paper_session in paper_sessions:
     mouse_id = paper_session[9:11]  # could be generalized better
@@ -25,22 +24,25 @@ for paper_session in paper_sessions:
         sessions.update({mouse_id: [paper_session[11:]]})
 
 experimenter = "Yuta Senzai"
-paper_descr = "mouse in open exploration and theta maze"
+paper_descr = "Mouse in open exploration and theta maze."
 paper_info = "DOI:10.1016/j.neuron.2016.12.011"
+device_descr = "Silicon electrodes on Intan probe."
 
 session_strings = []
 nwbfile_paths = []
 for mouse_num, session_ids in sessions.items():
     for session_id in session_ids:
-        # TODO: replace with pathlib
-        mouse_str = "YutaMouse" + str(mouse_num)
-        session_strings.append(os.path.join(base_path, mouse_str+str(session_id)))
-        nwbfile_paths.append(session_strings[-1] + "_stub.nwb")
+        mouse_str = f"YutaMouse{mouse_num}"
+        session_strings.append(base_path / f"YutaMouse{mouse_num}{session_id}")
+        nwbfile_paths.append(base_path / f"YutaMouse{mouse_num}{session_id}_stub.nwb")
+
+stub_test = True
+conversion_factor = 0.195  # Intan
 
 
 def run_yuta_conv(session, nwbfile_path):
     """Conversion function to be run in parallel."""
-    if os.path.exists(session):
+    if session.is_dir():
         print(f"Processsing {session}...")
         session_name = session.stem
         datfile_path = session / f"{session_name}.dat"
@@ -82,6 +84,8 @@ def run_yuta_conv(session, nwbfile_path):
         print(f"The folder ({session}) does not exist!")
 
 
-Parallel(n_jobs=n_jobs)(delayed(run_yuta_conv)(session, nwbfile_path)
-                        for session, nwbfile_path in zip(session_strings, nwbfile_paths)
-                        if os.path.split(session)[1] not in exlude_sessions)
+Parallel(n_jobs=n_jobs)(
+    delayed(run_yuta_conv)(session, nwbfile_path)
+    for session, nwbfile_path in zip(session_strings, nwbfile_paths)
+    if session.stem not in exlude_sessions
+)
