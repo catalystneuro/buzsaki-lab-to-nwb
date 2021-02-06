@@ -23,7 +23,7 @@ device_descr = (
     "layer of the dorsal hippocampus."
 )
 
-subject_weight = dict(Mouse23=1)
+subject_weight = dict(Mouse21=250)
 
 stub_test = True
 conversion_factor = 0.195  # Intan
@@ -36,25 +36,20 @@ for session_path in convert_sessions:
 
     eeg_file_path = str((session_path / f"{session_id}.eeg"))
     spikes_matfile_path = str((session_path / f"{session_id}.spikes.cellinfo.mat"))
-    raw_data_folder_path = session_path / "raw"
+    raw_data_file_path = session_path / f"{session_id}.dat"
 
     source_data = dict(
         CellExplorerSorting=dict(spikes_matfile_path=spikes_matfile_path),
         NeuroscopeLFP=dict(file_path=eeg_file_path, gain=conversion_factor),
-        # PeyracheBehavior=dict(folder_path=folder_path)
+        PetersenMisc=dict(folder_path=folder_path)
     )
     conversion_options = dict(
         CellExplorerSorting=dict(stub_test=stub_test),
         NeuroscopeLFP=dict(stub_test=stub_test)
     )
-    if raw_data_folder_path.is_dir():
-        folder_path = str(raw_data_folder_path)
-        source_data.update(
-            NeuroscopeRecording=dict(folder_path=folder_path, gain=conversion_factor)
-        )
-        conversion_options.update(
-            NeuroscopeRecording=dict(stub_test=stub_test)
-        )
+    if raw_data_file_path.is_file():
+        source_data.update(NeuroscopeRecording=dict(file_path=raw_data_file_path, gain=conversion_factor))
+        conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
     else:
         conversion_options['CellExplorerSorting'].update(write_ecephys_metadata=True)
 
@@ -68,7 +63,7 @@ for session_path in convert_sessions:
         related_publications=paper_info
     )
     metadata['Subject'].update(
-        weight=f"{subject_weight[subject_name]} grams"
+        weight=f"{subject_weight[subject_name]}g"
     )
     metadata['Ecephys']['Device'][0].update(description=device_descr)
 

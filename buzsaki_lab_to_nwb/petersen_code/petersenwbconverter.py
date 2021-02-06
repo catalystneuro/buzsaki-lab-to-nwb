@@ -1,10 +1,10 @@
 """Authors: Cody Baker and Ben Dichter."""
-from dateutil.parser import parse as dateparse
+from datetime import datetime
 from pathlib import Path
 
 from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeMultiRecordingTimeInterface, \
-    NeuroscopeLFPInterface, NeuroscopeRecordingInterface
+from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeLFPInterface, \
+    NeuroscopeRecordingInterface
 from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
 
 from .petersenmiscdatainterface import PetersenMiscInterface
@@ -14,7 +14,7 @@ class PetersenNWBConverter(NWBConverter):
     """Primary conversion class for the PetersenP dataset."""
 
     data_interface_classes = dict(
-        NeuroscopeRecording=NeuroscopeMultiRecordingTimeInterface,
+        NeuroscopeRecording=NeuroscopeRecordingInterface,
         CellExplorerSorting=CellExplorerSortingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         PetersenMisc=PetersenMiscInterface
@@ -25,7 +25,7 @@ class PetersenNWBConverter(NWBConverter):
         session_id = lfp_file_path.stem
         if '-' in session_id:
             subject_id, date_text = session_id.split('-')
-        session_start = dateparse(date_text[-4:] + date_text[:-4])
+        session_start = datetime.strptime(session_id[-13:], "%y%m%d_%H%M%S")
 
         metadata = super().get_metadata()
         metadata['NWBFile'].update(
