@@ -86,8 +86,6 @@ for session_path in convert_sessions:
         )
         metadata['Subject'].update(
             subject_id=session_path.parent.name,
-            genotype="Wild type",
-            weight="27-50g"
         )
         metadata['Ecephys']['Device'][0].update(description=device_descr)
 

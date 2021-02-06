@@ -38,7 +38,9 @@ class PeyracheNWBConverter(NWBConverter):
         )
         metadata.update(
             Subject=dict(
-                species="Mus musculus"
+                species="Mus musculus",
+                genotype="Wild type",
+                weight="27-50g"
             )
         )
 
