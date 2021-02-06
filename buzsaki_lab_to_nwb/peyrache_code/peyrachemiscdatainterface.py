@@ -58,7 +58,7 @@ class PeyracheMiscInterface(BaseDataInterface):
                 for row in matin[name][0][0]:
                     data.append(dict(start_time=row[0], stop_time=row[1], label=state_label_names[name]))
             [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
-            check_module(nwbfile, 'behavior', 'contains behavioral data').add(table)
+            check_module(nwbfile, 'behavior', "Contains behavioral data.").add(table)
 
         # Position
         pos_names = ['RedLED', 'BlueLED']
@@ -96,11 +96,11 @@ class PeyracheMiscInterface(BaseDataInterface):
                             conversion=1e-2  # from cm to m
                         )
                     )
-                check_module(nwbfile, 'behavior', 'contains processed behavioral data').add(pos_obj)
+                check_module(nwbfile, 'behavior', "Contains behavioral data.").add(pos_obj)
             except ValueError:  # data issue present in at least Mouse17-170201
                 warn(f"Skipping .pos file for session {session_id}!")
 
-        # Epochs - only available for session with raw data
+        # Epochs - only available for sessions with raw data
         epoch_file = session_path / "raw" / f"{session_id}-raw-info" / f"{session_id}-behaviors.txt"
         if epoch_file.is_file():
             epoch_data = pd.read_csv(epoch_file, header=1)[f'{session_id}:']
