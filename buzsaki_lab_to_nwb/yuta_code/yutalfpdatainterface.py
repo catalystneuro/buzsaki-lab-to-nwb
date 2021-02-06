@@ -146,5 +146,5 @@ class YutaLFPInterface(NeuroscopeLFPInterface):
             check_module(
                 nwbfile,
                 'ecephys',
-                'contains processed extracellular electrophysiology data'
+                "Contains processed extracellular electrophysiology data."
             ).add(decomp_series)

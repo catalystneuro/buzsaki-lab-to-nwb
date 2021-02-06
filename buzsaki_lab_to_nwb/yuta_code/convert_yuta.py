@@ -50,7 +50,7 @@ def run_yuta_conv(session, nwbfile_path):
 
         source_data = dict(
             YutaLFP=dict(file_path=str(eegfile_path), gain=conversion_factor),
-            NeuroscopeSorting=dict(folder_path=str(session), keep_mua_units=False, write_waveforms=True),
+            NeuroscopeSorting=dict(folder_path=str(session), keep_mua_units=False, load_waveforms=True),
             YutaPosition=dict(folder_path=str(session)),
             YutaBehavior=dict(folder_path=str(session))
         )
@@ -64,11 +64,11 @@ def run_yuta_conv(session, nwbfile_path):
         yuta_converter = YutaNWBConverter(source_data)
         metadata = yuta_converter.get_metadata()
         # Yuta specific info
-        metadata['NWBFile'].update({'experimenter': experimenter})
-        metadata['NWBFile'].update({'session_description': paper_descr})
-        metadata['NWBFile'].update({'related_publications': paper_info})
-        metadata['Subject'].update({'species': "Mus musculus"})
-        metadata['Ecephys']['Device'][0].update(dict(name='Implant', description=device_descr))
+        metadata['NWBFile'].update(experimenter=experimenter)
+        metadata['NWBFile'].update(session_description=paper_descr)
+        metadata['NWBFile'].update(related_publications=paper_info)
+        metadata['Subject'].update(species="Mus musculus")
+        metadata['Ecephys']['Device'][0].update(name='Implant', description=device_descr)
         for electrode_group_metadata in metadata['Ecephys']['ElectrodeGroup']:
             electrode_group_metadata.update(location="unknown")
             electrode_group_metadata.update(device_name='Implant')
