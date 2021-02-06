@@ -11,7 +11,7 @@ from .peyrachemiscdatainterface import PeyracheMiscInterface
 
 
 class PeyracheNWBConverter(NWBConverter):
-    """Primary conversion class for the GrosmarkAD dataset."""
+    """Primary conversion class for the PeyracheA dataset."""
 
     data_interface_classes = dict(
         NeuroscopeRecording=NeuroscopeMultiRecordingTimeInterface,
@@ -31,10 +31,10 @@ class PeyracheNWBConverter(NWBConverter):
 
         metadata = super().get_metadata()
         metadata['NWBFile'].update(
-                session_start_time=session_start.astimezone(),
-                session_id=session_id,
-                institution="NYU",
-                lab="Buzsaki"
+            session_start_time=session_start.astimezone(),
+            session_id=session_id,
+            institution="NYU",
+            lab="Buzsaki"
         )
         metadata.update(
             Subject=dict(

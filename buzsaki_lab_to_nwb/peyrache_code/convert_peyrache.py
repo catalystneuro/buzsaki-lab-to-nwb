@@ -56,12 +56,12 @@ for session_path in convert_sessions:
         raw_data_folder_path = session_path / "raw"
 
         source_data = dict(
-            NeuroscopeSorting=dict(folder_path=folder_path),#, write_waveforms=True),
+            NeuroscopeSorting=dict(folder_path=folder_path, load_waveforms=True),
             NeuroscopeLFP=dict(file_path=eeg_file_path, gain=conversion_factor),
             PeyracheMisc=dict(folder_path=folder_path)
         )
         conversion_options = dict(
-            NeuroscopeSorting=dict(stub_test=stub_test),#, write_waveforms=True),
+            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True),
             NeuroscopeLFP=dict(stub_test=stub_test)
         )
         if raw_data_folder_path.is_dir():
