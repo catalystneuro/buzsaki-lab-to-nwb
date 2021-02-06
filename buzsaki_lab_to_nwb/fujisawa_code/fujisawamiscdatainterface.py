@@ -14,8 +14,8 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from ..neuroscope import get_events, check_module
 
 
-class PetersenMiscInterface(BaseDataInterface):
-    """Primary data interface for miscellaneous aspects of the PetersenP dataset."""
+class FujisawaMiscInterface(BaseDataInterface):
+    """Primary data interface for miscellaneous aspects of the FujisawaS dataset."""
 
     @classmethod
     def get_source_schema(cls):

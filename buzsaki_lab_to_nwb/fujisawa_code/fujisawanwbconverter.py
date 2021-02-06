@@ -7,11 +7,11 @@ from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import Neurosco
     NeuroscopeLFPInterface, NeuroscopeRecordingInterface
 from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
 
-from .petersenmiscdatainterface import PetersenMiscInterface
+from .fujisawamiscdatainterface import FujisawaMiscInterface
 
 
-class PetersenNWBConverter(NWBConverter):
-    """Primary conversion class for the PetersenP dataset."""
+class FujisawaNWBConverter(NWBConverter):
+    """Primary conversion class for the FujisawaS dataset."""
 
     data_interface_classes = dict(
         NeuroscopeRecording=NeuroscopeMultiRecordingTimeInterface,
