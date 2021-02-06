@@ -7,21 +7,20 @@ from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import Neurosco
     NeuroscopeLFPInterface, NeuroscopeRecordingInterface
 from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
 
-# from .peyrachebehaviordatainterface import PeyracheBehaviorInterface
+from .girardeaumiscdatainterface import GirardeauMiscInterface
 
 
-class PeyracheNWBConverter(NWBConverter):
-    """Primary conversion class for the GrosmarkAD dataset."""
+class GirardeauNWBConverter(NWBConverter):
+    """Primary conversion class for the GirardeauG dataset."""
 
     data_interface_classes = dict(
         NeuroscopeRecording=NeuroscopeMultiRecordingTimeInterface,
         CellExplorerSorting=CellExplorerSortingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
-        # PeyracheBehavior=PeyracheBehaviorInterface
+        GirardeauMisc=GirardeauMiscInterface
     )
 
     def get_metadata(self):
-        """Auto-fill all relevant metadata used in run_conversion."""
         lfp_file_path = Path(self.data_interface_objects['NeuroscopeLFP'].source_data['file_path'])
         session_id = lfp_file_path.stem
         if '-' in session_id:
@@ -30,14 +29,17 @@ class PeyracheNWBConverter(NWBConverter):
 
         metadata = super().get_metadata()
         metadata['NWBFile'].update(
-                session_start_time=session_start.astimezone(),
-                session_id=session_id,
-                institution="NYU",
-                lab="Buzsaki"
+            session_start_time=session_start.astimezone(),
+            session_id=session_id,
+            institution="NYU",
+            lab="Buzsaki"
         )
         metadata.update(
             Subject=dict(
-                species="Mus musculus"
+                species="Rattus norvegicus domestica - Long Evans",
+                sex="Male",
+                age="3-6 months",
+                genotype="Wild type"
             )
         )
 

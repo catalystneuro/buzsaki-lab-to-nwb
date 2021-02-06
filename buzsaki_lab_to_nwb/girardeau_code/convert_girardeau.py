@@ -1,9 +1,9 @@
 """Authors: Cody Baker and Ben Dichter."""
 from pathlib import Path
 
-from buzsaki_lab_to_nwb import PetersenNWBConverter
+from buzsaki_lab_to_nwb import GirardeauNWBConverter
 
-base_path = Path("D:/BuzsakiData/PetersenP")
+base_path = Path("D:/BuzsakiData/GirardeauG")
 convert_sessions = [session for mouse in base_path.iterdir() if mouse.is_dir() for session in mouse.iterdir()]
 
 experimenter = "Peter Petersen"
@@ -58,7 +58,7 @@ for session_path in convert_sessions:
     else:
         conversion_options['CellExplorerSorting'].update(write_ecephys_metadata=True)
 
-    converter = PetersenNWBConverter(source_data)
+    converter = GirardeauNWBConverter(source_data)
     metadata = converter.get_metadata()
 
     # Specific info
