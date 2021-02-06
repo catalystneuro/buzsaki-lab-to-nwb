@@ -42,42 +42,42 @@ def run_yuta_conv(session, nwbfile_path):
     """Conversion function to be run in parallel."""
     if os.path.exists(session):
         print(f"Processsing {session}...")
-        if not os.path.isfile(nwbfile_path):
-            session_name = os.path.split(session)[1]
+        session_name = session.stem
+        datfile_path = session / f"{session_name}.dat"
+        eegfile_path = session / f"{session_name}.eeg"
 
-            # construct input_args dict according to input schema
-            input_args = dict(
-                NeuroscopeRecording=dict(file_path=os.path.join(session, session_name) + ".dat"),
-                NeuroscopeSorting=dict(
-                    folder_path=session,
-                    keep_mua_units=False
-                ),
-                YutaPosition=dict(folder_path=session),
-                YutaLFP=dict(folder_path=session),
-                YutaBehavior=dict(folder_path=session)
-            )
-
-            yuta_converter = YutaNWBConverter(**input_args)
-
-            # construct metadata_dict according to expt_json_schema
-            metadata = yuta_converter.get_metadata()
-
-            # Yuta specific info
-            metadata['NWBFile'].update({'experimenter': experimenter})
-            metadata['NWBFile'].update({'session_description': paper_descr})
-            metadata['NWBFile'].update({'related_publications': paper_info})
-
-            metadata['Subject'].update({'species': "Mus musculus"})
-
-            metadata[yuta_converter.get_recording_type()]['Ecephys']['Device'][0].update({'name': 'implant'})
-
-            for electrode_group_metadata in \
-                    metadata[yuta_converter.get_recording_type()]['Ecephys']['ElectrodeGroup']:
-                electrode_group_metadata.update({'location': 'unknown'})
-                electrode_group_metadata.update({'device_name': 'implant'})
-
-            yuta_converter.run_conversion(nwbfile_path=nwbfile_path, metadata_dict=metadata,
-                                          stub_test=True, save_to_file=True)
+        source_data = dict(
+            YutaLFP=dict(file_path=str(eegfile_path), gain=conversion_factor),
+            NeuroscopeSorting=dict(folder_path=str(session), keep_mua_units=False, load_waveforms=True),
+            YutaPosition=dict(folder_path=str(session)),
+            YutaBehavior=dict(folder_path=str(session))
+        )
+        conversion_options = dict(
+            YutaLFP=dict(stub_test=stub_test),
+            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True)
+        )
+        if datfile_path.is_file():
+            source_data.update(NeuroscopeRecording=dict(file_path=str(datfile_path), gain=conversion_factor))
+            conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
+        yuta_converter = YutaNWBConverter(source_data)
+        metadata = yuta_converter.get_metadata()
+        # Yuta specific info
+        metadata['NWBFile'].update(
+            experimenter=experimenter,
+            session_description=paper_descr,
+            related_publications=paper_info
+        )
+        metadata['Subject'].update(species="Mus musculus")
+        metadata['Ecephys']['Device'][0].update(name='Implant', description=device_descr)
+        for electrode_group_metadata in metadata['Ecephys']['ElectrodeGroup']:
+            electrode_group_metadata.update(location="unknown")
+            electrode_group_metadata.update(device_name='Implant')
+        yuta_converter.run_conversion(
+            nwbfile_path=nwbfile_path,
+            metadata=metadata,
+            conversion_options=conversion_options,
+            overwrite=True
+        )
     else:
         print(f"The folder ({session}) does not exist!")
 

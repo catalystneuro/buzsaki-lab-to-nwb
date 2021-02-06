@@ -87,9 +87,8 @@ class YutaLFPInterface(BaseDataInterface):
             # TODO: the band limits should be extracted from parse_passband in band_analysis?
             decomp_series.add_band(band_name='theta', band_limits=(4, 10))
             decomp_series.add_band(band_name='gamma', band_limits=(30, 80))
-
-            check_module(nwbfile, 'ecephys',
-                         'contains processed extracellular electrophysiology data').add_data_interface(decomp_series)
-
-        write_spike_waveforms(nwbfile, session_path, spikes_nsamples=spikes_nsamples, shank_channels=shank_channels,
-                              stub_test=stub_test)
+            check_module(
+                nwbfile,
+                'ecephys',
+                "Contains processed extracellular electrophysiology data."
+            ).add(decomp_series)
