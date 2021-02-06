@@ -1,5 +1,6 @@
 """Authors: Cody Baker and Ben Dichter."""
 from pathlib import Path
+import os
 
 from buzsaki_lab_to_nwb import GrosmarkNWBConverter
 
@@ -39,6 +40,7 @@ device_descr = (
     "septo-temporal axis of the dorsal hippocampus. First eight shanks pertain to CA1 left hemisphere, "
     "second eight pertain to CA1 right hemisphere."
 )
+
 bad_electrodes = dict(
     Buddy_06272013=[24, 27, 58],
     Gatsby_08022013=[],
@@ -50,31 +52,23 @@ bad_electrodes = dict(
     Cicero_09172014=[]
 )
 
-stub_test = True
-conversion_factor = 0.3815  # Ampliplex
-
 for session_path in convert_sessions:
-    folder_path = str(session_path)
+    folder_path = session_path.absolute()
     session_id = session_path.name
-
-    eeg_file_path = session_path / f"{session_id}.eeg"
-    spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
-
-    nwbfile_path = base_path / f"{session_id}_stub.nwb"
-
     print(f"Converting session {session_id}...")
 
-    source_data = dict(
-        CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)),
-        NeuroscopeLFP=dict(file_path=str(eeg_file_path), gain=conversion_factor),
+    input_args = dict(
+        NeuroscopeSorting=dict(
+            folder_path=folder_path,
+            keep_mua_units=False
+        ),
+        GrosmarkLFP=dict(folder_path=folder_path),
         GrosmarkBehavior=dict(folder_path=folder_path)
     )
-    conversion_options = dict(
-        CellExplorerSorting=dict(stub_test=stub_test),
-        NeuroscopeLFP=dict(stub_test=stub_test)
-    )
-    grosmark_converter = GrosmarkNWBConverter(source_data)
+
+    grosmark_converter = GrosmarkNWBConverter(**input_args)
     metadata = grosmark_converter.get_metadata()
+
     # Specific info
     metadata['NWBFile'].update(
         experimenter=experimenter,
@@ -85,12 +79,10 @@ for session_path in convert_sessions:
     metadata['Ecephys']['Electrodes'].append(
         dict(
             name='bad_electrode',
-            description="Indicator for if the electrode was removed from "
-            "analysis due to low-amplitude or instabilities.",
-            data=[
-                x in bad_electrodes[session_id]
-                for x in grosmark_converter.data_interface_objects['NeuroscopeLFP'].subset_channels
-            ]
+            description="Indicator for if the electrode was removed from analysis due to "
+            "low-amplitude or instabilities.",
+            data=[x in bad_electrodes[session_id]
+                  for x in range(len(metadata[grosmark_converter.get_recording_type()]['Ecephys']['subset_channels']))]
         )
     )
     grosmark_converter.run_conversion(
