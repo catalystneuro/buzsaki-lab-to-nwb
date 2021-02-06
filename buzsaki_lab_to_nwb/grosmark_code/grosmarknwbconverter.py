@@ -32,7 +32,10 @@ class GrosmarkNWBConverter(NWBConverter):
         )
         metadata.update(
             Subject=dict(
-                species="Mus musculus"
+                species="Rattus norvegicus domestica - Long Evans",
+                genotype="Wild type",
+                sex="male",
+                weight="250-350g"
             )
         )
 

@@ -18,11 +18,9 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
 
     @classmethod
     def get_source_schema(cls):
-        """Return subset of json schema for informing the NWBConverter of expepcted input arguments."""
         return dict(properties=dict(folder_path=dict(type="string")))
 
     def run_conversion(self, nwbfile: NWBFile, metadata: dict):
-        """Convert the behavioral portion of a particular session of the GrosmarkAD dataset."""
         session_path = Path(self.source_data['folder_path'])
         session_id = session_path.stem
 
