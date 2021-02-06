@@ -14,6 +14,25 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from ..neuroscope import get_events, check_module
 
 
+# TODO
+# The entire experiment appears to be its own epoch, so add that but with end time containing either trial end time or
+#    position/recording end times; maze information in session.epochs.mazeType
+# Add trials from {session_id}.trials.behavior.mat (larger than simple trials.mat)
+#    start, end, tag of left/right from 'stat' (is this what the mouse DID or was SUPPOSED to do?) and custom column for error trials and trial avg temperature
+#    Careful: the values of 'start' and 'end' for trials are in units of the 'Take' csv file FRAMES not timestamps
+#        there is actually a missing 0.6 seconds from the final frame of the Take file and the recording/pos timestamps
+#        as well as a 1-3 frame discrepency between the end of the pos timestamps and the recording traces (ignoring)
+# Add temperature time series
+# Add position time series (x,y,z)
+# Add position linearized
+# Add accelerattion time series
+# Add speed time series
+# Check if data is different (processed/clipped) from the 'Take' csv file which has rotation information as well;
+#    ditto for Optitrack.mat file
+# Add bad and theta channel classification metadata as columns, from the session.channelTags
+# Figure out what left/right/all series are in the trials file
+
+
 class PetersenMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the PetersenP dataset."""
 
