@@ -1,34 +1,25 @@
 """Authors: Cody Baker and Ben Dichter."""
-import os
 import numpy as np
 from pathlib import Path
-from scipy.io import loadmat
-import warnings
+from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matlab files
+import pandas as pd
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
-from pynwb import NWBFile
-from pynwb.file import TimeIntervals
+from pynwb import NWBFile, TimeSeries
 from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 
-from ..neuroscope import get_events, check_module
+from ..neuroscope import check_module
 
 
 # TODO
-# The entire experiment appears to be its own epoch, so add that but with end time containing either trial end time or
-#    position/recording end times; maze information in session.epochs.mazeType
-# Add trials from {session_id}.trials.behavior.mat (larger than simple trials.mat)
-#    start, end, tag of left/right from 'stat' (is this what the mouse DID or was SUPPOSED to do?) and custom column for error trials and trial avg temperature
-#    Careful: the values of 'start' and 'end' for trials are in units of the 'Take' csv file FRAMES not timestamps
-#        there is actually a missing 0.6 seconds from the final frame of the Take file and the recording/pos timestamps
-#        as well as a 1-3 frame discrepency between the end of the pos timestamps and the recording traces (ignoring)
-# Add temperature time series
-# Add position time series (x,y,z)
-# Add position linearized
-# Add accelerattion time series
-# Add speed time series
-# Check if data is different (processed/clipped) from the 'Take' csv file which has rotation information as well;
-#    ditto for Optitrack.mat file
+
+# In trials, is the 'stat' key what the mouse DID or was SUPPOSED to do? defaulting to SUPPOSED to do...
+
+# The 'Take' csv (x,y,z) values appear to be different from the extracted subject position. Thus the 'Take' file may
+# be closer to acquisition data, and might be added as such...
+# The 'Take' csv values are equal to the Optitrack.mat file which might be easier to read from?
+
 # Add bad and theta channel classification metadata as columns, from the session.channelTags
 # Figure out what left/right/all series are in the trials file
 
@@ -46,82 +37,132 @@ class PetersenMiscInterface(BaseDataInterface):
         metadata_dict: dict,
         stub_test: bool = False,
      ):
-        session_path = Path(self.input_args['folder_path'])
+        session_path = Path(self.source_data['folder_path'])
         session_id = session_path.name
 
-        # Stimuli
-        [nwbfile.add_stimulus(x) for x in get_events(session_path)]
+        # Trials
+        take_file_path = [x for x in session_path.iterdir() if "Take" in x.name][0]
+        take_file = pd.read_csv(take_file_path, header=5)
+        take_frame_to_time = {x: y for x, y in zip(take_file['Frame'], take_file['Time (Seconds)'])}
 
-        # States
-        sleep_state_fpath = session_path / f"{session_id}.SleepState.states.mat"
-        # label renaming
-        state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
-        if os.path.isfile(sleep_state_fpath):
-            matin = loadmat(sleep_state_fpath)['SleepState']['ints'][0][0]
+        trial_info = loadmat(str(session_path / f"{session_id}.trials.behavior.mat"))['trials']
+        trial_start_frames = trial_info['start'][0][0]
+        n_trials = len(trial_start_frames)
+        trial_end_frames = trial_info['end'][0][0]
+        trial_stat = trial_info['stat'][0][0]
+        trial_stat_labels = [x[0][0] for x in trial_info['labels'][0][0]]
+        trial_temperature = trial_info['temperature'][0][0]
+        trial_error = trial_info['error'][0][0]
+        error_trials = np.array([False]*n_trials)
+        error_trials[np.array(trial_error).astype(int)] = True
 
-            table = TimeIntervals(name='states', description="Sleep states of animal.")
-            table.add_column(name='label', description="Sleep state.")
+        trial_starts = []
+        trial_ends = []
+        trial_condition = []
+        for k in range(n_trials):
+            trial_starts.append(take_frame_to_time[trial_start_frames[k]])
+            trial_ends.append(take_frame_to_time[trial_end_frames[k]])
+            nwbfile.add_trial(start_time=trial_starts[k], stop_time=trial_ends[k])
+            trial_condition.append(trial_stat_labels[int(trial_stat[k])-1])
 
-            data = []
-            for name in matin.dtype.names:
-                for row in matin[name][0][0]:
-                    data.append(dict(start_time=row[0], stop_time=row[1], label=state_label_names[name]))
-            [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
-            check_module(nwbfile, 'behavior', "contains behavioral data").add_data_interface(table)
+        nwbfile.add_trial_column(
+            name='condition',
+            description="Whether the maze condition was left or right.",
+            data=trial_condition
+        )
+        nwbfile.add_trial_column(
+            name='error',
+            description="Whether the subject made a mistake.",
+            data=error_trials
+        )
+        nwbfile.add_trial_column(
+            name='temperature',
+            description="Average brain temperature for the trial.",
+            data=trial_temperature
+        )
+
+        # Epoch
+        session_info = loadmat(str(session_path / "session.mat"))['session']
+        nwbfile.add_epoch(
+            start_time=trial_starts[0],
+            stop_time=trial_ends[-1],
+            tags=[session_info['epochs'][0][0]['mazeType'][0][0][0][0]]
+        )
 
         # Position
-        pos_filepath = Path(session_path) / f"{session_id}.position.behavior.mat"
-        pos_mat = loadmat(str(pos_filepath.absolute()))
-        starting_time = float(pos_mat['position']['timestamps'][0][0][0])  # confirmed to be a regularly sampled series
-        rate = float(pos_mat['position']['timestamps'][0][0][1]) - starting_time
-        unit = pos_mat['position']['units'][0][0][0]
-        if unit == 'm':
-            conversion = 1.0
+        animal_file_path = session_path / "animal.mat"
+        animal_mat = loadmat(str(animal_file_path))['animal']
+        animal_time = animal_mat['time'][0][0][0]
+        animal_time_diff = np.diff(animal_time)
+        animal_time_kwargs = dict()
+        if all(animal_time_diff == animal_time_diff[0]):
+            animal_time_kwargs.update(rate=animal_time_diff[0], starting_time=animal_time[0])
         else:
-            warnings.warn(f"Spatial unit ({unit}) not listed in meters; setting conversion to nan.")
-            conversion = np.nan
-        pos_xy = []
-        for dim in ['x', 'y']:
-            pos_xy.append(pos_mat['position']['position'][0][0][dim][0][0])
-        pos_data = [
-            [x[0], y[0]] for x, y in zip(pos_xy[0], pos_xy[1])
-        ]
-        linearized_data = [[lin[0]] for lin in pos_mat['position']['position'][0][0]['lin'][0][0]]
+            animal_time_kwargs.update(timestamps=H5DataIO(animal_time, compression="gzip"))
 
-        label = pos_mat['position']['behaviorinfo'][0][0]['MazeType'][0][0][0].replace(" ", "")
-        pos_obj = Position(name=f"{label}Position")
-        spatial_series_object = SpatialSeries(
-            name=f"{label}SpatialSeries",
-            description="(x,y) coordinates tracking subject movement through the maze.",
-            data=H5DataIO(pos_data, compression='gzip'),
-            reference_frame='unknown',
-            conversion=conversion,
-            starting_time=starting_time,
-            rate=rate,
-            resolution=np.nan
+        # Processed (x,y,z) position
+        pos_obj = Position(name="SubjectPosition")
+        pos_obj.add_spatial_series(
+            SpatialSeries(
+                name='SpatialSeries',
+                description="(x,y,z) coordinates tracking subject movement through the maze.",
+                reference_frame="Unknown",
+                # conversion=conversion,  # TODO: confirm this is in cm
+                resolution=np.nan,
+                data=H5DataIO(animal_mat['pos'][0][0], compression="gzip"),
+                **animal_time_kwargs
+            )
         )
-        pos_obj.add_spatial_series(spatial_series_object)
-        check_module(nwbfile, 'behavior', 'contains processed behavioral data').add_data_interface(pos_obj)
 
-        lin_pos_obj = Position(name=f"{label}LinearizedPosition")
-        lin_spatial_series_object = SpatialSeries(
-            name=f"{label}LinearizedTimeSeries",
-            description="Linearized position, defined as starting at the edge of reward area, "
-            "and increasing clockwise, terminating at the opposing edge of the reward area.",
-            data=H5DataIO(linearized_data, compression='gzip'),
-            reference_frame='unknown',
-            conversion=conversion,
-            starting_time=starting_time,
-            rate=rate,
-            resolution=np.nan
+        # Linearized position
+        lin_pos_obj = Position(name="LinearizedPosition")
+        lin_pos_obj.add_spatial_series(
+            SpatialSeries(
+                name='LinearizedSpatialSeries',
+                description="Linearization of the (x,y,z) coordinates tracking subject movement through the maze.",
+                reference_frame="Unknown",
+                # conversion=conversion,  # TODO: confirm this is in cm
+                resolution=np.nan,
+                data=H5DataIO(animal_mat['pos_linearized'][0][0][0], compression="gzip"),
+                **animal_time_kwargs
+            )
         )
-        lin_pos_obj.add_spatial_series(lin_spatial_series_object)
-        check_module(nwbfile, 'behavior', 'contains processed behavioral data').add_data_interface(lin_pos_obj)
 
-        # Epochs
-        epoch_names = list(pos_mat['position']['Epochs'][0][0].dtype.names)
-        epoch_windows = [[float(start), float(stop)]
-                         for x in pos_mat['position']['Epochs'][0][0][0][0] for start, stop in x]
-        nwbfile.add_epoch_column('label', 'name of epoch')
-        for j, epoch_name in enumerate(epoch_names):
-            nwbfile.add_epoch(start_time=epoch_windows[j][0], stop_time=epoch_windows[j][1], label=epoch_name)
+        # Speed
+        behavioral_processing_module = check_module(nwbfile, 'behavior', 'Contains processed behavioral data.')
+        behavioral_processing_module.add(
+            TimeSeries(
+                name='SubjectSpeed',
+                description="Instantaneous speed of subject through the maze.",
+                unit="cm/s",  # TODO confirm cm
+                # conversion=conversion,  # TODO: confirm this is in cm
+                resolution=np.nan,
+                data=H5DataIO(animal_mat['speed'][0][0][0], compression="gzip"),
+                **animal_time_kwargs
+            )
+        )
+
+        # Acceleration
+        behavioral_processing_module.add(
+            TimeSeries(
+                name='Acceleration',
+                description="Instantaneous acceleration of subject through the maze.",
+                unit="cm/s^2",  # TODO confirm cm
+                # conversion=conversion,  # TODO: confirm this is in cm
+                resolution=np.nan,
+                data=H5DataIO(animal_mat['acceleration'][0][0][0], compression="gzip"),
+                **animal_time_kwargs
+            )
+        )
+
+        # Temperature
+        behavioral_processing_module.add(
+            TimeSeries(
+                name='Temperature',
+                description="Internal brain temperature throughout the session.",
+                unit="Celsius",
+                resolution=np.nan,
+                data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
+                **animal_time_kwargs
+            )
+        )
