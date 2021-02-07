@@ -2,6 +2,7 @@
 from datetime import datetime
 from pathlib import Path
 from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matlab files
+import numpy as np
 
 from nwb_conversion_tools import NWBConverter
 from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeLFPInterface, \
@@ -32,6 +33,21 @@ class PetersenNWBConverter(NWBConverter):
         session_start = datetime.strptime(session_id[-13:], "%y%m%d_%H%M%S")
 
         session_info = loadmat(str(session_path / "session.mat"))['session']
+        paper_descr = (
+            "Petersen et al. demonstrate that cooling of the medial septum slows theta oscillation and increases "
+            "choice errors without affecting spatial features of pyramidal neurons. Cooling affects distance-time, "
+            "but not distance-theta phase, compression. The findings reveal that cell assemblies are organized by "
+            "theta phase and not by external (clock) time."
+        )
+        paper_info = [
+            "Cooling of Medial Septum Reveals Theta Phase Lag Coordination of Hippocampal Cell Assemblies."
+            "Petersen P, Buzsaki G, Neuron. 2020"
+        ]
+
+        device_descr = (
+            "The five rats were implanted with multi-shank 64-site silicon probes bilaterally in the CA1 pyramidal "
+            "layer of the dorsal hippocampus."
+        )
 
         metadata = super().get_metadata()
         metadata['NWBFile'].update(
@@ -39,7 +55,9 @@ class PetersenNWBConverter(NWBConverter):
             session_start_time=session_start.astimezone(),
             session_id=session_id,
             institution="NYU",
-            lab="Buzsaki"
+            lab="Buzsaki",
+            session_description=paper_descr,
+            related_publications=paper_info
         )
         metadata.update(
             Subject=dict(
@@ -55,5 +73,27 @@ class PetersenNWBConverter(NWBConverter):
             session_path = lfp_file_path.parent
             xml_file_path = str(session_path / f"{session_id}.xml")
             metadata.update(NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
+
+        metadata['Ecephys']['Device'][0].update(description=device_descr)
+        bad_channels = session_info['channelTags']['BadChannels']['channels']
+        if any(bad_channels):
+            metadata['Ecephys']['Electrodes'].append(
+                dict(
+                    name='bad_channels',
+                    description="Channels tagged as 'bad' by experimenters.",
+                    data=list(bad_channels)
+                )
+            )
+        theta_ref = np.array(
+            [False]*self.data_interface_objects['NeuroscopeLFP'].recording_extractor.get_num_channels()
+        )
+        theta_ref[int(session_info['channelTags']['Theta'][0][0][0][0][0][0])] = 1
+        metadata['Ecephys']['Electrodes'].append(
+            dict(
+                name='theta_reference',
+                description="Channel used as theta reference.",
+                data=list(theta_ref)
+            )
+        )
 
         return metadata

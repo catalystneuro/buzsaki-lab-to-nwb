@@ -12,24 +12,12 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from ..neuroscope import check_module
 
 
-# TODO
-
-# In trials, is the 'stat' key what the mouse DID or was SUPPOSED to do? defaulting to SUPPOSED to do...
-
-# The 'Take' csv (x,y,z) values appear to be different from the extracted subject position. Thus the 'Take' file may
-# be closer to acquisition data, and might be added as such...
-# The 'Take' csv values are equal to the Optitrack.mat file which might be easier to read from?
-
-# Add bad and theta channel classification metadata as columns, from the session.channelTags
-# Figure out what left/right/all series are in the trials file
-
-
 class PetersenMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the PetersenP dataset."""
 
     @classmethod
     def get_source_schema(cls):
-        return dict(properties=dict(folder_path="string"))
+        return dict(properties=dict(folder_path=dict(type="string")))
 
     def run_conversion(
         self,
@@ -90,6 +78,8 @@ class PetersenMiscInterface(BaseDataInterface):
         )
 
         # Position
+        behavioral_processing_module = check_module(nwbfile, 'behavior', 'Contains processed behavioral data.')
+
         animal_file_path = session_path / "animal.mat"
         animal_mat = loadmat(str(animal_file_path))['animal']
         animal_time = animal_mat['time'][0][0][0]
@@ -113,6 +103,7 @@ class PetersenMiscInterface(BaseDataInterface):
                 **animal_time_kwargs
             )
         )
+        behavioral_processing_module.add(pos_obj)
 
         # Linearized position
         lin_pos_obj = Position(name="LinearizedPosition")
@@ -127,9 +118,9 @@ class PetersenMiscInterface(BaseDataInterface):
                 **animal_time_kwargs
             )
         )
+        behavioral_processing_module.add(lin_pos_obj)
 
         # Speed
-        behavioral_processing_module = check_module(nwbfile, 'behavior', 'Contains processed behavioral data.')
         behavioral_processing_module.add(
             TimeSeries(
                 name='SubjectSpeed',
