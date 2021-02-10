@@ -31,7 +31,8 @@ class PetersenMiscInterface(BaseDataInterface):
         # Trials
         take_file_path = [x for x in session_path.iterdir() if "Take" in x.name][0]
         take_file = pd.read_csv(take_file_path, header=5)
-        take_frame_to_time = {x: y for x, y in zip(take_file['Frame'], take_file['Time (Seconds)'])}
+        take_file_time_name = [x for x in take_file if "Time" in x][0]  # Can be either 'Time' or 'Time (Seconds)'
+        take_frame_to_time = {x: y for x, y in zip(take_file['Frame'], take_file[take_file_time_name])}
 
         trial_info = loadmat(str(session_path / f"{session_id}.trials.behavior.mat"))['trials']
         trial_start_frames = trial_info['start'][0][0]
