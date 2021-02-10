@@ -12,7 +12,7 @@ subject_weight = dict(MS10=395, MS12=410, MS13=320, MS21=250, MS22=260)
 stub_test = True
 conversion_factor = 0.195  # Intan
 
-for session_path in [convert_sessions[0]]:
+for session_path in convert_sessions:
     folder_path = str(session_path)
     subject_name = session_path.parent.name
     session_id = session_path.name
@@ -42,13 +42,13 @@ for session_path in [convert_sessions[0]]:
 
     # Sessions contain either no sorting data of any kind, Phy format, or CellExplorer format
     kilo_dirs = [x for x in session_path.iterdir() if x.is_dir() and "Kilosort" in x.name]
-    cell_explorer_file_path = session_path / "spikes.cellinfo.mat"
-    if len(kilo_dirs) == 1:
+    cell_explorer_file_path = session_path / f"{session_id}.spikes.cellinfo.mat"
+    if cell_explorer_file_path.is_file():
+        source_data.update(CellExplorer=dict(spikes_matfile_path=str(cell_explorer_file_path)))
+        conversion_options.update(CellExplorer=dict(stub_test=stub_test))
+    elif len(kilo_dirs) == 1:
         source_data.update(PhySorting=dict(folder_path=str(kilo_dirs[0])))  # has a load_waveform option now too...
         conversion_options.update(PhySorting=dict(stub_test=stub_test))
-    elif cell_explorer_file_path.is_file():
-        source_data.update(CellExplorer=dict(file_path=str(cell_explorer_file_path)))
-        conversion_options.update(CellExplorer=dict(stub_test=stub_test))
 
     converter = PetersenNWBConverter(source_data)
     metadata = converter.get_metadata()

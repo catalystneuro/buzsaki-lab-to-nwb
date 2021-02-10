@@ -42,7 +42,7 @@ class PetersenMiscInterface(BaseDataInterface):
         trial_temperature = trial_info['temperature'][0][0]
         trial_error = trial_info['error'][0][0]
         error_trials = np.array([False]*n_trials)
-        error_trials[np.array(trial_error).astype(int)] = True
+        error_trials[np.array(trial_error).astype(int)-1] = True  # -1 from Matlab indexing
 
         trial_starts = []
         trial_ends = []
@@ -99,7 +99,7 @@ class PetersenMiscInterface(BaseDataInterface):
                 reference_frame="Unknown",
                 # conversion=conversion,  # TODO: confirm this is in cm
                 resolution=np.nan,
-                data=H5DataIO(animal_mat['pos'][0][0], compression="gzip"),
+                data=H5DataIO(np.array(animal_mat['pos'][0][0]).T, compression="gzip"),
                 **animal_time_kwargs
             )
         )

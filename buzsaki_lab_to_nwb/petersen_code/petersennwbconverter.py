@@ -30,7 +30,11 @@ class PetersenNWBConverter(NWBConverter):
         session_id = lfp_file_path.stem
         if '-' in session_id:
             subject_id, date_text = session_id.split('-')
-        session_start = datetime.strptime(session_id[-13:], "%y%m%d_%H%M%S")
+        if "concat" not in session_id:
+            datetime_string = session_id[-13:]
+        else:
+            datetime_string = session_id[-20:-7]
+        session_start = datetime.strptime(datetime_string, "%y%m%d_%H%M%S")
 
         session_info = loadmat(str(session_path / "session.mat"))['session']
         paper_descr = (
@@ -75,19 +79,10 @@ class PetersenNWBConverter(NWBConverter):
             metadata.update(NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
 
         metadata['Ecephys']['Device'][0].update(description=device_descr)
-        bad_channels = session_info['channelTags']['BadChannels']['channels']
-        if any(bad_channels):
-            metadata['Ecephys']['Electrodes'].append(
-                dict(
-                    name='bad_channels',
-                    description="Channels tagged as 'bad' by experimenters.",
-                    data=list(bad_channels)
-                )
-            )
         theta_ref = np.array(
             [False]*self.data_interface_objects['NeuroscopeLFP'].recording_extractor.get_num_channels()
         )
-        theta_ref[int(session_info['channelTags']['Theta'][0][0][0][0][0][0])] = 1
+        theta_ref[int(session_info['channelTags']['Theta'][0][0][0][0][0][0])-1] = 1  # -1 from Matlab indexing
         metadata['Ecephys']['Electrodes'].append(
             dict(
                 name='theta_reference',
