@@ -3,7 +3,8 @@ from pathlib import Path
 
 from buzsaki_lab_to_nwb import PetersenNWBConverter
 
-base_path = Path("D:/BuzsakiData/PetersenP")
+#base_path = Path("D:/BuzsakiData/PetersenP")
+base_path = Path("/mnt/scrap/cbaker239/PetersenP")
 convert_sessions = [session for mouse in base_path.iterdir() if mouse.is_dir() for session in mouse.iterdir()]
 
 # Weights retrieved from Buzsaki website

@@ -16,6 +16,6 @@ setup(name='buzsaki_lab_to_nwb',
       include_package_data=True,
       install_requires=[
           'matplotlib', 'cycler', 'scipy', 'numpy', 'jupyter', 'xlrd', 'h5py', 'pynwb', 'spikeextractors', 'lxml',
-          'typing', 'nwbn-conversion-tools', 'hdf5storage''
+          'typing', 'nwbn-conversion-tools', 'hdf5storage'
       ],
       )
