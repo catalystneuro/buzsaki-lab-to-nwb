@@ -8,7 +8,7 @@ base_path = Path("D:/BuzsakiData/PetersenP")
 exclude_mice = ["MS12"]
 convert_sessions = [
     session
-    for mouse in base_path.iterdir() if mouse.is_dir() and mouse not in exclude_mice
+    for mouse in base_path.iterdir() if mouse.is_dir() and mouse.name not in exclude_mice
     for session in mouse.iterdir()
 ]
 
