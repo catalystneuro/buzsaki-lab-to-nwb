@@ -11,6 +11,10 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 from ..neuroscope import check_module
 
+# TODO for future draft - Add acquisition of raw position from Take files (meters) or Optitrack (cm)
+# Use edges of trials.state time series to define pre-cooling, cooling, and post-cooling epochs
+# Include eeg & ripple data
+# Add various raw acquisition sources with metadata from intan rhd file
 
 class PetersenMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the PetersenP dataset."""
@@ -41,6 +45,8 @@ class PetersenMiscInterface(BaseDataInterface):
         trial_stat = trial_info['stat'][0][0]
         trial_stat_labels = [x[0][0] for x in trial_info['labels'][0][0]]
         trial_temperature = trial_info['temperature'][0][0]
+        cooling_info = trial_info['cooling'][0][0]
+        cooling_map = dict({0: "Cooling off", 1: "Pre-Cooling", 2: "Cooling on", 3: "Post-Cooling"})
         trial_error = trial_info['error'][0][0]
         error_trials = np.array([False]*n_trials)
         error_trials[np.array(trial_error).astype(int)-1] = True  # -1 from Matlab indexing
@@ -48,11 +54,13 @@ class PetersenMiscInterface(BaseDataInterface):
         trial_starts = []
         trial_ends = []
         trial_condition = []
+        trial_cooling = []
         for k in range(n_trials):
             trial_starts.append(take_frame_to_time[trial_start_frames[k]])
             trial_ends.append(take_frame_to_time[trial_end_frames[k]])
             nwbfile.add_trial(start_time=trial_starts[k], stop_time=trial_ends[k])
             trial_condition.append(trial_stat_labels[int(trial_stat[k])-1])
+            trial_cooling.append(cooling_map[int(cooling_info[k])])
 
         nwbfile.add_trial_column(
             name='condition',
@@ -69,6 +77,11 @@ class PetersenMiscInterface(BaseDataInterface):
             description="Average brain temperature for the trial.",
             data=trial_temperature
         )
+        nwbfile.add_trial_column(
+            name='cooling state',
+            description="The labeled cooling state of the subject during the trial.",
+            data=trial_cooling
+        )
 
         # Epoch
         session_info = loadmat(str(session_path / "session.mat"))['session']
@@ -79,7 +92,7 @@ class PetersenMiscInterface(BaseDataInterface):
         )
 
         # Position
-        behavioral_processing_module = check_module(nwbfile, 'behavior', 'Contains processed behavioral data.')
+        behavioral_processing_module = check_module(nwbfile, 'behavior', "Contains processed behavioral data.")
 
         animal_file_path = session_path / "animal.mat"
         animal_mat = loadmat(str(animal_file_path))['animal']
@@ -98,7 +111,7 @@ class PetersenMiscInterface(BaseDataInterface):
                 name='SpatialSeries',
                 description="(x,y,z) coordinates tracking subject movement through the maze.",
                 reference_frame="Unknown",
-                # conversion=conversion,  # TODO: confirm this is in cm
+                conversion=1e-2,
                 resolution=np.nan,
                 data=H5DataIO(np.array(animal_mat['pos'][0][0]).T, compression="gzip"),
                 **animal_time_kwargs
@@ -113,7 +126,7 @@ class PetersenMiscInterface(BaseDataInterface):
                 name='LinearizedSpatialSeries',
                 description="Linearization of the (x,y,z) coordinates tracking subject movement through the maze.",
                 reference_frame="Unknown",
-                # conversion=conversion,  # TODO: confirm this is in cm
+                conversion=1e-2,
                 resolution=np.nan,
                 data=H5DataIO(animal_mat['pos_linearized'][0][0][0], compression="gzip"),
                 **animal_time_kwargs
@@ -126,8 +139,7 @@ class PetersenMiscInterface(BaseDataInterface):
             TimeSeries(
                 name='SubjectSpeed',
                 description="Instantaneous speed of subject through the maze.",
-                unit="cm/s",  # TODO confirm cm
-                # conversion=conversion,  # TODO: confirm this is in cm
+                unit="cm/s",
                 resolution=np.nan,
                 data=H5DataIO(animal_mat['speed'][0][0][0], compression="gzip"),
                 **animal_time_kwargs
@@ -139,8 +151,7 @@ class PetersenMiscInterface(BaseDataInterface):
             TimeSeries(
                 name='Acceleration',
                 description="Instantaneous acceleration of subject through the maze.",
-                unit="cm/s^2",  # TODO confirm cm
-                # conversion=conversion,  # TODO: confirm this is in cm
+                unit="cm/s^2",
                 resolution=np.nan,
                 data=H5DataIO(animal_mat['acceleration'][0][0][0], compression="gzip"),
                 **animal_time_kwargs
