@@ -5,7 +5,12 @@ from buzsaki_lab_to_nwb import PetersenNWBConverter
 
 base_path = Path("D:/BuzsakiData/PetersenP")
 #base_path = Path("/mnt/scrap/cbaker239/PetersenP")
-convert_sessions = [session for mouse in base_path.iterdir() if mouse.is_dir() for session in mouse.iterdir()]
+exclude_mice = ["MS12"]
+convert_sessions = [
+    session
+    for mouse in base_path.iterdir() if mouse.is_dir() and mouse not in exclude_mice
+    for session in mouse.iterdir()
+]
 
 # Weights retrieved from Buzsaki website
 subject_weight = dict(MS10=395, MS12=410, MS13=320, MS21=250, MS22=260)
