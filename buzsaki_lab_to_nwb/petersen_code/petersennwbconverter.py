@@ -65,7 +65,7 @@ class PetersenNWBConverter(NWBConverter):
         )
         metadata.update(
             Subject=dict(
-                subject_id=session_info['general']['animal'][0][0][0][0],
+                subject_id=session_id[6:10],
                 species="Rattus norvegicus domestica - Long Evans",
                 genotype=session_info['general']['geneticLine'][0][0][0][0],
                 sex=session_info['general']['sex'][0][0][0][0],
