@@ -54,13 +54,11 @@ class PetersenMiscInterface(BaseDataInterface):
         trial_starts = []
         trial_ends = []
         trial_condition = []
-        trial_cooling = []
         for k in range(n_trials):
             trial_starts.append(take_frame_to_time[trial_start_frames[k]])
             trial_ends.append(take_frame_to_time[trial_end_frames[k]])
             nwbfile.add_trial(start_time=trial_starts[k], stop_time=trial_ends[k])
             trial_condition.append(trial_stat_labels[int(trial_stat[k])-1])
-            trial_cooling.append(cooling_map[int(cooling_info[k])])
 
         nwbfile.add_trial_column(
             name='condition',
@@ -77,11 +75,16 @@ class PetersenMiscInterface(BaseDataInterface):
             description="Average brain temperature for the trial.",
             data=trial_temperature
         )
-        nwbfile.add_trial_column(
-            name='cooling state',
-            description="The labeled cooling state of the subject during the trial.",
-            data=trial_cooling
-        )
+
+        if len(cooling_info) == n_trials:  # some sessions had incomplete cooling info
+            trial_cooling = []
+            for k in range(n_trials):
+                trial_cooling.append(cooling_map[int(cooling_info[k])])
+            nwbfile.add_trial_column(
+                name='cooling state',
+                description="The labeled cooling state of the subject during the trial.",
+                data=trial_cooling
+            )
 
         # Position
         behavioral_processing_module = check_module(nwbfile, 'behavior', "Contains processed behavioral data.")
