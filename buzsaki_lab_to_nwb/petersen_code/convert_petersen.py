@@ -46,13 +46,9 @@ for session_path in convert_sessions:
         )
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
 
-    # Sessions contain either no sorting data of any kind, Phy format, or CellExplorer format
+    # Sessions contain either no sorting data of any kind, Phy format, or incomplete CellExplorer format
     kilo_dirs = [x for x in session_path.iterdir() if x.is_dir() and "Kilosort" in x.name]
-    cell_explorer_file_path = session_path / f"{session_id}.spikes.cellinfo.mat"
-    if cell_explorer_file_path.is_file():
-        source_data.update(CellExplorer=dict(spikes_matfile_path=str(cell_explorer_file_path)))
-        conversion_options.update(CellExplorer=dict(stub_test=stub_test))
-    elif len(kilo_dirs) == 1:
+    if len(kilo_dirs) == 1:
         source_data.update(PhySorting=dict(folder_path=str(kilo_dirs[0])))  # has a load_waveform option now too...
         conversion_options.update(PhySorting=dict(stub_test=stub_test))
 
