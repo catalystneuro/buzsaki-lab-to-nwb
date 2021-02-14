@@ -83,15 +83,6 @@ class PetersenMiscInterface(BaseDataInterface):
             data=trial_cooling
         )
 
-        # Epoch
-        session_info = loadmat(str(session_path / "session.mat"))['session']
-        for j, epoch in enumerate(session_info['epochs'][0][0]):
-            nwbfile.add_epoch(
-                start_time=session_info['epochs'][0][0][j-1]['stopTime'][0][0][0]/1e3,
-                stop_time=epoch['stopTime'][0][0][0]/1e3,
-                tags=[epoch['mazeType'][0][0][0]]
-            )
-
         # Position
         behavioral_processing_module = check_module(nwbfile, 'behavior', "Contains processed behavioral data.")
 
