@@ -34,7 +34,10 @@ class PetersenMiscInterface(BaseDataInterface):
         session_id = session_path.name
 
         # Trials
-        take_file_path = [x for x in session_path.iterdir() if "Take" in x.name][0]
+        take_file_paths = [x for x in session_path.iterdir() if "Take" in x.name]
+        # Some sessions had duplicate/non-corresponding Take files
+        assert len(take_file_paths) == 1, "More than one Take file found in path! Please remove excess or update code."
+        take_file_path = take_file_paths[0]
         take_file = pd.read_csv(take_file_path, header=5)
         take_file_time_name = [x for x in take_file if "Time" in x][0]  # Can be either 'Time' or 'Time (Seconds)'
         take_frame_to_time = {x: y for x, y in zip(take_file['Frame'], take_file[take_file_time_name])}
