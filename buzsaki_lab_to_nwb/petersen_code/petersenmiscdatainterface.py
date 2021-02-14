@@ -15,6 +15,7 @@ from ..neuroscope import check_module
 # Use edges of trials.state time series to define pre-cooling, cooling, and post-cooling epochs
 # Include eeg & ripple data
 # Add various raw acquisition sources with metadata from intan rhd file
+# Not all foldesr had an animal.mat file for pos info
 
 class PetersenMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the PetersenP dataset."""
@@ -87,80 +88,82 @@ class PetersenMiscInterface(BaseDataInterface):
             )
 
         # Position
-        behavioral_processing_module = check_module(nwbfile, 'behavior', "Contains processed behavioral data.")
-
         animal_file_path = session_path / "animal.mat"
-        animal_mat = loadmat(str(animal_file_path))['animal']
-        animal_time = animal_mat['time'][0][0][0]
-        animal_time_diff = np.diff(animal_time)
-        animal_time_kwargs = dict()
-        if all(animal_time_diff == animal_time_diff[0]):
-            animal_time_kwargs.update(rate=animal_time_diff[0], starting_time=animal_time[0])
-        else:
-            animal_time_kwargs.update(timestamps=H5DataIO(animal_time, compression="gzip"))
 
-        # Processed (x,y,z) position
-        pos_obj = Position(name="SubjectPosition")
-        pos_obj.add_spatial_series(
-            SpatialSeries(
-                name='SpatialSeries',
-                description="(x,y,z) coordinates tracking subject movement through the maze.",
-                reference_frame="Unknown",
-                conversion=1e-2,
-                resolution=np.nan,
-                data=H5DataIO(np.array(animal_mat['pos'][0][0]).T, compression="gzip"),
-                **animal_time_kwargs
-            )
-        )
-        behavioral_processing_module.add(pos_obj)
+        if animal_file_path.is_file():
+            behavioral_processing_module = check_module(nwbfile, 'behavior', "Contains processed behavioral data.")
 
-        # Linearized position
-        lin_pos_obj = Position(name="LinearizedPosition")
-        lin_pos_obj.add_spatial_series(
-            SpatialSeries(
-                name='LinearizedSpatialSeries',
-                description="Linearization of the (x,y,z) coordinates tracking subject movement through the maze.",
-                reference_frame="Unknown",
-                conversion=1e-2,
-                resolution=np.nan,
-                data=H5DataIO(animal_mat['pos_linearized'][0][0][0], compression="gzip"),
-                **animal_time_kwargs
-            )
-        )
-        behavioral_processing_module.add(lin_pos_obj)
+            animal_mat = loadmat(str(animal_file_path))['animal']
+            animal_time = animal_mat['time'][0][0][0]
+            animal_time_diff = np.diff(animal_time)
+            animal_time_kwargs = dict()
+            if all(animal_time_diff == animal_time_diff[0]):
+                animal_time_kwargs.update(rate=animal_time_diff[0], starting_time=animal_time[0])
+            else:
+                animal_time_kwargs.update(timestamps=H5DataIO(animal_time, compression="gzip"))
 
-        # Speed
-        behavioral_processing_module.add(
-            TimeSeries(
-                name='SubjectSpeed',
-                description="Instantaneous speed of subject through the maze.",
-                unit="cm/s",
-                resolution=np.nan,
-                data=H5DataIO(animal_mat['speed'][0][0][0], compression="gzip"),
-                **animal_time_kwargs
+            # Processed (x,y,z) position
+            pos_obj = Position(name="SubjectPosition")
+            pos_obj.add_spatial_series(
+                SpatialSeries(
+                    name='SpatialSeries',
+                    description="(x,y,z) coordinates tracking subject movement through the maze.",
+                    reference_frame="Unknown",
+                    conversion=1e-2,
+                    resolution=np.nan,
+                    data=H5DataIO(np.array(animal_mat['pos'][0][0]).T, compression="gzip"),
+                    **animal_time_kwargs
+                )
             )
-        )
+            behavioral_processing_module.add(pos_obj)
 
-        # Acceleration
-        behavioral_processing_module.add(
-            TimeSeries(
-                name='Acceleration',
-                description="Instantaneous acceleration of subject through the maze.",
-                unit="cm/s^2",
-                resolution=np.nan,
-                data=H5DataIO(animal_mat['acceleration'][0][0][0], compression="gzip"),
-                **animal_time_kwargs
+            # Linearized position
+            lin_pos_obj = Position(name="LinearizedPosition")
+            lin_pos_obj.add_spatial_series(
+                SpatialSeries(
+                    name='LinearizedSpatialSeries',
+                    description="Linearization of the (x,y,z) coordinates tracking subject movement through the maze.",
+                    reference_frame="Unknown",
+                    conversion=1e-2,
+                    resolution=np.nan,
+                    data=H5DataIO(animal_mat['pos_linearized'][0][0][0], compression="gzip"),
+                    **animal_time_kwargs
+                )
             )
-        )
+            behavioral_processing_module.add(lin_pos_obj)
 
-        # Temperature
-        behavioral_processing_module.add(
-            TimeSeries(
-                name='Temperature',
-                description="Internal brain temperature throughout the session.",
-                unit="Celsius",
-                resolution=np.nan,
-                data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
-                **animal_time_kwargs
+            # Speed
+            behavioral_processing_module.add(
+                TimeSeries(
+                    name='SubjectSpeed',
+                    description="Instantaneous speed of subject through the maze.",
+                    unit="cm/s",
+                    resolution=np.nan,
+                    data=H5DataIO(animal_mat['speed'][0][0][0], compression="gzip"),
+                    **animal_time_kwargs
+                )
             )
-        )
+
+            # Acceleration
+            behavioral_processing_module.add(
+                TimeSeries(
+                    name='Acceleration',
+                    description="Instantaneous acceleration of subject through the maze.",
+                    unit="cm/s^2",
+                    resolution=np.nan,
+                    data=H5DataIO(animal_mat['acceleration'][0][0][0], compression="gzip"),
+                    **animal_time_kwargs
+                )
+            )
+
+            # Temperature
+            behavioral_processing_module.add(
+                TimeSeries(
+                    name='Temperature',
+                    description="Internal brain temperature throughout the session.",
+                    unit="Celsius",
+                    resolution=np.nan,
+                    data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
+                    **animal_time_kwargs
+                )
+            )
