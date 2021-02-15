@@ -5,6 +5,7 @@ from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matl
 import pandas as pd
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
+from nwb_conversion_tools.conversion_tools import check_regular_timestamps
 from pynwb import NWBFile, TimeSeries
 from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
@@ -99,10 +100,9 @@ class PetersenMiscInterface(BaseDataInterface):
 
             animal_mat = loadmat(str(animal_file_path))['animal']
             animal_time = animal_mat['time'][0][0][0]
-            animal_time_diff = np.diff(animal_time)
             animal_time_kwargs = dict()
-            if all(animal_time_diff == animal_time_diff[0]):
-                animal_time_kwargs.update(rate=animal_time_diff[0], starting_time=animal_time[0])
+            if check_regular_timestamps(animal_time):
+                animal_time_kwargs.update(rate=animal_time[1]-animal_time[0], starting_time=animal_time[0])
             else:
                 animal_time_kwargs.update(timestamps=H5DataIO(animal_time, compression="gzip"))
 
