@@ -162,13 +162,14 @@ class PetersenMiscInterface(BaseDataInterface):
             )
 
             # Temperature
-            behavioral_processing_module.add(
-                TimeSeries(
-                    name='Temperature',
-                    description="Internal brain temperature throughout the session.",
-                    unit="Celsius",
-                    resolution=np.nan,
-                    data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
-                    **animal_time_kwargs
+            if 'temperature' in animal_mat:  # Some sessions don't have this for some reason
+                behavioral_processing_module.add(
+                    TimeSeries(
+                        name='Temperature',
+                        description="Internal brain temperature throughout the session.",
+                        unit="Celsius",
+                        resolution=np.nan,
+                        data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
+                        **animal_time_kwargs
+                    )
                 )
-            )
