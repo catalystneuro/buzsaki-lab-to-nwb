@@ -14,6 +14,16 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from ..neuroscope import get_events, check_module
 
 
+# TODO
+# Add mpg movies as acquisition image series
+#    mpg's are broken up by epoch
+# Add acquisition whl (technically processed from vid, but not interpolated position)
+#     sub-whls are broken up by epoch
+# spk waveforms
+# supported CellExplorer format (not version violated one of Petersen)
+# multiple evt files
+#    cat.evt has epochs
+
 class GirardeauMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the GirardeauG dataset."""
 

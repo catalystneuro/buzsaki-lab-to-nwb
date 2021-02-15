@@ -62,7 +62,6 @@ class GirardeauNWBConverter(NWBConverter):
             Subject=dict(
                 species="Rattus norvegicus domestica - Long Evans",
                 sex="Male",
-                age="3-6 months",
                 genotype="Wild type"
             )
         )
