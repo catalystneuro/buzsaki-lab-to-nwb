@@ -122,19 +122,20 @@ class PetersenMiscInterface(BaseDataInterface):
             behavioral_processing_module.add(pos_obj)
 
             # Linearized position
-            lin_pos_obj = Position(name="LinearizedPosition")
-            lin_pos_obj.add_spatial_series(
-                SpatialSeries(
-                    name='LinearizedSpatialSeries',
-                    description="Linearization of the (x,y,z) coordinates tracking subject movement through the maze.",
-                    reference_frame="Unknown",
-                    conversion=1e-2,
-                    resolution=np.nan,
-                    data=H5DataIO(animal_mat['pos_linearized'][0][0][0], compression="gzip"),
-                    **animal_time_kwargs
+            if 'pos_linearized' in animal_mat:  # Some sessions don't have this for some reason
+                lin_pos_obj = Position(name="LinearizedPosition")
+                lin_pos_obj.add_spatial_series(
+                    SpatialSeries(
+                        name='LinearizedSpatialSeries',
+                        description="Linearization of the (x,y,z) coordinates tracking subject movement through maze.",
+                        reference_frame="Unknown",
+                        conversion=1e-2,
+                        resolution=np.nan,
+                        data=H5DataIO(animal_mat['pos_linearized'][0][0][0], compression="gzip"),
+                        **animal_time_kwargs
+                    )
                 )
-            )
-            behavioral_processing_module.add(lin_pos_obj)
+                behavioral_processing_module.add(lin_pos_obj)
 
             # Speed
             behavioral_processing_module.add(
