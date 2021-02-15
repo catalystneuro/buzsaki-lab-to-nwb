@@ -49,7 +49,6 @@ class PetersenMiscInterface(BaseDataInterface):
             trial_end_frames = trial_info['end'][0][0]
             trial_stat = trial_info['stat'][0][0]
             trial_stat_labels = [x[0][0] for x in trial_info['labels'][0][0]]
-            trial_temperature = trial_info['temperature'][0][0]
             cooling_info = trial_info['cooling'][0][0]
             cooling_map = dict({0: "Cooling off", 1: "Pre-Cooling", 2: "Cooling on", 3: "Post-Cooling"})
             trial_error = trial_info['error'][0][0]
@@ -75,11 +74,14 @@ class PetersenMiscInterface(BaseDataInterface):
                 description="Whether the subject made a mistake.",
                 data=error_trials
             )
-            nwbfile.add_trial_column(
-                name='temperature',
-                description="Average brain temperature for the trial.",
-                data=trial_temperature
-            )
+
+            if 'temperature' in trial_info:  # Some sessions don't have this for some reason
+                trial_temperature = trial_info['temperature'][0][0]
+                nwbfile.add_trial_column(
+                    name='temperature',
+                    description="Average brain temperature for the trial.",
+                    data=trial_temperature
+                )
 
             if len(cooling_info) == n_trials:  # some sessions had incomplete cooling info
                 trial_cooling = []
@@ -162,14 +164,13 @@ class PetersenMiscInterface(BaseDataInterface):
             )
 
             # Temperature
-            if 'temperature' in animal_mat:  # Some sessions don't have this for some reason
-                behavioral_processing_module.add(
-                    TimeSeries(
-                        name='Temperature',
-                        description="Internal brain temperature throughout the session.",
-                        unit="Celsius",
-                        resolution=np.nan,
-                        data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
-                        **animal_time_kwargs
-                    )
+            behavioral_processing_module.add(
+                TimeSeries(
+                    name='Temperature',
+                    description="Internal brain temperature throughout the session.",
+                    unit="Celsius",
+                    resolution=np.nan,
+                    data=H5DataIO(animal_mat['temperature'][0][0][0], compression="gzip"),
+                    **animal_time_kwargs
                 )
+            )
