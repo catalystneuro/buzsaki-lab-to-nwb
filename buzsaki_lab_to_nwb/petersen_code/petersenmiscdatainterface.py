@@ -84,9 +84,7 @@ class PetersenMiscInterface(BaseDataInterface):
                 )
 
             if len(cooling_info) == n_trials:  # some sessions had incomplete cooling info
-                trial_cooling = []
-                for k in range(n_trials):
-                    trial_cooling.append(cooling_map[int(cooling_info[k])])
+                trial_cooling = [cooling_map[int(cooling_info[k])] for k in range(n_trials)]
                 nwbfile.add_trial_column(
                     name='cooling state',
                     description="The labeled cooling state of the subject during the trial.",
