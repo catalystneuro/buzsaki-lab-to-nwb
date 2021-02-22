@@ -4,22 +4,26 @@ from glob import glob
 import numpy as np
 import pandas as pd
 from lxml import etree as et
+from tqdm import tqdm
+from typing import Optional, List, Iterable, Union
+from pathlib import Path
+
 from pynwb import NWBFile
 from pynwb.behavior import SpatialSeries
 from pynwb.ecephys import ElectricalSeries, LFP, SpikeEventSeries
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 from hdmf.data_utils import DataChunkIterator
 from pynwb.misc import AnnotationSeries
-from tqdm import tqdm
-from typing import Optional, List, Iterable
 
 try:
     from typing import ArrayLike
-except:
+except ImportError:
     from numpy import ndarray
-    from typing import Union, Sequence
+    from typing import Sequence
     # adapted from numpy typing
     ArrayLike = Union[bool, int, float, complex, list, ndarray, Sequence]
+
+OptionalPathType = Optional[Union[str, Path]]
 
 
 def check_module(nwbfile, name, description=None):
@@ -161,9 +165,16 @@ def get_lfp_sampling_rate(session_path: str, xml_filepath: Optional[str] = None)
     return lfp_sampling_rate
 
 
-def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 1250./32.,
-                      names=('x0', 'y0', 'x1', 'y1')):
-    """Read raw position sensor data from .whl file.
+def add_position_data(
+        nwbfile: NWBFile,
+        session_path: str,
+        whl_file_path: OptionalPathType = None,
+        starting_time: float = 0.,
+        fs: float = 1250./32.,
+        names=("x0", "y0", "x1", "y1")
+):
+    """
+    Read and write raw position sensor data from .whl file.
 
     Parameters
     ----------
@@ -173,28 +184,26 @@ def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 1250./32.
         sampling rate
     names: iterable
         names of column headings
-
     """
-    session_name = os.path.split(session_path)[1]
-    whl_path = os.path.join(session_path, session_name + '.whl')
-    if not os.path.isfile(whl_path):
-        print(whl_path + ' file not found!')
-        return
-    df = pd.read_csv(whl_path, sep='\t', names=names)
+    session_id = Path(session_path).name
+    if whl_file_path is None:
+        whl_path = session_path / f"{session_id}.whl"
+    assert whl_file_path.is_file(), f".whl file ({whl_path}) not found!"
 
-    nwbfile.add_acquisition(
-        SpatialSeries('position_sensor0',
-                      H5DataIO(df[['x0', 'y0']].values, compression='gzip'),
-                      'unknown', description='raw sensor data from sensor 0',
-                      starting_time=0., rate=fs,
-                      resolution=np.nan))
-
-    nwbfile.add_acquisition(
-        SpatialSeries('position_sensor1',
-                      H5DataIO(df[['x1', 'y1']].values, compression='gzip'),
-                      'unknown', description='raw sensor data from sensor 1',
-                      starting_time=0., rate=fs,
-                      resolution=np.nan))
+    df = pd.read_csv(whl_file_path, sep="\t", names=names)
+    for x in [0, 1]:
+        nwbfile.add_acquisition(
+            SpatialSeries(
+                name=f"PositionSensor{x}",
+                description=f"Raw sensor data from sensor {x}.",
+                data=H5DataIO(df[[f"x{x}", f"y{x}"]].values, compression="gzip"),
+                reference_frame="Unknown",
+                conversion=np.nan,  # whl is in arbitrary units
+                starting_time=starting_time,
+                rate=fs,
+                resolution=np.nan
+            )
+        )
 
 
 def read_spike_times(session_path: str, shankn: int, fs: float = 20000.):

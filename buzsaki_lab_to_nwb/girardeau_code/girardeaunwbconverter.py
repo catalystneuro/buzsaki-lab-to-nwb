@@ -1,10 +1,10 @@
 """Authors: Cody Baker and Ben Dichter."""
-from dateutil.parser import parse as dateparse
+from datetime import datetime
 from pathlib import Path
 
 from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeMultiRecordingTimeInterface, \
-    NeuroscopeLFPInterface, NeuroscopeRecordingInterface
+from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeRecordingInterface, \
+    NeuroscopeLFPInterface
 from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
 
 from .girardeaumiscdatainterface import GirardeauMiscInterface
@@ -14,20 +14,17 @@ class GirardeauNWBConverter(NWBConverter):
     """Primary conversion class for the GirardeauG dataset."""
 
     data_interface_classes = dict(
-        NeuroscopeRecording=NeuroscopeMultiRecordingTimeInterface,
-        CellExplorerSorting=CellExplorerSortingInterface,
+        NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
+        CellExplorerSorting=CellExplorerSortingInterface,
         GirardeauMisc=GirardeauMiscInterface
     )
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects['NeuroscopeLFP'].source_data['file_path'])
         session_id = lfp_file_path.stem
-        if '-' in session_id:
-            subject_id, date_text = session_id.split('-')
-        session_start = dateparse(date_text[-4:] + date_text[:-4])
+        session_start = datetime.strptime(session_id[6:], "%Y%m%d")
 
-        experimenter = "Gabrielle Girardeau"
         paper_descr = (
             "The consolidation of context-dependent emotional memory requires communication between the hippocampus"
             "and the basolateral amygdala (BLA), but the mechanisms of this process are unknown. We recorded neuronal"
@@ -45,7 +42,12 @@ class GirardeauNWBConverter(NWBConverter):
             "Girardeau G, Inema I, Buzsáki G. Nature Neuroscience, 2017."
         ]
         device_descr = (
-            "8-shank Neuronexus silicon probes."
+            "Three silicon probes (2 with 8 shanks, 1 with 4 shanks, 160 recording channels total, NeuroNexus H32 and )"
+            "H62, A-style, Buzsaki32 and 64 layout) mounted on individual movable microdrives51 were implanted above "
+            "the amygdalae bilaterally (AP −2.5 mm ML ± 3.6 to 5.5 mm from bregma) and in the dorsal hippocampus (left "
+            "or right, CA1, AP −3.5 mm, ML ± 2.5 mm). The drives were secured to the skull using dental cement. Skull "
+            "screws above the cerebellum were used as ground and reference. The drives and probes were protected by a "
+            "cement-covered copper-mesh Faraday cage on which the probe connectors were attached."
         )
 
         metadata = super().get_metadata()
@@ -54,7 +56,7 @@ class GirardeauNWBConverter(NWBConverter):
             session_id=session_id,
             institution="NYU",
             lab="Buzsaki",
-            experimenter=experimenter,
+            experimenter="Gabrielle Girardeau",
             session_description=paper_descr,
             related_publications=paper_info
         )
@@ -62,7 +64,9 @@ class GirardeauNWBConverter(NWBConverter):
             Subject=dict(
                 species="Rattus norvegicus domestica - Long Evans",
                 sex="Male",
-                genotype="Wild type"
+                genotype="Wild type",
+                weight="300g",
+                age="3 months"
             )
         )
 
