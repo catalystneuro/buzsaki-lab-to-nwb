@@ -31,7 +31,7 @@ for session_path in convert_sessions:
     )
     if raw_data_file_path.is_dir():
         source_data.update(NeuroscopeRecording=dict(file_path=str(raw_data_file_path), gain=conversion_factor))
-        conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
+        conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test, buffer_mb=2000))
     else:
         conversion_options['CellExplorerSorting'].update(write_ecephys_metadata=True)
 
