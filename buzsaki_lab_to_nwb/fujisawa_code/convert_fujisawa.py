@@ -26,7 +26,7 @@ device_descr = (
 subject_weight = dict(Mouse23=1)
 
 stub_test = True
-conversion_factor = 0.195  # Intan
+conversion_factor = 0.3815  # Ampliplex
 
 for session_path in convert_sessions:
     folder_path = str(session_path)
