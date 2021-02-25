@@ -27,7 +27,7 @@ class GirardeauMiscInterface(BaseDataInterface):
     def run_conversion(
         self,
         nwbfile: NWBFile,
-        metadata_dict: dict,
+        metadata: dict,
         stub_test: bool = False,
      ):
         session_path = Path(self.source_data['folder_path'])

@@ -7,6 +7,7 @@ from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import Neurosco
     NeuroscopeLFPInterface
 from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
 
+from ..mpgdatainterface import MPGInterface
 from .girardeaumiscdatainterface import GirardeauMiscInterface
 
 
@@ -17,7 +18,8 @@ class GirardeauNWBConverter(NWBConverter):
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         CellExplorerSorting=CellExplorerSortingInterface,
-        GirardeauMisc=GirardeauMiscInterface
+        GirardeauMisc=GirardeauMiscInterface,
+        MPG=MPGInterface
     )
 
     def get_metadata(self):
