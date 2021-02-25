@@ -13,6 +13,12 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 from ..neuroscope import get_events, check_module
 
+# TODO
+# odd nesting folder structure. each subsession has only
+# occasional small .dat neuroscope files
+# neuroscope lfp
+# neuroscope sorting
+
 
 class FujisawaMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the FujisawaS dataset."""
@@ -27,7 +33,7 @@ class FujisawaMiscInterface(BaseDataInterface):
         metadata_dict: dict,
         stub_test: bool = False,
      ):
-        session_path = Path(self.input_args['folder_path'])
+        session_path = Path(self.source_data['folder_path'])
         session_id = session_path.name
 
         # Stimuli

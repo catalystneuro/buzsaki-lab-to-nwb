@@ -161,8 +161,7 @@ def get_lfp_sampling_rate(session_path: str, xml_filepath: Optional[str] = None)
     return lfp_sampling_rate
 
 
-def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 1250./32.,
-                      names=('x0', 'y0', 'x1', 'y1')):
+def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 20000 / 512, names=('x0', 'y0', 'x1', 'y1')):
     """Read raw position sensor data from .whl file.
 
     Parameters
