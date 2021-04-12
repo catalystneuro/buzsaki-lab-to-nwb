@@ -47,15 +47,15 @@ for session_path in convert_sessions:
     print(f"Converting session {session_id}...")
 
     lfp_file_path = str(session_path / f"{session_id}.eeg")
-    raw_data_folder_path = lfp_file_path.replace("eeg", "dat")
+    raw_data_file_path = lfp_file_path.replace("eeg", "dat")
 
     source_data = dict(NeuroscopeLFP=dict(file_path=lfp_file_path, gain=conversion_factor))
     conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
     if any([x for x in session_path.iterdir() if ".clu" in x.suffixes]):
         source_data.update(NeuroscopeSorting=dict(folder_path=folder_path))
         conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
-    if Path(raw_data_folder_path).is_file():
-        source_data.update(NeuroscopeRecording=dict(folder_path=folder_path, gain=conversion_factor))
+    if Path(raw_data_file_path).is_file():
+        source_data.update(NeuroscopeRecording=dict(file_path=raw_data_file_path, gain=conversion_factor))
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
 
     converter = FujisawaNWBConverter(source_data)
