@@ -14,10 +14,11 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 from ..neuroscope import get_events, check_module
 
 # TODO
-# odd nesting folder structure. each subsession has only
-# occasional small .dat neuroscope files
-# neuroscope lfp
-# neuroscope sorting
+# lots of rich special electrode information, including sync on 104 (sync with what though? video too?)
+# behavioral data is only included in a small subset of sessions that did the working memory task
+# The main folders have .sts.* files that have timestamps in ms from start of daily session classifying REM vs SWS
+#    BUT because we don't have timestamps for the actual start of subsessions, we can't align these since subsessions
+#    aren't actually contiguous
 
 
 class FujisawaMiscInterface(BaseDataInterface):
