@@ -41,50 +41,50 @@ stub_test = True
 conversion_factor = 0.3815  # Ampliplex
 
 for session_path in convert_sessions:
-    # try:
-    folder_path = str(session_path)
-    subject_name = session_path.parent.parent.name
-    session_id = session_path.name
-    print(f"Converting session {session_id}...")
-
-    lfp_file_path = str(session_path / f"{session_id}.eeg")
-    raw_data_file_path = lfp_file_path.replace("eeg", "dat")
-    mat_file_path = session_path / f"{session_id}_Behavior.mat"
-
-    source_data = dict(
-        NeuroscopeLFP=dict(
-            file_path=lfp_file_path,
-            gain=conversion_factor,
-            xml_file_path=str(session_path / f"{session_id}.xml")
+    try:
+        folder_path = str(session_path)
+        subject_name = session_path.parent.parent.name
+        session_id = session_path.name
+        print(f"Converting session {session_id}...")
+    
+        lfp_file_path = str(session_path / f"{session_id}.eeg")
+        raw_data_file_path = lfp_file_path.replace("eeg", "dat")
+        mat_file_path = session_path / f"{session_id}_Behavior.mat"
+    
+        source_data = dict(
+            NeuroscopeLFP=dict(
+                file_path=lfp_file_path,
+                gain=conversion_factor,
+                xml_file_path=str(session_path / f"{session_id}.xml")
+            )
         )
-    )
-    conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
-    if any([x for x in session_path.iterdir() if ".clu" in x.suffixes]):
-        source_data.update(NeuroscopeSorting=dict(folder_path=folder_path))
-        conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
-    if Path(raw_data_file_path).is_file():
-        source_data.update(NeuroscopeRecording=dict(file_path=raw_data_file_path, gain=conversion_factor))
-        conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
-    if mat_file_path.is_file():
-        source_data.update(Misc=dict(mat_file_path=str(mat_file_path)))
-
-    converter = FujisawaNWBConverter(source_data)
-    metadata = converter.get_metadata()
-
-    # Specific info
-    metadata["NWBFile"].update(
-        experimenter=experimenter,
-        session_description=paper_descr,
-        related_publications=paper_info
-    )
-    metadata["Ecephys"]["Device"][0].update(description=device_descr)
-
-    nwbfile_path = str(base_path / f"{session_id}_stub.nwb")
-    converter.run_conversion(
-        nwbfile_path=nwbfile_path,
-        metadata=metadata,
-        conversion_options=conversion_options,
-        overwrite=True
-    )
-    # except Exception as e:
-    #     print(f"Unable to convert session {session_path} due to {e}!")
+        conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
+        if any([x for x in session_path.iterdir() if ".clu" in x.suffixes]):
+            source_data.update(NeuroscopeSorting=dict(folder_path=folder_path))
+            conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
+        if Path(raw_data_file_path).is_file():
+            source_data.update(NeuroscopeRecording=dict(file_path=raw_data_file_path, gain=conversion_factor))
+            conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
+        if mat_file_path.is_file():
+            source_data.update(Misc=dict(mat_file_path=str(mat_file_path)))
+    
+        converter = FujisawaNWBConverter(source_data)
+        metadata = converter.get_metadata()
+    
+        # Specific info
+        metadata["NWBFile"].update(
+            experimenter=experimenter,
+            session_description=paper_descr,
+            related_publications=paper_info
+        )
+        metadata["Ecephys"]["Device"][0].update(description=device_descr)
+    
+        nwbfile_path = str(base_path / f"{session_id}_stub.nwb")
+        converter.run_conversion(
+            nwbfile_path=nwbfile_path,
+            metadata=metadata,
+            conversion_options=conversion_options,
+            overwrite=True
+        )
+    except Exception as e:
+        print(f"Unable to convert session {session_path} due to {e}!")
