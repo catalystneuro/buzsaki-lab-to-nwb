@@ -6,6 +6,8 @@ from nwb_conversion_tools import NWBConverter
 from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeRecordingInterface, \
     NeuroscopeLFPInterface, NeuroscopeSortingInterface
 
+from .fujisawamiscdatainterface import FujisawaMiscInterface
+
 
 class FujisawaNWBConverter(NWBConverter):
     """Primary conversion class for the FujisawaS dataset."""
@@ -13,7 +15,8 @@ class FujisawaNWBConverter(NWBConverter):
     data_interface_classes = dict(
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
-        NeuroscopeSorting=NeuroscopeSortingInterface
+        NeuroscopeSorting=NeuroscopeSortingInterface,
+        Misc=FujisawaMiscInterface
     )
 
     def get_metadata(self):
@@ -32,7 +35,7 @@ class FujisawaNWBConverter(NWBConverter):
         )
         metadata.update(
             Subject=dict(
-                subject_id=lfp_file_path.parent.parent.name,
+                subject_id=lfp_file_path.parent.parent.parent.name,
                 species="Rattus norvegicus domestica",
                 sex="Male",
                 age="3-5 months"
