@@ -68,6 +68,18 @@ class PetersenNeuroscopeLFPInterface(NeuroscopeLFPInterface):
             sort=True,
         )
 
+    def get_metadata(self):
+        metadata = super(NeuroscopeLFPInterface, self).get_metadata()
+        metadata["Ecephys"].update(
+            NeuroscopeRecordingInterface.get_ecephys_metadata(
+                xml_file_path=get_xml_file_path(data_file_path=self.source_data["file_path"])
+            )
+        )
+        metadata["Ecephys"].update(
+            ElectricalSeries_lfp=dict(name="ElectricalSeries_lfp", description="Local field potential signal.")
+        )
+        return metadata
+
 
 class PetersenNWBConverter(NWBConverter):
     """Primary conversion class for the PetersenP dataset."""
@@ -110,41 +122,41 @@ class PetersenNWBConverter(NWBConverter):
         )
 
         metadata = super().get_metadata()
-        metadata["NWBFile"].update(
-            experimenter=[y[0][0] for x in session_info["general"]["experimenters"] for y in x[0][0]],
-            session_start_time=session_start.astimezone(),
-            session_id=session_id,
-            institution="NYU",
-            lab="Buzsaki",
-            session_description=paper_descr,
-            related_publications=paper_info,
-        )
-        metadata.update(
-            Subject=dict(
-                subject_id=session_id[6:10],
-                species="Rattus norvegicus domestica - Long Evans",
-                genotype="Wild type",
-                sex="Male",
-                age="3-6 months",
-            )
-        )
+        # metadata["NWBFile"].update(
+        #     experimenter=[y[0][0] for x in session_info["general"]["experimenters"] for y in x[0][0]],
+        #     session_start_time=session_start.astimezone(),
+        #     session_id=session_id,
+        #     institution="NYU",
+        #     lab="Buzsaki",
+        #     session_description=paper_descr,
+        #     related_publications=paper_info,
+        # )
+        # metadata.update(
+        #     Subject=dict(
+        #         subject_id=session_id[6:10],
+        #         species="Rattus norvegicus domestica - Long Evans",
+        #         genotype="Wild type",
+        #         sex="Male",
+        #         age="3-6 months",
+        #     )
+        # )
 
-        # If NeuroscopeRecording/LFP was not in source_data
-        if "Ecephys" not in metadata:
-            session_path = lfp_file_path.parent
-            xml_file_path = str(session_path / f"{session_id}.xml")
-            metadata.update(Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
+        # # If NeuroscopeRecording/LFP was not in source_data
+        # if "Ecephys" not in metadata:
+        #     session_path = lfp_file_path.parent
+        #     xml_file_path = str(session_path / f"{session_id}.xml")
+        #     metadata.update(Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
 
-        metadata["Ecephys"]["Device"][0].update(description=device_descr)
-        theta_ref = np.array(
-            [False] * self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_num_channels()
-        )
-        theta_ref[int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1] = 1  # -1 from Matlab indexing
-        metadata["Ecephys"]["Electrodes"].append(
-            dict(
-                name="theta_reference",
-                description="Channel used as theta reference.",
-                data=list(theta_ref),
-            )
-        )
+        # metadata["Ecephys"]["Device"][0].update(description=device_descr)
+        # theta_ref = np.array(
+        #     [False] * self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_num_channels()
+        # )
+        # theta_ref[int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1] = 1  # -1 from Matlab indexing
+        # metadata["Ecephys"]["Electrodes"].append(
+        #     dict(
+        #         name="theta_reference",
+        #         description="Channel used as theta reference.",
+        #         data=list(theta_ref),
+        #     )
+        # )
         return metadata

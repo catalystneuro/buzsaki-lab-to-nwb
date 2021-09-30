@@ -54,7 +54,7 @@ for session_path in convert_sessions:
 
     converter = PetersenNWBConverter(source_data)
     metadata = converter.get_metadata()
-    metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
+    # metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
