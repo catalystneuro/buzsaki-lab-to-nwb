@@ -61,14 +61,10 @@ class YutaLFPInterface(NeuroscopeLFPInterface):
         xml_filepath = session_path / f"{session_id}.xml"
         root = et.parse(str(xml_filepath)).getroot()
         n_total_channels = int(root.find("acquisitionSystem").find("nChannels").text)
-        lfp_sampling_rate = float(
-            root.find("fieldPotentials").find("lfpSamplingRate").text
-        )
+        lfp_sampling_rate = float(root.find("fieldPotentials").find("lfpSamplingRate").text)
         shank_channels = [
             [int(channel.text) for channel in group.find("channels")]
-            for group in root.find("spikeDetection")
-            .find("channelGroups")
-            .findall("group")
+            for group in root.find("spikeDetection").find("channelGroups").findall("group")
         ]
         all_shank_channels = np.concatenate(shank_channels)  # Flattened
 
@@ -116,9 +112,7 @@ class YutaLFPInterface(NeuroscopeLFPInterface):
             b = False
         else:
             b = True
-        lfp_channel = get_reference_elec(
-            subject_xls, hilus_csv_path, session_start, session_id, b=b
-        )
+        lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start, session_id, b=b)
         if lfp_channel is not None:
             lfp_data = all_channels_lfp_data[:, all_shank_channels]
             all_lfp_phases = []

@@ -36,9 +36,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
         [nwbfile.add_stimulus(x) for x in get_events(session_path)]
 
         # States
-        sleep_state_fpath = os.path.join(
-            session_path, "{session_id}.SleepState.states.mat"
-        )
+        sleep_state_fpath = os.path.join(session_path, "{session_id}.SleepState.states.mat")
         # label renaming specific to Watson
         state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
         if os.path.isfile(sleep_state_fpath):
@@ -57,20 +55,13 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
                             label=state_label_names[name],
                         )
                     )
-            [
-                table.add_row(**row)
-                for row in sorted(data, key=lambda x: x["start_time"])
-            ]
-            check_module(
-                nwbfile, "behavior", "contains behavioral data"
-            ).add_data_interface(table)
+            [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+            check_module(nwbfile, "behavior", "contains behavioral data").add_data_interface(table)
 
         # Position
         pos_filepath = Path(session_path) / f"{session_id}.position.behavior.mat"
         pos_mat = loadmat(str(pos_filepath.absolute()))
-        starting_time = float(
-            pos_mat["position"]["timestamps"][0][0][0]
-        )  # confirmed to be a regularly sampled series
+        starting_time = float(pos_mat["position"]["timestamps"][0][0][0])  # confirmed to be a regularly sampled series
         rate = float(pos_mat["position"]["timestamps"][0][0][1]) - starting_time
         if pos_mat["position"]["units"][0][0][0] == "m":
             conversion = 1.0
@@ -87,13 +78,9 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
                 pos_mat["position"]["position"][0][0]["y"][0][0],
             )
         ]
-        linearized_data = [
-            [lin[0]] for lin in pos_mat["position"]["position"][0][0]["lin"][0][0]
-        ]
+        linearized_data = [[lin[0]] for lin in pos_mat["position"]["position"][0][0]["lin"][0][0]]
 
-        label = pos_mat["position"]["behaviorinfo"][0][0]["MazeType"][0][0][0].replace(
-            " ", ""
-        )
+        label = pos_mat["position"]["behaviorinfo"][0][0]["MazeType"][0][0][0].replace(" ", "")
         pos_obj = Position(name=f"{label}Position")
         spatial_series_object = SpatialSeries(
             name=f"{label}SpatialSeries",
@@ -106,9 +93,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             resolution=np.nan,
         )
         pos_obj.add_spatial_series(spatial_series_object)
-        check_module(
-            nwbfile, "behavior", "contains processed behavioral data"
-        ).add_data_interface(pos_obj)
+        check_module(nwbfile, "behavior", "contains processed behavioral data").add_data_interface(pos_obj)
 
         lin_pos_obj = Position(name=f"{label}LinearizedPosition")
         lin_spatial_series_object = SpatialSeries(
@@ -123,16 +108,12 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             resolution=np.nan,
         )
         lin_pos_obj.add_spatial_series(lin_spatial_series_object)
-        check_module(
-            nwbfile, "behavior", "contains processed behavioral data"
-        ).add_data_interface(lin_pos_obj)
+        check_module(nwbfile, "behavior", "contains processed behavioral data").add_data_interface(lin_pos_obj)
 
         # Epochs
         epoch_names = list(pos_mat["position"]["Epochs"][0][0].dtype.names)
         epoch_windows = [
-            [float(start), float(stop)]
-            for x in pos_mat["position"]["Epochs"][0][0][0][0]
-            for start, stop in x
+            [float(start), float(stop)] for x in pos_mat["position"]["Epochs"][0][0][0][0] for start, stop in x
         ]
         nwbfile.add_epoch_column("label", "name of epoch")
         for j, epoch_name in enumerate(epoch_names):

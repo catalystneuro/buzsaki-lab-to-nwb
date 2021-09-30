@@ -36,9 +36,7 @@ celltype_dict = {
 max_shanks = 8
 
 
-def get_UnitFeatureCell_features(
-    fpath_base, session_id, session_path, max_shanks=max_shanks
-):
+def get_UnitFeatureCell_features(fpath_base, session_id, session_path, max_shanks=max_shanks):
     """Load features from matlab file. Handle occasional mismatches
 
     Parameters
@@ -56,9 +54,7 @@ def get_UnitFeatureCell_features(
 
     cols_to_get = ("fineCellType", "region", "unitID", "unitIDshank", "shank")
     matin = loadmat(
-        os.path.join(
-            fpath_base, "_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat"
-        ),
+        os.path.join(fpath_base, "_extra/DG_all_6/DG_all_6__UnitFeatureSummary_add.mat"),
         struct_as_record=False,
     )["UnitFeatureCell"][0][0]
 
@@ -72,14 +68,10 @@ def get_UnitFeatureCell_features(
         all_shanks.append(np.ones(len(ids), dtype=int) * shankn)
     np.hstack(all_ids)
     np.hstack(all_shanks)
-    clu_df = pd.DataFrame(
-        {"unitIDshank": np.hstack(all_ids), "shank": np.hstack(all_shanks)}
-    )
+    clu_df = pd.DataFrame({"unitIDshank": np.hstack(all_ids), "shank": np.hstack(all_shanks)})
 
     this_file = matin.fname == session_id
-    mat_df = pd.DataFrame(
-        {col: getattr(matin, col)[this_file].ravel() for col in cols_to_get}
-    )
+    mat_df = pd.DataFrame({col: getattr(matin, col)[this_file].ravel() for col in cols_to_get})
 
     return pd.merge(clu_df, mat_df, how="left", on=("unitIDshank", "shank"))
 
@@ -138,9 +130,7 @@ def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False
         if digit_stop:
             return int(out[:digit_stop])
         else:
-            print(
-                "invalid channel for " + exp_sheet_path + " " + str(date) + ": " + out
-            )
+            print("invalid channel for " + exp_sheet_path + " " + str(date) + ": " + out)
             return
 
     return out
@@ -211,14 +201,10 @@ def yuta2nwb(
         b = True
 
     if subject_xls is None:
-        subject_xls = os.path.join(
-            subject_path, "YM" + mouse_number + " exp_sheet.xlsx"
-        )
+        subject_xls = os.path.join(subject_path, "YM" + mouse_number + " exp_sheet.xlsx")
     else:
         if not subject_xls[-4:] == "xlsx":
-            subject_xls = os.path.join(
-                subject_xls, "YM" + mouse_number + " exp_sheet.xlsx"
-            )
+            subject_xls = os.path.join(subject_xls, "YM" + mouse_number + " exp_sheet.xlsx")
 
     session_start_time = dateparse(date_text, yearfirst=True)
 
@@ -272,9 +258,7 @@ def yuta2nwb(
 
     print("setting up electrodes...", end="", flush=True)
     hilus_csv_path = os.path.join(fpath_base, "early_session_hilus_chans.csv")
-    lfp_channel = get_reference_elec(
-        subject_xls, hilus_csv_path, session_start_time, session_id, b=b
-    )
+    lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start_time, session_id, b=b)
 
     custom_column = [
         {
@@ -283,30 +267,22 @@ def yuta2nwb(
             "data": all_shank_channels == lfp_channel,
         }
     ]
-    ns.write_electrode_table(
-        nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks
-    )
+    ns.write_electrode_table(nwbfile, session_path, custom_columns=custom_column, max_shanks=max_shanks)
 
     print("reading raw electrode data...", end="", flush=True)
     if stub:
         # example recording extractor for fast testing
         xml_filepath = os.path.join(session_path, session_id + ".xml")
         xml_root = et.parse(xml_filepath).getroot()
-        acq_sampling_frequency = float(
-            xml_root.find("acquisitionSystem").find("samplingRate").text
-        )
+        acq_sampling_frequency = float(xml_root.find("acquisitionSystem").find("samplingRate").text)
         num_channels = 4
         num_frames = 10000
         X = np.random.normal(0, 1, (num_channels, num_frames))
         geom = np.random.normal(0, 1, (num_channels, 2))
         X = (X * 100).astype(int)
-        sre = se.NumpyRecordingExtractor(
-            timeseries=X, sampling_frequency=acq_sampling_frequency, geom=geom
-        )
+        sre = se.NumpyRecordingExtractor(timeseries=X, sampling_frequency=acq_sampling_frequency, geom=geom)
     else:
-        nre = se.NeuroscopeRecordingExtractor(
-            "{}/{}.dat".format(session_path, session_id)
-        )
+        nre = se.NeuroscopeRecordingExtractor("{}/{}.dat".format(session_path, session_id))
         sre = se.SubRecordingExtractor(nre, channel_ids=all_shank_channels)
 
     print("writing raw electrode data...", end="", flush=True)
@@ -329,23 +305,17 @@ def yuta2nwb(
         se_allshanks = se.MultiSortingExtractor(allshanks)
         se_allshanks.set_sampling_frequency(acq_sampling_frequency)
     else:
-        se_allshanks = se.NeuroscopeMultiSortingExtractor(
-            session_path, keep_mua_units=False
-        )
+        se_allshanks = se.NeuroscopeMultiSortingExtractor(session_path, keep_mua_units=False)
 
     electrode_group = []
     for shankn in np.arange(1, nshanks + 1, dtype=int):
         for id in se_allshanks.sortings[shankn - 1].get_unit_ids():
             electrode_group.append(nwbfile.electrode_groups["shank" + str(shankn)])
 
-    df_unit_features = get_UnitFeatureCell_features(
-        fpath_base, session_id, session_path
-    )
+    df_unit_features = get_UnitFeatureCell_features(fpath_base, session_id, session_path)
 
     celltype_names = []
-    for celltype_id, region_id in zip(
-        df_unit_features["fineCellType"].values, df_unit_features["region"].values
-    ):
+    for celltype_id, region_id in zip(df_unit_features["fineCellType"].values, df_unit_features["region"].values):
         if celltype_id == 1:
             if region_id == 3:
                 celltype_names.append("pyramidal cell")
@@ -376,13 +346,9 @@ def yuta2nwb(
     }
     for unit_id in se_allshanks.get_unit_ids():
         for property_name in property_descriptions.keys():
-            se_allshanks.set_unit_property(
-                unit_id, property_name, property_values[property_name][unit_id]
-            )
+            se_allshanks.set_unit_property(unit_id, property_name, property_values[property_name][unit_id])
 
-    se.NwbSortingExtractor.write_sorting(
-        se_allshanks, nwbfile=nwbfile, property_descriptions=property_descriptions
-    )
+    se.NwbSortingExtractor.write_sorting(se_allshanks, nwbfile=nwbfile, property_descriptions=property_descriptions)
     print("done.")
 
     # Read and write LFP's
@@ -449,24 +415,18 @@ def yuta2nwb(
     decomp_series.add_band(band_name="theta", band_limits=(4, 10))
     decomp_series.add_band(band_name="gamma", band_limits=(30, 80))
 
-    check_module(
-        nwbfile, "ecephys", "contains processed extracellular electrophysiology data"
-    ).add_data_interface(decomp_series)
+    check_module(nwbfile, "ecephys", "contains processed extracellular electrophysiology data").add_data_interface(
+        decomp_series
+    )
 
     [nwbfile.add_stimulus(x) for x in ns.get_events(session_path)]
 
     # create epochs corresponding to experiments/environments for the mouse
 
-    sleep_state_fpath = os.path.join(
-        session_path, "{}--StatePeriod.mat".format(session_id)
-    )
+    sleep_state_fpath = os.path.join(session_path, "{}--StatePeriod.mat".format(session_id))
 
     exist_pos_data = any(
-        os.path.isfile(
-            os.path.join(
-                session_path, "{}__{}.mat".format(session_id, task_type["name"])
-            )
-        )
+        os.path.isfile(os.path.join(session_path, "{}__{}.mat".format(session_id, task_type["name"])))
         for task_type in task_types
     )
 
@@ -505,9 +465,7 @@ def yuta2nwb(
                     )
                     pos_obj.add_spatial_series(spatial_series_object)
 
-            check_module(
-                nwbfile, "behavior", "contains processed behavioral data"
-            ).add_data_interface(pos_obj)
+            check_module(nwbfile, "behavior", "contains processed behavioral data").add_data_interface(pos_obj)
             for i, window in enumerate(exp_times):
                 nwbfile.add_epoch(
                     start_time=window[0],
@@ -524,19 +482,14 @@ def yuta2nwb(
         trials_data = loadmat(trialdata_path)["EightMazeRun"]
 
         trialdatainfo_path = os.path.join(fpath_base, "EightMazeRunInfo.mat")
-        trialdatainfo = [
-            x[0] for x in loadmat(trialdatainfo_path)["EightMazeRunInfo"][0]
-        ]
+        trialdatainfo = [x[0] for x in loadmat(trialdatainfo_path)["EightMazeRunInfo"][0]]
 
         features = trialdatainfo[:7]
         features[:2] = (
             "start_time",
             "stop_time",
         )
-        [
-            nwbfile.add_trial_column(x, "description")
-            for x in features[4:] + ["condition"]
-        ]
+        [nwbfile.add_trial_column(x, "description") for x in features[4:] + ["condition"]]
 
         for trial_data in trials_data:
             if trial_data[3]:
@@ -578,9 +531,7 @@ def yuta2nwb(
                 data.append({"start_time": row[0], "stop_time": row[1], "label": name})
         [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
 
-        check_module(
-            nwbfile, "behavior", "contains behavioral data"
-        ).add_data_interface(table)
+        check_module(nwbfile, "behavior", "contains behavioral data").add_data_interface(table)
 
     print("writing NWB file...", end="", flush=True)
     if stub:
