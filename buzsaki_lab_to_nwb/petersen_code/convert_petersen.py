@@ -43,7 +43,9 @@ for session_path in convert_sessions:
     if raw_data_file_path.is_file():
         source_data.update(
             NeuroscopeRecording=dict(
-                file_path=str(raw_data_file_path), gain=conversion_factor, xml_file_path=xml_file_path
+                file_path=str(raw_data_file_path),
+                gain=conversion_factor,
+                xml_file_path=xml_file_path,
             )
         )
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
@@ -58,7 +60,7 @@ for session_path in convert_sessions:
 
     converter = PetersenNWBConverter(source_data)
     metadata = converter.get_metadata()
-    metadata['Subject'].update(weight=f"{subject_weight[subject_name]}g")
+    metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,

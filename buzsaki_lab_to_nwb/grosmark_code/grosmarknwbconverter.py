@@ -14,10 +14,12 @@ from dateutil.parser import parse as dateparse
 class GrosmarkNWBConverter(NWBConverter):
     """Primary conversion class for the GrosmarkAD dataset."""
 
-    data_interface_classes = {'BuzsakiNoRecording': BuzsakiNoRecording,
-                               # 'NeuroscopeSorting': NeuroscopeSortingInterface,
-                              'GrosmarkLFP': GrosmarkLFPInterface,
-                              'GrosmarkBehavior': GrosmarkBehaviorInterface}
+    data_interface_classes = {
+        "BuzsakiNoRecording": BuzsakiNoRecording,
+        # 'NeuroscopeSorting': NeuroscopeSortingInterface,
+        "GrosmarkLFP": GrosmarkLFPInterface,
+        "GrosmarkBehavior": GrosmarkBehaviorInterface,
+    }
 
     def __init__(self, **input_args):
         self._recording_type = "BuzsakiNoRecording"
