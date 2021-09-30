@@ -6,11 +6,7 @@ import os
 base_path = Path("D:/BuzsakiData/GrosmarkAD")
 mice_names = ["Achilles", "Buddy", "Cicero", "Gatsby"]
 
-convert_sessions = [
-    session
-    for mouse_name in mice_names
-    for session in (base_path / Path(mouse_name)).iterdir()
-]
+convert_sessions = [session for mouse_name in mice_names for session in (base_path / Path(mouse_name)).iterdir()]
 
 experimenter = "Andres Grosmark"
 paper_descr = "This data set is composed of eight bilateral silicon-probe multi-cellular electrophysiological "
@@ -80,9 +76,7 @@ for session_path in convert_sessions:
     # No age information reported in either publication, not available on dataset or site
 
     f"see {session_id}.xml or {session_id}.sessionInfo.mat for more information"
-    metadata[grosmark_converter.get_recording_type()]["Ecephys"]["Device"][0].update(
-        description=device_descr
-    )
+    metadata[grosmark_converter.get_recording_type()]["Ecephys"]["Device"][0].update(description=device_descr)
     metadata[grosmark_converter.get_recording_type()]["Ecephys"]["Electrodes"].append(
         dict(
             name="bad_electrode",
@@ -90,18 +84,10 @@ for session_path in convert_sessions:
             "low-amplitude or instabilities.",
             data=[
                 x in bad_electrodes[session_id]
-                for x in range(
-                    len(
-                        metadata[grosmark_converter.get_recording_type()]["Ecephys"][
-                            "subset_channels"
-                        ]
-                    )
-                )
+                for x in range(len(metadata[grosmark_converter.get_recording_type()]["Ecephys"]["subset_channels"]))
             ],
         )
     )
 
     nwbfile_path = os.path.join(folder_path, f"{session_id}_stub.nwb")
-    grosmark_converter.run_conversion(
-        nwbfile_path=nwbfile_path, metadata_dict=metadata, stub_test=True
-    )
+    grosmark_converter.run_conversion(nwbfile_path=nwbfile_path, metadata_dict=metadata, stub_test=True)

@@ -29,18 +29,12 @@ class GrosmarkLFPInterface(BaseDataInterface):
 
         shank_channels = [
             [int(channel.text) for channel in group.find("channels")]
-            for group in root.find("spikeDetection")
-            .find("channelGroups")
-            .findall("group")
+            for group in root.find("spikeDetection").find("channelGroups").findall("group")
         ]
         all_shank_channels = np.concatenate(shank_channels)
         all_shank_channels.sort()
-        lfp_sampling_rate = float(
-            root.find("fieldPotentials").find("lfpSamplingRate").text
-        )
-        spikes_nsamples = int(
-            root.find("neuroscope").find("spikes").find("nSamples").text
-        )
+        lfp_sampling_rate = float(root.find("fieldPotentials").find("lfpSamplingRate").text)
+        spikes_nsamples = int(root.find("neuroscope").find("spikes").find("nSamples").text)
 
         subject_path, session_id = os.path.split(session_path)
 
@@ -48,9 +42,7 @@ class GrosmarkLFPInterface(BaseDataInterface):
         try:
             lfp_data = all_channels_lfp_data[:, all_shank_channels]
         except IndexError:
-            warnings.warn(
-                "Encountered indexing issue for all_shank_channels on lfp_data subsetting; using entire lfp!"
-            )
+            warnings.warn("Encountered indexing issue for all_shank_channels on lfp_data subsetting; using entire lfp!")
             lfp_data = all_channels_lfp_data
         write_lfp(
             nwbfile,
