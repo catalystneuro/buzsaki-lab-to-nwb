@@ -9,8 +9,8 @@ from pynwb import NWBFile, TimeSeries
 from pynwb.misc import DecompositionSeries
 from nwb_conversion_tools import NeuroscopeLFPInterface
 
-from ..band_analysis import filter_lfp, hilbert_lfp
-from ..neuroscope import read_lfp, check_module
+from ..utils.band_analysis import filter_lfp, hilbert_lfp
+from ..utils.neuroscope import read_lfp, check_module
 
 
 def get_reference_elec(exp_sheet_path, hilus_csv_path, date, session_id, b=False):
