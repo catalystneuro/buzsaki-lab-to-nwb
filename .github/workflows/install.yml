@@ -23,7 +23,7 @@ jobs:
       run: |
         pip install .
     - name: Test module load
-      - uses: jannekem/run-python-script-action@v1
-        with:
-          script: |
-            import buzsaki_lab_to_nwb
+      uses: jannekem/run-python-script-action@v1
+      with:
+        script: |
+          import buzsaki_lab_to_nwb
