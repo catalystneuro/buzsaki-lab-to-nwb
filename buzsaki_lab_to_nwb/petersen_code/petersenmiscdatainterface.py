@@ -5,12 +5,10 @@ from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matl
 import pandas as pd
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
-from nwb_conversion_tools.conversion_tools import check_regular_timestamps
+from nwb_conversion_tools.utils.conversion_tools import check_regular_timestamps, get_module
 from pynwb import NWBFile, TimeSeries
 from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
-
-from ..neuroscope import check_module
 
 # TODO for future draft - Add acquisition of raw position from Take files (meters) or Optitrack (cm)
 # Use edges of trials.state time series to define pre-cooling, cooling, and post-cooling epochs
@@ -113,7 +111,7 @@ class PetersenMiscInterface(BaseDataInterface):
         animal_file_path = session_path / "animal.mat"
 
         if animal_file_path.is_file():
-            behavioral_processing_module = check_module(
+            behavioral_processing_module = get_module(
                 nwbfile, "behavior", "Contains processed behavioral data."
             )
 

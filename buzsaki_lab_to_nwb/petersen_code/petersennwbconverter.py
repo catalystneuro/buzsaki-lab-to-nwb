@@ -1,37 +1,75 @@
 """Authors: Cody Baker and Ben Dichter."""
 from datetime import datetime
 from pathlib import Path
-from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matlab files
-import numpy as np
+from typing import Optional
 
-from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import (
-    NeuroscopeLFPInterface,
+import numpy as np
+from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matlab files
+
+from nwb_conversion_tools import (
+    NWBConverter,
     NeuroscopeRecordingInterface,
-)
-from nwb_conversion_tools.datainterfaces.phydatainterface import PhySortingInterface
-from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import (
+    NeuroscopeLFPInterface,
+    PhySortingInterface,
     CellExplorerSortingInterface,
+)
+from nwb_conversion_tools.utils.json_schema import FilePathType, OptionalFilePathType
+from nwb_conversion_tools.datainterfaces.ecephys.neuroscope.neuroscopedatainterface import (
+    get_xml_file_path, get_shank_channels
 )
 
 from .petersenmiscdatainterface import PetersenMiscInterface
+
+
+class PetersenNeuroscopeRecordingInterface(NeuroscopeRecordingInterface):
+    """Temporary RecordingInterface until next nwbct version."""
+
+    def __init__(
+        self, file_path: FilePathType, gain: Optional[float] = None, xml_file_path: OptionalFilePathType = None
+    ):
+        super(NeuroscopeRecordingInterface, self).__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path)
+        if xml_file_path is None:
+            xml_file_path = get_xml_file_path(data_file_path=self.source_data["file_path"])
+        self.subset_channels = get_shank_channels(xml_file_path=xml_file_path, sort=True)
+        shank_channels = get_shank_channels(xml_file_path)
+        group_electrode_numbers = [x for channels in shank_channels for x, _ in enumerate(channels)]
+        group_names = [f"shank{n + 1}" for n, channels in enumerate(shank_channels) for _ in channels]
+        for channel_id, group_electrode_number, group_name in zip(
+            self.recording_extractor.get_channel_ids(), group_electrode_numbers, group_names
+        ):
+            self.recording_extractor.set_channel_property(
+                channel_id=channel_id, property_name="shank_electrode_number", value=group_electrode_number
+            )
+            self.recording_extractor.set_channel_property(
+                channel_id=channel_id, property_name="group_name", value=group_name
+            )
+
+
+class PetersenNeuroscopeLFPInterface(NeuroscopeLFPInterface):
+    """Temporary RecordingInterface until next nwbct version."""
+
+    def __init__(
+        self, file_path: FilePathType, gain: Optional[float] = None, xml_file_path: OptionalFilePathType = None
+    ):
+        super(NeuroscopeLFPInterface, self).__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path)
+        self.subset_channels = get_shank_channels(
+            xml_file_path=get_xml_file_path(data_file_path=self.source_data["file_path"]), sort=True
+        )
 
 
 class PetersenNWBConverter(NWBConverter):
     """Primary conversion class for the PetersenP dataset."""
 
     data_interface_classes = dict(
-        NeuroscopeRecording=NeuroscopeRecordingInterface,
+        NeuroscopeRecording=PetersenNeuroscopeRecordingInterface,
         PhySorting=PhySortingInterface,
         CellExplorer=CellExplorerSortingInterface,
-        NeuroscopeLFP=NeuroscopeLFPInterface,
+        NeuroscopeLFP=PetersenNeuroscopeLFPInterface,
         PetersenMisc=PetersenMiscInterface,
     )
 
     def get_metadata(self):
-        lfp_file_path = Path(
-            self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"]
-        )
+        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
         session_path = lfp_file_path.parent
         session_id = lfp_file_path.stem
         if "-" in session_id:
@@ -83,25 +121,19 @@ class PetersenNWBConverter(NWBConverter):
             )
         )
 
-        if "Ecephys" not in metadata:  # If NeuroscopeRecording was not in source_data
+        # If NeuroscopeRecording/LFP was not in source_data
+        if "Ecephys" not in metadata:
             session_path = lfp_file_path.parent
             xml_file_path = str(session_path / f"{session_id}.xml")
             metadata.update(
-                NeuroscopeRecordingInterface.get_ecephys_metadata(
-                    xml_file_path=xml_file_path
-                )
+                Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path)
             )
 
         metadata["Ecephys"]["Device"][0].update(description=device_descr)
         theta_ref = np.array(
-            [False]
-            * self.data_interface_objects[
-                "NeuroscopeLFP"
-            ].recording_extractor.get_num_channels()
+            [False] * self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_num_channels()
         )
-        theta_ref[
-            int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1
-        ] = 1  # -1 from Matlab indexing
+        theta_ref[int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1] = 1  # -1 from Matlab indexing
         metadata["Ecephys"]["Electrodes"].append(
             dict(
                 name="theta_reference",
@@ -109,5 +141,4 @@ class PetersenNWBConverter(NWBConverter):
                 data=list(theta_ref),
             )
         )
-
         return metadata
