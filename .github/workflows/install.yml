@@ -15,10 +15,15 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.7
     - name: Install pip
       run: |
         python -m pip install --upgrade pip
     - name: Install package
       run: |
         pip install .
+    - name: Test module load
+      - uses: jannekem/run-python-script-action@v1
+        with:
+          script: |
+            import buzsaki_lab_to_nwb
