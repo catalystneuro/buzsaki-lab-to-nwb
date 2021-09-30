@@ -30,9 +30,7 @@ def parse_passband(passband):
     return passband
 
 
-def filter_lfp(
-    lfp, sampling_rate=1250.0, passband="theta", order=4, filter="butter", ripple=20
-):
+def filter_lfp(lfp, sampling_rate=1250.0, passband="theta", order=4, filter="butter", ripple=20):
     """Apply a passband filter a signal. Butter is implemented but other
     filters are not.
 

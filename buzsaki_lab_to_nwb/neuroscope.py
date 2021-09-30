@@ -94,16 +94,12 @@ def get_channel_groups(session_path: str, xml_filepath: Optional[str] = None):
         fpath_base, fname = os.path.split(session_path)
         xml_filepath = os.path.join(session_path, fname + ".xml")
 
-    assert os.path.isfile(xml_filepath), (
-        "No .xml file found at the path location!" "Unable to retrieve channel_groups."
-    )
+    assert os.path.isfile(xml_filepath), "No .xml file found at the path location!" "Unable to retrieve channel_groups."
 
     root = load_xml(xml_filepath)
     channel_groups = [
         [int(channel.text) for channel in group.findall("channel")]
-        for group in root.find("anatomicalDescription")
-        .find("channelGroups")
-        .findall("group")
+        for group in root.find("anatomicalDescription").find("channelGroups").findall("group")
     ]
 
     return channel_groups
@@ -128,9 +124,7 @@ def get_shank_channels(session_path: str, xml_filepath: Optional[str] = None):
         fpath_base, fname = os.path.split(session_path)
         xml_filepath = os.path.join(session_path, fname + ".xml")
 
-    assert os.path.isfile(xml_filepath), (
-        "No .xml file found at the path location!" "Unable to retrieve shank_channels."
-    )
+    assert os.path.isfile(xml_filepath), "No .xml file found at the path location!" "Unable to retrieve shank_channels."
 
     root = load_xml(xml_filepath)
     shank_channels = [
@@ -160,8 +154,7 @@ def get_lfp_sampling_rate(session_path: str, xml_filepath: Optional[str] = None)
         xml_filepath = os.path.join(session_path, session_name + ".xml")
 
     assert os.path.isfile(xml_filepath), (
-        "No .xml file found at the path location!"
-        "Unable to retrieve lfp_sampling_rate."
+        "No .xml file found at the path location!" "Unable to retrieve lfp_sampling_rate."
     )
 
     root = load_xml(xml_filepath)
@@ -366,16 +359,10 @@ def write_electrode_table(
     shank_channels = get_shank_channels(session_path)
     if max_shanks:
         shank_channels = shank_channels[:max_shanks]
-    nwbfile.add_electrode_column(
-        "shank_electrode_number", "1-indexed channel within a shank"
-    )
-    nwbfile.add_electrode_column(
-        "amp_channel", "order in which the channels were plugged into amp"
-    )
+    nwbfile.add_electrode_column("shank_electrode_number", "1-indexed channel within a shank")
+    nwbfile.add_electrode_column("amp_channel", "order in which the channels were plugged into amp")
     for custom_column in custom_columns:
-        nwbfile.add_electrode_column(
-            custom_column["name"], custom_column["description"]
-        )
+        nwbfile.add_electrode_column(custom_column["name"], custom_column["description"])
 
     device = nwbfile.create_device("implant", fname + ".xml")
     for shankn, channels in enumerate(shank_channels):
@@ -407,10 +394,7 @@ def write_electrode_table(
             else:
                 filtering = filterings[amp_channel]
 
-            custom_data = {
-                custom_col["name"]: custom_col["data"][amp_channel]
-                for custom_col in custom_columns
-            }
+            custom_data = {custom_col["name"]: custom_col["data"][amp_channel] for custom_col in custom_columns}
 
             nwbfile.add_electrode(
                 float(pos[0]),
@@ -422,7 +406,7 @@ def write_electrode_table(
                 group=electrode_group,
                 amp_channel=amp_channel,
                 shank_electrode_number=shank_electrode_number,
-                **custom_data
+                **custom_data,
             )
 
 
@@ -446,19 +430,16 @@ def read_lfp(session_path: str, stub: bool = False):
     n_channels = sum(len(x) for x in get_channel_groups(session_path))
 
     assert os.path.isfile(lfp_filepath), (
-        "No .eeg file found at the path location!"
-        "Unable to retrieve all_channels_data."
+        "No .eeg file found at the path location!" "Unable to retrieve all_channels_data."
     )
 
     if stub:
         max_size = 50
-        all_channels_data = np.fromfile(
-            lfp_filepath, dtype=np.int16, count=max_size * n_channels
-        ).reshape(-1, n_channels)
-    else:
-        all_channels_data = np.fromfile(lfp_filepath, dtype=np.int16).reshape(
+        all_channels_data = np.fromfile(lfp_filepath, dtype=np.int16, count=max_size * n_channels).reshape(
             -1, n_channels
         )
+    else:
+        all_channels_data = np.fromfile(lfp_filepath, dtype=np.int16).reshape(-1, n_channels)
 
     return lfp_fs, all_channels_data
 
@@ -489,20 +470,14 @@ def write_lfp(
 
     """
     if electrode_inds is None:
-        if nwbfile.electrodes is not None and data.shape[1] <= len(
-            nwbfile.electrodes.id.data[:]
-        ):
+        if nwbfile.electrodes is not None and data.shape[1] <= len(nwbfile.electrodes.id.data[:]):
             electrode_inds = list(range(data.shape[1]))
         else:
             electrode_inds = list(range(len(nwbfile.electrodes.id.data[:])))
 
-    table_region = nwbfile.create_electrode_table_region(
-        electrode_inds, "electrode table reference"
-    )
+    table_region = nwbfile.create_electrode_table_region(electrode_inds, "electrode table reference")
     data = H5DataIO(
-        DataChunkIterator(
-            tqdm(data, desc="writing lfp data"), buffer_size=int(fs * 3600)
-        ),
+        DataChunkIterator(tqdm(data, desc="writing lfp data"), buffer_size=int(fs * 3600)),
         compression="gzip",
     )
     lfp_electrical_series = ElectricalSeries(
@@ -584,23 +559,16 @@ def get_events(session_path: str, suffixes: Iterable[int] = None):
             if len(df):
                 timestamps = df.values[:, 0].astype(float) / 1000
                 data = df["desc"].values
-                annotation_series = AnnotationSeries(
-                    name=name, data=data, timestamps=timestamps
-                )
+                annotation_series = AnnotationSeries(name=name, data=data, timestamps=timestamps)
                 out.append(annotation_series)
         else:
-            print(
-                "Warning: No .evt file found at the path location!"
-                "Unable to retrieve annotation_series."
-            )
+            print("Warning: No .evt file found at the path location!" "Unable to retrieve annotation_series.")
             out = None
 
     return out
 
 
-def write_events(
-    nwbfile: NWBFile, session_path: str, suffixes: Iterable[str], module=None
-):
+def write_events(nwbfile: NWBFile, session_path: str, suffixes: Iterable[str], module=None):
     """Write the event information from Neurscope into the NWBFile.
 
     Parameters
@@ -633,15 +601,10 @@ def write_events(
             if len(df):
                 timestamps = df.values[:, 0].astype(float) / 1000
                 data = df["desc"].values
-                annotation_series = AnnotationSeries(
-                    name=name, data=data, timestamps=timestamps
-                )
+                annotation_series = AnnotationSeries(name=name, data=data, timestamps=timestamps)
                 module.add_data_interface(annotation_series)
         else:
-            print(
-                "Warning: No .evt file found at the path location!"
-                "Unable to write annotation_series."
-            )
+            print("Warning: No .evt file found at the path location!" "Unable to write annotation_series.")
 
 
 def write_spike_waveforms(
@@ -703,16 +666,13 @@ def write_spike_waveforms_single_shank(
     session_name = os.path.split(session_path)[1]
     spk_file = os.path.join(session_path, session_name + ".spk.{}".format(shankn))
 
-    assert os.path.isfile(spk_file), (
-        "No .spk.{} file found at the path location!"
-        "Unable to retrieve spike waveforms.".format(shankn)
-    )
+    assert os.path.isfile(
+        spk_file
+    ), "No .spk.{} file found at the path location!" "Unable to retrieve spike waveforms.".format(shankn)
 
     group = nwbfile.electrode_groups["shank{}".format(shankn)]
     elec_idx = list(np.where(np.array(nwbfile.ec_electrodes["group"]) == group)[0])
-    table_region = nwbfile.create_electrode_table_region(
-        elec_idx, group.name + " region"
-    )
+    table_region = nwbfile.create_electrode_table_region(elec_idx, group.name + " region")
 
     if stub_test:
         n_stub_spikes = 50
@@ -723,9 +683,7 @@ def write_spike_waveforms_single_shank(
         ).reshape(n_stub_spikes, spikes_nsamples, nchan_on_shank)
         spk_times = read_spike_times(session_path, shankn)[:n_stub_spikes]
     else:
-        spks = np.fromfile(spk_file, dtype=np.int16).reshape(
-            -1, spikes_nsamples, nchan_on_shank
-        )
+        spks = np.fromfile(spk_file, dtype=np.int16).reshape(-1, spikes_nsamples, nchan_on_shank)
         spk_times = read_spike_times(session_path, shankn)
 
     if compression:

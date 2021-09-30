@@ -39,10 +39,7 @@ class YutaBehaviorInterface(BaseDataInterface):
         sleep_state_fpath = session_path / f"{session_id}--StatePeriod.mat"
 
         exist_pos_data = any(
-            [
-                (session_path / "{session_id}__{task_type['name']}.mat").is_file()
-                for task_type in task_types
-            ]
+            [(session_path / "{session_id}__{task_type['name']}.mat").is_file() for task_type in task_types]
         )
         if exist_pos_data:
             nwbfile.add_epoch_column("label", "Name of epoch.")
@@ -78,9 +75,7 @@ class YutaBehaviorInterface(BaseDataInterface):
                         )
                         pos_obj.add_spatial_series(spatial_series_object)
 
-                check_module(
-                    nwbfile, "behavior", "Contains processed behavioral data."
-                ).add_data_interface(pos_obj)
+                check_module(nwbfile, "behavior", "Contains processed behavioral data.").add_data_interface(pos_obj)
                 for i, window in enumerate(exp_times):
                     nwbfile.add_epoch(
                         start_time=window[0],
@@ -94,19 +89,14 @@ class YutaBehaviorInterface(BaseDataInterface):
             trials_data = loadmat(trialdata_path)["EightMazeRun"]
 
             trialdatainfo_path = subject_path / "EightMazeRunInfo.mat"
-            trialdatainfo = [
-                x[0] for x in loadmat(trialdatainfo_path)["EightMazeRunInfo"][0]
-            ]
+            trialdatainfo = [x[0] for x in loadmat(trialdatainfo_path)["EightMazeRunInfo"][0]]
 
             features = trialdatainfo[:7]
             features[:2] = (
                 "start_time",
                 "stop_time",
             )
-            [
-                nwbfile.add_trial_column(x, "description")
-                for x in features[4:] + ["condition"]
-            ]
+            [nwbfile.add_trial_column(x, "description") for x in features[4:] + ["condition"]]
 
             for trial_data in trials_data:
                 if trial_data[3]:
@@ -131,10 +121,5 @@ class YutaBehaviorInterface(BaseDataInterface):
             for name in matin.dtype.names:
                 for row in matin[name][0][0]:
                     data.append(dict(start_time=row[0], stop_time=row[1], label=name))
-            [
-                table.add_row(**row)
-                for row in sorted(data, key=lambda x: x["start_time"])
-            ]
-            check_module(
-                nwbfile, "behavior", "Contains behavioral data."
-            ).add_data_interface(table)
+            [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+            check_module(nwbfile, "behavior", "Contains behavioral data.").add_data_interface(table)
