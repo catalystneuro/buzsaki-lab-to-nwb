@@ -9,7 +9,7 @@ from pynwb.file import TimeIntervals
 from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 
-from ..neuroscope import get_events, find_discontinuities, check_module
+from ..utils.neuroscope import get_events, find_discontinuities, check_module
 
 
 class YutaBehaviorInterface(BaseDataInterface):

@@ -10,7 +10,7 @@ from pathlib import Path
 from scipy.io import loadmat
 import warnings
 
-from ..neuroscope import get_events, check_module
+from ..utils.neuroscope import get_events, check_module
 
 
 class GrosmarkBehaviorInterface(BaseDataInterface):

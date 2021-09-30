@@ -6,7 +6,7 @@ import warnings
 from lxml import etree as et
 import numpy as np
 
-from ..neuroscope import read_lfp, write_lfp, write_spike_waveforms
+from ..utils.neuroscope import read_lfp, write_lfp, write_spike_waveforms
 
 
 class GrosmarkLFPInterface(BaseDataInterface):

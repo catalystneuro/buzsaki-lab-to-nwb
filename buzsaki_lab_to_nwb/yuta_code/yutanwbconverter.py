@@ -12,10 +12,10 @@ from nwb_conversion_tools import (
     NeuroscopeSortingInterface,
 )
 
-from ..neuroscope import get_clusters_single_shank, read_spike_clustering
 from .yutalfpdatainterface import YutaLFPInterface, get_reference_elec
 from .yutapositiondatainterface import YutaPositionInterface
 from .yutabehaviordatainterface import YutaBehaviorInterface
+from ..utils.neuroscope import get_clusters_single_shank, read_spike_clustering
 
 
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):

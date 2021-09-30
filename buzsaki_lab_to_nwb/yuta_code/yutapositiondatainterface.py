@@ -2,7 +2,7 @@
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
 
-from ..neuroscope import add_position_data
+from ..utils.neuroscope import add_position_data
 
 
 class YutaPositionInterface(BaseDataInterface):
