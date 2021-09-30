@@ -21,6 +21,6 @@ setup(
     author="Ben Dichter, Cody Baker, and Luiz Tauffer",
     author_email="ben.dichter@gmail.com",
     url="https://github.com/catalystneuro/buzsaki-lab-to-nwb",
-    python_requires=">=3.8",
+    python_requires=">=3.7",
     install_requires=install_requires,
 )
