@@ -34,9 +34,7 @@ for session_path in convert_sessions:
     raw_data_file_path = session_path / f"{session_id}.dat"
 
     source_data = dict(
-        NeuroscopeLFP=dict(
-            file_path=lfp_file_path, gain=conversion_factor, xml_file_path=xml_file_path
-        ),
+        NeuroscopeLFP=dict(file_path=lfp_file_path, gain=conversion_factor, xml_file_path=xml_file_path),
         PetersenMisc=dict(folder_path=folder_path),
     )
     conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
@@ -51,9 +49,7 @@ for session_path in convert_sessions:
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
 
     # Sessions contain either no sorting data of any kind, Phy format, or incomplete CellExplorer format
-    kilo_dirs = [
-        x for x in session_path.iterdir() if x.is_dir() and "Kilosort" in x.name
-    ]
+    kilo_dirs = [x for x in session_path.iterdir() if x.is_dir() and "Kilosort" in x.name]
     if len(kilo_dirs) == 1:
         source_data.update(PhySorting=dict(folder_path=str(kilo_dirs[0])))
         conversion_options.update(PhySorting=dict(stub_test=stub_test))
