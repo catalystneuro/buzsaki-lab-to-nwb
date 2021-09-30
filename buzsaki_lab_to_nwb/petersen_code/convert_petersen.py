@@ -3,8 +3,8 @@ from pathlib import Path
 
 from buzsaki_lab_to_nwb import PetersenNWBConverter
 
-base_path = Path("D:/BuzsakiData/PetersenP")
-#base_path = Path("/mnt/scrap/cbaker239/PetersenP")
+base_path = Path("E:/BuzsakiData/PetersenP")
+# base_path = Path("/mnt/scrap/cbaker239/PetersenP")  # for smaug
 exclude_mice = ["MS12"]
 convert_sessions = [
     session
@@ -24,6 +24,8 @@ for session_path in convert_sessions:
     session_id = session_path.name
     print(f"Converting session {session_id}...")
 
+    nwbfile_path = str((base_path / f"{session_id}_stub.nwb"))
+
     # There is a potentially useful amplifier.xml file, so need to specify which to use for other recordings
     xml_file_path = str(session_path / f"{session_id}.xml")
     lfp_file_path = str(session_path / f"{session_id}.lfp")
@@ -39,9 +41,7 @@ for session_path in convert_sessions:
     if raw_data_file_path.is_file():
         source_data.update(
             NeuroscopeRecording=dict(
-                file_path=str(raw_data_file_path),
-                gain=conversion_factor,
-                xml_file_path=xml_file_path
+                file_path=str(raw_data_file_path), gain=conversion_factor, xml_file_path=xml_file_path
             )
         )
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
@@ -49,14 +49,12 @@ for session_path in convert_sessions:
     # Sessions contain either no sorting data of any kind, Phy format, or incomplete CellExplorer format
     kilo_dirs = [x for x in session_path.iterdir() if x.is_dir() and "Kilosort" in x.name]
     if len(kilo_dirs) == 1:
-        source_data.update(PhySorting=dict(folder_path=str(kilo_dirs[0])))  # has a load_waveform option now too...
+        source_data.update(PhySorting=dict(folder_path=str(kilo_dirs[0])))
         conversion_options.update(PhySorting=dict(stub_test=stub_test))
 
     converter = PetersenNWBConverter(source_data)
     metadata = converter.get_metadata()
-    # Session specific info
     metadata['Subject'].update(weight=f"{subject_weight[subject_name]}g")
-    nwbfile_path = str((base_path / f"{session_id}_stub.nwb"))
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,

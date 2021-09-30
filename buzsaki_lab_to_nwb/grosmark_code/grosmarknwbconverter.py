@@ -1,5 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
-from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
+from nwb_conversion_tools import NWBConverter, NeuroscopeSortingInterface
 from .grosmarklfpdatainterface import GrosmarkLFPInterface
 from .grosmarkbehaviordatainterface import GrosmarkBehaviorInterface
 from ..buzsakinorecording import BuzsakiNoRecording
@@ -15,7 +15,7 @@ class GrosmarkNWBConverter(NWBConverter):
     """Primary conversion class for the GrosmarkAD dataset."""
 
     data_interface_classes = {'BuzsakiNoRecording': BuzsakiNoRecording,
-                              # 'NeuroscopeSorting': neuroscopedatainterface.NeuroscopeSortingInterface,
+                               # 'NeuroscopeSorting': NeuroscopeSortingInterface,
                               'GrosmarkLFP': GrosmarkLFPInterface,
                               'GrosmarkBehavior': GrosmarkBehaviorInterface}
 
