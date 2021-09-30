@@ -21,7 +21,7 @@ jobs:
         python -m pip install --upgrade pip
     - name: Install package
       run: |
-        pip install -e buzsaki_lab_to_nwb
+        pip install -e .
     - name: Test module load
       uses: jannekem/run-python-script-action@v1
       with:
