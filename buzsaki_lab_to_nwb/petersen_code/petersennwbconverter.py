@@ -31,25 +31,13 @@ class PetersenNeuroscopeRecordingInterface(NeuroscopeRecordingInterface):
         gain: Optional[float] = None,
         xml_file_path: OptionalFilePathType = None,
     ):
-        super(NeuroscopeRecordingInterface, self).__init__(
-            file_path=file_path, gain=gain, xml_file_path=xml_file_path
-        )
+        super(NeuroscopeRecordingInterface, self).__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path)
         if xml_file_path is None:
-            xml_file_path = get_xml_file_path(
-                data_file_path=self.source_data["file_path"]
-            )
-        self.subset_channels = get_shank_channels(
-            xml_file_path=xml_file_path, sort=True
-        )
+            xml_file_path = get_xml_file_path(data_file_path=self.source_data["file_path"])
+        self.subset_channels = get_shank_channels(xml_file_path=xml_file_path, sort=True)
         shank_channels = get_shank_channels(xml_file_path)
-        group_electrode_numbers = [
-            x for channels in shank_channels for x, _ in enumerate(channels)
-        ]
-        group_names = [
-            f"shank{n + 1}"
-            for n, channels in enumerate(shank_channels)
-            for _ in channels
-        ]
+        group_electrode_numbers = [x for channels in shank_channels for x, _ in enumerate(channels)]
+        group_names = [f"shank{n + 1}" for n, channels in enumerate(shank_channels) for _ in channels]
         for channel_id, group_electrode_number, group_name in zip(
             self.recording_extractor.get_channel_ids(),
             group_electrode_numbers,
@@ -74,13 +62,9 @@ class PetersenNeuroscopeLFPInterface(NeuroscopeLFPInterface):
         gain: Optional[float] = None,
         xml_file_path: OptionalFilePathType = None,
     ):
-        super(NeuroscopeLFPInterface, self).__init__(
-            file_path=file_path, gain=gain, xml_file_path=xml_file_path
-        )
+        super(NeuroscopeLFPInterface, self).__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path)
         self.subset_channels = get_shank_channels(
-            xml_file_path=get_xml_file_path(
-                data_file_path=self.source_data["file_path"]
-            ),
+            xml_file_path=get_xml_file_path(data_file_path=self.source_data["file_path"]),
             sort=True,
         )
 
@@ -97,9 +81,7 @@ class PetersenNWBConverter(NWBConverter):
     )
 
     def get_metadata(self):
-        lfp_file_path = Path(
-            self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"]
-        )
+        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
         session_path = lfp_file_path.parent
         session_id = lfp_file_path.stem
         if "-" in session_id:
@@ -129,11 +111,7 @@ class PetersenNWBConverter(NWBConverter):
 
         metadata = super().get_metadata()
         metadata["NWBFile"].update(
-            experimenter=[
-                y[0][0]
-                for x in session_info["general"]["experimenters"]
-                for y in x[0][0]
-            ],
+            experimenter=[y[0][0] for x in session_info["general"]["experimenters"] for y in x[0][0]],
             session_start_time=session_start.astimezone(),
             session_id=session_id,
             institution="NYU",
@@ -155,22 +133,13 @@ class PetersenNWBConverter(NWBConverter):
         if "Ecephys" not in metadata:
             session_path = lfp_file_path.parent
             xml_file_path = str(session_path / f"{session_id}.xml")
-            metadata.update(
-                Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(
-                    xml_file_path=xml_file_path
-                )
-            )
+            metadata.update(Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
 
         metadata["Ecephys"]["Device"][0].update(description=device_descr)
         theta_ref = np.array(
-            [False]
-            * self.data_interface_objects[
-                "NeuroscopeLFP"
-            ].recording_extractor.get_num_channels()
+            [False] * self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_num_channels()
         )
-        theta_ref[
-            int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1
-        ] = 1  # -1 from Matlab indexing
+        theta_ref[int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1] = 1  # -1 from Matlab indexing
         metadata["Ecephys"]["Electrodes"].append(
             dict(
                 name="theta_reference",
