@@ -13,5 +13,5 @@ class YutaPositionInterface(BaseDataInterface):
         return dict(properties=dict(folder_path=dict(type="string")))
 
     def run_conversion(self, nwbfile: NWBFile, metadata_dict: dict):
-        session_path = self.source_data['folder_path']
+        session_path = self.source_data["folder_path"]
         add_position_data(nwbfile, session_path)
