@@ -21,10 +21,9 @@ from ..utils.neuroscope import get_clusters_single_shank, read_spike_clustering
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     """Load features from matlab file. Handle occasional mismatches."""
     cols_to_get = ("fineCellType", "region", "unitID", "unitIDshank", "shank")
-    matin = loadmat(
-        str(fpath_base / "DGProject/DG_all_6__UnitFeatureSummary_add.mat"),
-        struct_as_record=False,
-    )["UnitFeatureCell"][0][0]
+    matin = loadmat(str(fpath_base / "DGProject/DG_all_6__UnitFeatureSummary_add.mat"), struct_as_record=False,)[
+        "UnitFeatureCell"
+    ][0][0]
 
     all_ids = []
     all_shanks = []
@@ -35,14 +34,10 @@ def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
         all_shanks.append(np.ones(len(ids), dtype=int) * shankn)
     np.hstack(all_ids)
     np.hstack(all_shanks)
-    clu_df = pd.DataFrame(
-        {"unitIDshank": np.hstack(all_ids), "shank": np.hstack(all_shanks)}
-    )
+    clu_df = pd.DataFrame({"unitIDshank": np.hstack(all_ids), "shank": np.hstack(all_shanks)})
 
     this_file = matin.fname == session_id
-    mat_df = pd.DataFrame(
-        {col: getattr(matin, col)[this_file].ravel() for col in cols_to_get}
-    )
+    mat_df = pd.DataFrame({col: getattr(matin, col)[this_file].ravel() for col in cols_to_get})
 
     return pd.merge(clu_df, mat_df, how="left", on=("unitIDshank", "shank"))
 
@@ -59,9 +54,7 @@ class YutaNWBConverter(NWBConverter):
     )
 
     def get_metadata(self):
-        session_path = Path(
-            self.data_interface_objects["NeuroscopeSorting"].source_data["folder_path"]
-        )
+        session_path = Path(self.data_interface_objects["NeuroscopeSorting"].source_data["folder_path"])
         subject_path = session_path.parent
         session_id = session_path.stem
         mouse_number = session_id[-9:-7]
@@ -104,17 +97,13 @@ class YutaNWBConverter(NWBConverter):
 
         shank_channels = [
             [int(channel.text) for channel in group.find("channels")]
-            for group in root.find("spikeDetection")
-            .find("channelGroups")
-            .findall("group")
+            for group in root.find("spikeDetection").find("channelGroups").findall("group")
         ]
 
         all_shank_channels = np.concatenate(shank_channels)
         all_shank_channels.sort()
         nshanks = len(shank_channels)
-        lfp_channel = get_reference_elec(
-            subject_xls, hilus_csv_path, session_start, session_id, b=b
-        )
+        lfp_channel = get_reference_elec(subject_xls, hilus_csv_path, session_start, session_id, b=b)
 
         celltype_dict = {
             0: "unknown",
@@ -129,16 +118,12 @@ class YutaNWBConverter(NWBConverter):
             10: "positive negative waveform unit",
         }
 
-        df_unit_features = get_UnitFeatureCell_features(
-            subject_path, session_id, session_path, nshanks
-        )
+        df_unit_features = get_UnitFeatureCell_features(subject_path, session_id, session_path, nshanks)
 
         # there are occasional mismatches between the matlab struct
         # and the neuroscope files regions: 3: 'CA3', 4: 'DG'
         celltype_names = []
-        for celltype_id, region_id in zip(
-            df_unit_features["fineCellType"].values, df_unit_features["region"].values
-        ):
+        for celltype_id, region_id in zip(df_unit_features["fineCellType"].values, df_unit_features["region"].values):
             if celltype_id == 1:
                 if region_id == 3:
                     celltype_names.append("pyramidal cell")
@@ -164,9 +149,7 @@ class YutaNWBConverter(NWBConverter):
             institution="NYU",
             lab="Buzsaki",
         )
-        metadata.update(
-            Subject=dict(subject_id=session_id[:-7], species="Mus musculus", age=age)
-        )
+        metadata.update(Subject=dict(subject_id=session_id[:-7], species="Mus musculus", age=age))
         if "genotype" in subject_data:
             metadata["Subject"].update(genotype=subject_data["genotype"])
         metadata["Ecephys"]["Electrodes"].append(
