@@ -1,7 +1,5 @@
 name: Installation
-on:
-  schedule:
-    - cron:  "0 0 * * 0"
+on: pull-request
 
 jobs:
   run:
