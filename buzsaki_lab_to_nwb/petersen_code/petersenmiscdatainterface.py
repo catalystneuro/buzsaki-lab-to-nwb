@@ -5,7 +5,10 @@ from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matl
 import pandas as pd
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
-from nwb_conversion_tools.utils.conversion_tools import check_regular_timestamps, get_module
+from nwb_conversion_tools.utils.conversion_tools import (
+    check_regular_timestamps,
+    get_module,
+)
 from pynwb import NWBFile, TimeSeries
 from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
