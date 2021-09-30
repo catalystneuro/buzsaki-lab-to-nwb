@@ -1,9 +1,11 @@
 name: Installation
-on: push  # changing to schedule once confirmed working
+on:
+  schedule:
+    - cron:  "0 0 * * 0"
 
 jobs:
   run:
-    name: Lazy tests on (${{ matrix.os }})
+    name: Installation on (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
