@@ -49,3 +49,14 @@ Be sure to keep `stub_test=True` as a conversion option throughout this step in 
  
 ## Build specialized data interfaces for new data
 This is where most time will be spent; designing a `DataInterface` class, in particular the `run_conversion()` method, for data not covered by those inherited from `nwb-conversion-tools`. This most often includes behavioral data such as trial events, states, and position tracking. Further, previous datasets rarely tend to use the same exact method of storing these data so I/O has to be developed from scratch for each new file.
+
+## Remote server
+Now it's time to download all the available data from the endpoint onto the remote server for conversion. It's critical this data go onto the mounted drive of `/mnt/scrap/catalystneuro`.
+
+When download is complete, try to run the full conversion with `stub_test` still set to `True`. Occasionally certain bugs only show up during this stage as they may correspond only to a handful of sessions in the dataset.
+
+When all tests are passing with `stub_test=True`, investigate some of the NWB files with widgets or other viewers to ensure everything looks OK. Post some on the slack as well so Ben and Cody can approve.
+
+Once approved, set `stub_test=False` and begin the full conversion with parallelization options set to maximum of 12 cores and ?? (I need to check) RAM buffer per job.
+
+After it is complete, double check the NWB files with widgets to make sure the full conversion went as expected; if everything looks good, create a new DANDI set, fill in requisite metadata, and proceed with upload to the archive.
