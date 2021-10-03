@@ -32,16 +32,22 @@ for session_path in convert_sessions:
     xml_file_path = str(session_path / f"{session_id}.xml")
     lfp_file_path = str(session_path / f"{session_id}.lfp")
     raw_data_file_path = session_path / f"{session_id}.dat"
+    channel_key = "anatomicalDescription"
 
     source_data = dict(
-        NeuroscopeLFP=dict(file_path=lfp_file_path, gain=conversion_factor, xml_file_path=xml_file_path),
+        NeuroscopeLFP=dict(
+            file_path=lfp_file_path, gain=conversion_factor, xml_file_path=xml_file_path, channel_key=channel_key
+        ),
         PetersenMisc=dict(folder_path=folder_path),
     )
     conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
     if raw_data_file_path.is_file():
         source_data.update(
             NeuroscopeRecording=dict(
-                file_path=str(raw_data_file_path), gain=conversion_factor, xml_file_path=xml_file_path
+                file_path=str(raw_data_file_path),
+                gain=conversion_factor,
+                xml_file_path=xml_file_path,
+                channel_key=channel_key,
             )
         )
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
@@ -54,7 +60,7 @@ for session_path in convert_sessions:
 
     converter = PetersenNWBConverter(source_data)
     metadata = converter.get_metadata()
-    # metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
+    metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
