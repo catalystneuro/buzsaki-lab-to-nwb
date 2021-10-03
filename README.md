@@ -23,7 +23,7 @@ Each of these contains multiple sessions for each subject, of the form `Peter_MS
 
 For prototyping, we would download a randomly chosen session for each subject. If none of these contain any raw data (`.dat` files), I would recommend specifically finding a session that does contain some so that it is included in the prototyping stage.
 
-In some cases, there may be more subjects or sessions included in the globus dataset than were used in the corresponding publication; start confirming this by going through the methods or supplementary section of the corresponding paper to see if those details are included. If not, send an email to the corresponding author to obtain a list of sessions used for final analysis.
+In some cases, there may be more subjects or sessions included in the globus dataset than were used in the corresponding publication; start confirming this by going through the methods or supplementary section of the corresponding paper to see if those details are included. If not, send an email to the corresponding author to obtain a list of sessions used for final analysis. A good example of this in the PetersenP dataset is that `MS14` was not actually used in the publication even though there is data available for it; thus, we will skip this mouse when converting the dataset.
 
 
 ## Build converter class
