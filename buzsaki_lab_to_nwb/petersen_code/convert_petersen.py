@@ -35,19 +35,14 @@ for session_path in convert_sessions:
     channel_key = "anatomicalDescription"
 
     source_data = dict(
-        NeuroscopeLFP=dict(
-            file_path=lfp_file_path, gain=conversion_factor, xml_file_path=xml_file_path, channel_key=channel_key
-        ),
+        NeuroscopeLFP=dict(file_path=lfp_file_path, gain=conversion_factor, xml_file_path=xml_file_path),
         PetersenMisc=dict(folder_path=folder_path),
     )
     conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
     if raw_data_file_path.is_file():
         source_data.update(
             NeuroscopeRecording=dict(
-                file_path=str(raw_data_file_path),
-                gain=conversion_factor,
-                xml_file_path=xml_file_path,
-                channel_key=channel_key,
+                file_path=str(raw_data_file_path), gain=conversion_factor, xml_file_path=xml_file_path
             )
         )
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
