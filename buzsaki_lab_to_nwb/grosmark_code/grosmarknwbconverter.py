@@ -1,10 +1,11 @@
 """Authors: Cody Baker and Ben Dichter."""
-import numpy as np
-from scipy.io import loadmat
 import os
-from lxml import etree as et
 from datetime import datetime
 from dateutil.parser import parse as dateparse
+
+import numpy as np
+from scipy.io import loadmat
+from lxml import etree as et
 
 from nwb_conversion_tools import NWBConverter, NeuroscopeSortingInterface
 
