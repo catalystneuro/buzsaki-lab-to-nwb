@@ -27,21 +27,21 @@ class PetersenNWBConverter(NWBConverter):
         PetersenMisc=PetersenMiscInterface,
     )
 
-    # def __init__(self, source_data: dict):
-    #     super().__init__(source_data=source_data)
-    #     lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
-    #     session_path = lfp_file_path.parent
-    #     session_info = loadmat(str(session_path / "session.mat"))["session"]
-    #     theta_ref = np.array(
-    #         [False] * self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_num_channels()
-    #     )
-    #     theta_ref[int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1] = True  # -1 from Matlab indexing
-    #     for j, channel_id in enumerate(
-    #         self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()
-    #     ):
-    #         self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_property(
-    #             channel_id=channel_id, property_name="theta_reference", value=theta_ref[j]
-    #         )
+    def __init__(self, source_data: dict):
+        super().__init__(source_data=source_data)
+        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
+        session_path = lfp_file_path.parent
+        session_info = loadmat(str(session_path / "session.mat"))["session"]
+        theta_ref = np.array(
+            [False] * self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_num_channels()
+        )
+        theta_ref[int(session_info["channelTags"]["Theta"][0][0][0][0][0][0]) - 1] = True  # -1 from Matlab indexing
+        for j, channel_id in enumerate(
+            self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()
+        ):
+            self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_property(
+                channel_id=channel_id, property_name="theta_reference", value=theta_ref[j]
+            )
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
@@ -99,7 +99,7 @@ class PetersenNWBConverter(NWBConverter):
             metadata.update(Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
 
         metadata["Ecephys"]["Device"][0].update(description=device_descr)
-        # metadata["Ecephys"]["Electrodes"].append(
-        #     dict(name="theta_reference", description="If the channel used as theta reference.")
-        # )
+        metadata["Ecephys"]["Electrodes"].append(
+            dict(name="theta_reference", description="If the channel used as theta reference.")
+        )
         return metadata
