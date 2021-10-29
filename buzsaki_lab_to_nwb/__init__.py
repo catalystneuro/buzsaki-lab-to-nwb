@@ -1,3 +1,3 @@
-from .yuta_code.yutanwbconverter import YutaNWBConverter
+from .yuta_code_mossy_cell.yutanwbconverter import YutaNWBConverter
 from .grosmark_code.grosmarknwbconverter import GrosmarkNWBConverter
 from .petersen_code.petersennwbconverter import PetersenNWBConverter
