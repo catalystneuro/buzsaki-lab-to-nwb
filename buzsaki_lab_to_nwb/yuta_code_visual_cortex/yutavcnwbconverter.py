@@ -57,7 +57,7 @@ class YutaVCNWBConverter(NWBConverter):
             Subject=dict(
                 subject_id=subject_id,
                 species="Mus musculus",
-                sex="Male",
+                sex="M",
                 weight="28-35g",
                 age="3-8 months",
             )
