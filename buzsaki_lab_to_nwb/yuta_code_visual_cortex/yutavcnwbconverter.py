@@ -1,3 +1,4 @@
+"""Authors: Heberto Mayorquin and Cody Baker."""
 from pathlib import Path
 from datetime import datetime
 
@@ -16,7 +17,6 @@ class YutaVCNWBConverter(NWBConverter):
     )
 
     def get_metadata(self):
-
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
         session_id = lfp_file_path.stem
 
@@ -28,32 +28,6 @@ class YutaVCNWBConverter(NWBConverter):
             experimenter=["Yuta Senzai"],
             session_start_time=session_start,
             session_id=session_id,
-            institution="NYU",
-            lab="Buzsaki",
         )
-
-        # Subject
-        metadata.update(
-            Subject=dict(
-                subject_id=subject_id,
-                species="Mus musculus",
-                sex="M",
-                weight="28-35g",
-                age="3-8 months",
-            )
-        )
-
-        device_descr = (
-            "Electrophysiological data were acquired using an Intan RHD2000 system (Intan Technologies LLC) "
-            "digitized with 20 kHz rate."
-        )
-
-        # If NeuroscopeRecording/LFP was not in source_data
-        if "Ecephys" not in metadata:
-            session_path = lfp_file_path.parent
-            xml_file_path = str(session_path / f"{session_id}.xml")
-            metadata.update(Ecephys=NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
-
-        metadata["Ecephys"]["Device"][0].update(description=device_descr)
-
+        metadata.update(Subject=dict(subject_id=subject_id))
         return metadata
