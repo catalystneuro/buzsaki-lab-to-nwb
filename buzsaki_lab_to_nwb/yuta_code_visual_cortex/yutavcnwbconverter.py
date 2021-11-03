@@ -23,24 +23,6 @@ class YutaVCNWBConverter(NWBConverter):
         subject_id, datetime_string = str(lfp_file_path.stem).split("_")
         session_start = datetime.strptime(datetime_string, "%y%m%d").astimezone().strftime("%Y-%m-%d")
 
-        paper_descr = (
-            "The relationship between mesoscopic local field potentials (LFPs) and single-neuron firing in the"
-            "multi-layered neocortex is poorly understood. Simultaneous recordings from all layers in the primary "
-            "visual cortex (V1) of the behaving mouse revealed functionally defined layers in V1. The depth of maximum"
-            "spike power and sink-source distributions of LFPs provided consistent laminar landmarks across animals. "
-            "Coherence of gamma oscillations (30–100 Hz) and spike-LFP coupling identified six physiological layers and"
-            "further sublayers. Firing rates, burstiness, and other electrophysiological features of neurons displayed"
-            "unique layer and brain state dependence. Spike transmission strength from layer 2/3 cells to layer 5"
-            "pyramidal cells and interneurons was stronger during waking compared with non-REM sleep but stronger"
-            "during non-REM sleep among deep-layer excitatory neurons. A subset of deep-layer neurons was active"
-            "exclusively in the DOWN state of non-REM sleep. These results bridge mesoscopic LFPs and single-neuron"
-            "interactions with laminar structure in V1."
-        )
-        paper_info = (
-            "Senzai, Y., Fernandez-Ruiz, A., & Buzsáki, G. (2019). Layer-specific physiological features and"
-            "interlaminar interactions in the primary visual cortex of the mouse. Neuron, 101(3), 500-513."
-        )
-
         metadata = super().get_metadata()
         metadata["NWBFile"].update(
             experimenter=["Yuta Senzai"],
@@ -48,8 +30,6 @@ class YutaVCNWBConverter(NWBConverter):
             session_id=session_id,
             institution="NYU",
             lab="Buzsaki",
-            session_description=paper_descr,
-            related_publications=paper_info,
         )
 
         # Subject

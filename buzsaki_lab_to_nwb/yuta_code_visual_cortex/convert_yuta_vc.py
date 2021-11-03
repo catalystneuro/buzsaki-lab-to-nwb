@@ -1,10 +1,15 @@
 from pathlib import Path
 
+from nwb_conversion_tools.utils.metadata import load_metadata_from_file
+from nwb_conversion_tools.utils.json_schema import dict_deep_update
+
 from buzsaki_lab_to_nwb.yuta_code_visual_cortex.yutavcnwbconverter import YutaVCNWBConverter
 
 data_path = Path("/home/heberto/globus_data")
 author_path = Path("SenzaiY")
 base_path = data_path.joinpath(author_path)
+metadata_path = Path("./buzsaki_lab_to_nwb/yuta_code_visual_cortex/metadata.yml")
+
 
 stub_test = True
 conversion_factor = 0.195  # Intan
@@ -64,6 +69,9 @@ for session_path in session_list[:1]:
     # Update metadata
     metadata = converter.get_metadata()
     metadata["Subject"].update(genotype=subject_genotype_dic[subject_name])
+
+    metadata_from_yaml = load_metadata_from_file(metadata_path)
+    metadata = dict_deep_update(metadata, metadata_from_yaml)
 
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path), conversion_options=conversion_options, metadata=metadata, overwrite=True
