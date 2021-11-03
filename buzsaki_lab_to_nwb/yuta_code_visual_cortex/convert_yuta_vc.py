@@ -23,27 +23,12 @@ session_list = [
 ]
 session_list = [session for session in session_list if session.is_dir()]
 
-subject_genotype_dic = dict(
-    YMV01="Ai35",
-    YMV02="Ai35",
-    YMV03="Ai35",
-    YMV04="CaMKII-Cre::Ai32",
-    YMV05="PV-Cre::Ai32",
-    YMV06="VGAT-Cre::Ai32",
-    YMV07="CaMKII-Cre::Ai35",
-    YMV08="VGAT-Cre::Ai32",
-    YMV09="PV-Cre::Ai32",
-    YMV10="PV-Cre::Ai32",
-    YMV11="PV-Cre::Ai32",
-    YMV12="VGAT-Cre::Ai32",
-    YMV13="PV-Cre::Ai32",
-    YMV14="PV-Cre::Ai32",
-    YMV15="PV-Cre::Ai32",
-    YMV16="PV-Cre::Ai32",
-    YMV17="PV-Cre::Ai32",
-    YMV18="PV-Cre::Ai32",
-    YMV19="PV-Cre::Ai32",
+subject_genotypes = dict(YMV04="CaMKII-Cre::Ai32", YMV07="CaMKII-Cre::Ai35")
+subject_genotypes.update({f"YMV{subject_num}": "Ai35" for subject_num in ["01", "02", "03"]})
+subject_genotypes.update(
+    {f"YMV{subject_num}": "PV-Cre::Ai32" for subject_num in ["05", "09", "10", "11"] + [str(x) for x in range(13, 20)]}
 )
+subject_genotypes.update({f"YMV{subject_num}": "VGAT-Cre::Ai32" for subject_num in ["06", "08", "12"]})
 
 for session_path in session_list:
     print(f"Processsing {session_path}...")
@@ -57,14 +42,16 @@ for session_path in session_list:
         NeuroscopeRecording=dict(file_path=str(dat_file_path), gain=conversion_factor),
         NeuroscopeLFP=dict(file_path=str(eeg_file_path), gain=conversion_factor),
         YutaVCBehavior=dict(folder_path=str(session_path)),
+        PhySorting=dict(folder_path=str(session_path), exclude_cluster_groups=["noise", "mua"]),
     )
     converter = YutaVCNWBConverter(source_data=source_data)
     conversion_options = dict(
         NeuroscopeRecording=dict(stub_test=stub_test),
         NeuroscopeLFP=dict(stub_test=stub_test),
+        PhySorting=dict(stub_test=stub_test),
     )
     metadata = converter.get_metadata()
-    metadata["Subject"].update(genotype=subject_genotype_dic[subject_name])
+    metadata["Subject"].update(genotype=subject_genotypes[subject_name])
     metadata_from_yaml = load_metadata_from_file(metadata_path)
     metadata = dict_deep_update(metadata, metadata_from_yaml)
     converter.run_conversion(

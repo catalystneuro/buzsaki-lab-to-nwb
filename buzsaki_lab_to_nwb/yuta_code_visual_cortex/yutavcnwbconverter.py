@@ -2,7 +2,7 @@
 from pathlib import Path
 from datetime import datetime
 
-from nwb_conversion_tools import NWBConverter, NeuroscopeRecordingInterface, NeuroscopeLFPInterface
+from nwb_conversion_tools import NWBConverter, NeuroscopeRecordingInterface, NeuroscopeLFPInterface, PhySortingInterface
 
 from buzsaki_lab_to_nwb.yuta_code_visual_cortex.yutavcbehaviorinterface import YutaVCBehaviorInterface
 
@@ -14,6 +14,7 @@ class YutaVCNWBConverter(NWBConverter):
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         YutaVCBehavior=YutaVCBehaviorInterface,
+        PhySorting=PhySortingInterface,
     )
 
     def get_metadata(self):
