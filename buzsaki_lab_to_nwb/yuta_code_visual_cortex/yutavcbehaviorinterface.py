@@ -40,22 +40,29 @@ class YutaVCBehaviorInterface(BaseDataInterface):
 
         # Sleep states
         sleep_file_path = session_path / f"{session_path.stem}.SleepState.states.mat"
-        mat_file = read_matlab_file(sleep_file_path)
+        if Path(sleep_file_path).exists():
+            mat_file = read_matlab_file(sleep_file_path)
 
-        state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM", MAstate="MA")
-        sleep_state_dic = mat_file["SleepState"]["ints"]
-        table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
-        table.add_column(name="label", description="Sleep state.")
+            state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM", MAstate="MA")
+            sleep_state_dic = mat_file["SleepState"]["ints"]
+            table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
+            table.add_column(name="label", description="Sleep state.")
 
-        data = []
-        for sleep_state in state_label_names:
-            values = sleep_state_dic[sleep_state]
-            for start_time, stop_time in values:
-                data.append(
-                    dict(start_time=float(start_time), stop_time=float(stop_time), label=state_label_names[sleep_state])
-                )
-        [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
-        processing_module.add(table)
+            data = []
+            for sleep_state in state_label_names:
+                values = sleep_state_dic[sleep_state]
+                if len(values) != 0 and isinstance(values[0], int):
+                    values = [values]
+                for start_time, stop_time in values:
+                    data.append(
+                        dict(
+                            start_time=float(start_time),
+                            stop_time=float(stop_time),
+                            label=state_label_names[sleep_state],
+                        )
+                    )
+            [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+            processing_module.add(table)
 
         # Up and down states
         behavioral_file_path = session_path / f"{session_path.stem}.SlowWaves.events.mat"
