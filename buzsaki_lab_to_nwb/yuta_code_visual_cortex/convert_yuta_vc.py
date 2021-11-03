@@ -45,7 +45,7 @@ subject_genotype_dic = dict(
     YMV19="PV-Cre::Ai32",
 )
 
-for session_path in session_list[:1]:
+for session_path in session_list:
     print(f"Processsing {session_path}...")
     session_name = session_path.stem
     subject_name = session_path.parent.name
