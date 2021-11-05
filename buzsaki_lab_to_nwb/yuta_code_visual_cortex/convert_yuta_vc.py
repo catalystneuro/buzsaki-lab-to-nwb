@@ -1,10 +1,14 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
+import sys
 from pathlib import Path
 
+from joblib import Parallel, delayed
 from nwb_conversion_tools.utils.metadata import load_metadata_from_file
-from nwb_conversion_tools.utils.json_schema import dict_deep_update
+from nwb_conversion_tools.utils.json_schema import dict_deep_update, FilePathType, FolderPathType
 
 from buzsaki_lab_to_nwb import YutaVCNWBConverter
+
+n_jobs = 10
 
 # data_path = Path("/home/heberto/globus_data")
 data_path = Path("/shared/catalystneuro/Buzsaki/SenzaiY")
@@ -22,6 +26,7 @@ session_list = [
     for session in subject.iterdir()
 ]
 session_list = [session for session in session_list if session.is_dir()]
+nwbfile_list = [nwb_output_path / f"{session.stem}.nwb" for session in session_list]
 
 subject_genotypes = dict(YMV04="CaMKII-Cre::Ai32", YMV07="CaMKII-Cre::Ai35")
 subject_genotypes.update({f"YMV{subject_num}": "Ai35" for subject_num in ["01", "02", "03"]})
@@ -30,13 +35,15 @@ subject_genotypes.update(
 )
 subject_genotypes.update({f"YMV{subject_num}": "VGAT-Cre::Ai32" for subject_num in ["06", "08", "12"]})
 
-for session_path in session_list:
+
+def convert_session(session_path: FolderPathType, nwbfile_path: FilePathType):
+    """Wrap converter for Parallel use."""
     print(f"Processsing {session_path}...")
+    sys.stdout.flush()
     session_name = session_path.stem
     subject_name = session_path.parent.name
     dat_file_path = session_path / f"{session_name}.dat"
     eeg_file_path = session_path / f"{session_name}.eeg"
-    nwbfile_path = nwb_output_path / f"{session_name}.nwb"
 
     source_data = dict(
         NeuroscopeRecording=dict(file_path=str(dat_file_path), gain=conversion_factor),
@@ -57,3 +64,9 @@ for session_path in session_list:
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path), conversion_options=conversion_options, metadata=metadata, overwrite=True
     )
+
+
+Parallel(n_jobs=n_jobs)(
+    delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
+    for session_path, nwbfile_path in zip(session_list, nwbfile_list)
+)

@@ -1,7 +1,7 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
+import dateutil
 from pathlib import Path
 from datetime import datetime
-import dateutil
 
 from nwb_conversion_tools import NWBConverter, NeuroscopeRecordingInterface, NeuroscopeLFPInterface, PhySortingInterface
 
@@ -23,15 +23,10 @@ class YutaVCNWBConverter(NWBConverter):
         session_id = lfp_file_path.stem
 
         subject_id, datetime_string = str(lfp_file_path.stem).split("_")
-        tz = dateutil.tz.gettz("US/Eastern")
         session_start = datetime.strptime(datetime_string, "%y%m%d")
-        session_start = session_start.astimezone(tz=tz).isoformat()
+        session_start = session_start.astimezone(tz=dateutil.tz.gettz("US/Eastern")).isoformat()
 
         metadata = super().get_metadata()
-        metadata["NWBFile"].update(
-            experimenter=["Yuta Senzai"],
-            session_start_time=session_start,
-            session_id=session_id,
-        )
+        metadata["NWBFile"].update(session_start_time=session_start, session_id=session_id)
         metadata.update(Subject=dict(subject_id=subject_id))
         return metadata

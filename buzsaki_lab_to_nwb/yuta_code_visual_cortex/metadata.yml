@@ -15,6 +15,8 @@ NWBFile:
     LFPs and single-neuron interactions with laminar structure in V1.
   institution: NYU
   lab: Buzsaki
+  experimenter:
+    - Yuta Senzai
 Subject:
   species: Mus musculus
   sex: M
