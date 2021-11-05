@@ -3,31 +3,15 @@ from pathlib import Path
 from nwb_conversion_tools.utils.json_schema import FolderPathType
 
 from pynwb.file import NWBFile, TimeIntervals
-from mat73 import loadmat as loadmat_mat73
-from mat4py import loadmat as loadmat_mat4py
-from scipy.io import loadmat as loadmat_scipy
-
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from nwb_conversion_tools.utils.conversion_tools import get_module
 
-
-def read_matlab_file(file_path):
-    file_path = str(file_path)
-
-    try:
-        mat_file = loadmat_mat4py(str(file_path))
-        mat_file["read"] = "mat4py"
-    except:
-        try:
-            mat_file = loadmat_mat73(file_path)
-            mat_file["read"] = "mat73"
-        except:
-            mat_file = loadmat_scipy(file_path)
-            mat_file["read"] = "scipy"
-    return mat_file
+from .yuta_vc_utils import read_matlab_file
 
 
 class YutaVCBehaviorInterface(BaseDataInterface):
+    """Primary conversion class for the Yuta Visual Cortex project."""
+
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
@@ -77,3 +61,23 @@ class YutaVCBehaviorInterface(BaseDataInterface):
                 data.append(dict(start_time=float(start_time), stop_time=float(stop_time), label=state))
         [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
         processing_module.add(table)
+
+        # Laser diode and visual laser
+        laser_details = dict(
+            LaserDiode=dict(name="Laser diode", description="Laser pulses for optogenetics."),
+            VisualLaser=dict(name="Visual laser", description="Laser pulses for subject stimulation."),
+        )
+        for laser_type, laser_detail in laser_details.items():
+            laser_file_path = session_path / f"{session_path.stem}_Pulses_{laser_type}.mat"
+            if laser_file_path.exists():
+                laser_file = read_matlab_file(laser_file_path)
+                table = TimeIntervals(name=laser_detail["name"], description=laser_detail["description"])
+                table.add_column(name="amplitude", description="Amplitude of the laser pulse.")
+
+                data = []
+                laser_pulses = laser_file["Pulses"]["periods"]
+                amplitudes = laser_file["Pulses"]["amplitude"]
+                for interval, amplitude in zip(laser_pulses, amplitudes):
+                    data.append(dict(start_time=float(interval[0]), stop_time=float(interval[1]), amplitude=amplitude))
+                [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+                processing_module.add(table)

@@ -39,7 +39,6 @@ subject_genotypes.update({f"YMV{subject_num}": "VGAT-Cre::Ai32" for subject_num 
 def convert_session(session_path: FolderPathType, nwbfile_path: FilePathType):
     """Wrap converter for Parallel use."""
     print(f"Processsing {session_path}...")
-    sys.stdout.flush()
     session_name = session_path.stem
     subject_name = session_path.parent.name
     dat_file_path = session_path / f"{session_name}.dat"
@@ -66,7 +65,7 @@ def convert_session(session_path: FolderPathType, nwbfile_path: FilePathType):
     )
 
 
-Parallel(n_jobs=n_jobs)(
+Parallel(n_jobs=n_jobs, verbose=True)(
     delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
     for session_path, nwbfile_path in zip(session_list, nwbfile_list)
 )
