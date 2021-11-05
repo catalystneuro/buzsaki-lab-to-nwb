@@ -8,11 +8,10 @@ from nwb_conversion_tools.utils.json_schema import dict_deep_update, FilePathTyp
 
 from buzsaki_lab_to_nwb import YutaVCNWBConverter
 
-n_jobs = 10
+n_jobs = 20
 
-# data_path = Path("/home/heberto/globus_data")
-data_path = Path("/shared/catalystneuro/Buzsaki/SenzaiY")
-nwb_output_path = Path("/home/jovyan/BuzsakiNWB/SenzaiY")
+data_path = Path("/shared/catalystneuro/Buzsaki/SenzaiY/data")
+nwb_output_path = Path("/shared/catalystneuro/Buzsaki/SenzaiY/nwbfiles/stubs")
 metadata_path = Path("metadata.yml")
 
 
