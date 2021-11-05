@@ -60,14 +60,19 @@ class YutaVCNWBConverter(NWBConverter):
             ab_ratio="ab_ratio",
         )
         for property_key, property_name in cell_metrics_map.items():
-            if property_key in cell_metrics:
-                values = cell_metrics[property_key][0][0][0]
+            try:
+                if property_key in ["synapticEffect", "putativeCellType", "brainRegion"]:
+                    values = [str(x[0]) for x in cell_metrics[property_key][0][0][0]]
+                else:
+                    values = cell_metrics[property_key][0][0][0]
                 if len(values) != n_units:
                     print(f"Skipping unit property {property_name} in session {session_id} due to length mismatch!")
                 else:
                     self.data_interface_objects["PhySorting"].sorting_extractor.set_units_property(
                         property_name=property_name, values=values
                     )
+            except ValueError:  # only safe way I know of to check key existence in numpy void object
+                print(f"Skipping unit property {property_name} in session {session_id} due to missing key!")
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
