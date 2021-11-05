@@ -28,3 +28,28 @@ Ecephys:
       description:
         Electrophysiological data were acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with
         20 kHz rate.
+  UnitProperties:
+    - name: max_channel
+      description: Channel that observed the maximum waveform amplitude for the unit.
+    - name: peak_voltage
+      description: Magnitude of peak voltage for the unit.
+    - name: theta_modulation_index
+      description: Index of theta modulation.
+    - name: synaptic_effect
+      description: Classification of the synaptic effect (excitatory or inhibitory). Unknown if undetermined.
+    - name: cell_type
+      description: Classification of the cell type.
+    - name: refractory_period_violation
+      description: Score for the violation of the refractory period.
+    - name: population_mod_index
+      description: Population modulation index.
+    - name: polarity
+      description: Polarity of the unit.
+    - name: firing_rate
+      description: Average firing rate of the unit.
+    - name: coefficient_of_variation
+      description: Coefficient of variation for the unit activity.
+    - name: brain_region
+      description: Assigned brain region where the unit is located.
+    - name: ab_ratio
+      description: AB ratio for the unit.

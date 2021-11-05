@@ -63,9 +63,10 @@ def convert_session(session_path: FolderPathType, nwbfile_path: FilePathType):
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path), conversion_options=conversion_options, metadata=metadata, overwrite=True
     )
+    sys.stdout.flush()  # Needed for verbosity in Parallel
 
 
-Parallel(n_jobs=n_jobs, verbose=True)(
+Parallel(n_jobs=n_jobs)(
     delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
     for session_path, nwbfile_path in zip(session_list, nwbfile_list)
 )

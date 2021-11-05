@@ -17,13 +17,14 @@ class YutaVCBehaviorInterface(BaseDataInterface):
 
     def run_conversion(self, nwbfile: NWBFile, metadata: dict):
         session_path = Path(self.source_data["folder_path"])
+        session_id = session_path.stem
 
         module_name = "Neural states"
         module_description = "Contains behavioral data concerning classified states."
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
         # Sleep states
-        sleep_file_path = session_path / f"{session_path.stem}.SleepState.states.mat"
+        sleep_file_path = session_path / f"{session_id}.SleepState.states.mat"
         if Path(sleep_file_path).exists():
             mat_file = read_matlab_file(sleep_file_path)
 
@@ -49,7 +50,7 @@ class YutaVCBehaviorInterface(BaseDataInterface):
             processing_module.add(table)
 
         # Up and down states
-        behavioral_file_path = session_path / f"{session_path.stem}.SlowWaves.events.mat"
+        behavioral_file_path = session_path / f"{session_id}.SlowWaves.events.mat"
         behavioral_file = read_matlab_file(behavioral_file_path)
         table = TimeIntervals(name="Up-Down states", description="Up and down states classified by LFP.")
         table.add_column(name="label", description="state.")
@@ -68,7 +69,7 @@ class YutaVCBehaviorInterface(BaseDataInterface):
             VisualLaser=dict(name="Visual laser", description="Laser pulses for subject stimulation."),
         )
         for laser_type, laser_detail in laser_details.items():
-            laser_file_path = session_path / f"{session_path.stem}_Pulses_{laser_type}.mat"
+            laser_file_path = session_path / f"{session_id}_Pulses_{laser_type}.mat"
             if laser_file_path.exists():
                 laser_file = read_matlab_file(laser_file_path)
                 table = TimeIntervals(name=laser_detail["name"], description=laser_detail["description"])
