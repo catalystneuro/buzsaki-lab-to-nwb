@@ -74,6 +74,14 @@ class YutaVCNWBConverter(NWBConverter):
             except ValueError:  # only safe way I know of to check key existence in numpy void object
                 print(f"Skipping unit property {property_name} in session {session_id} due to missing key!")
 
+    # def get_metadata_schema(self):
+    #     metadata_schema = super().get_metadata_schema()
+    #     metadata_schema["properties"]["Ecephys"]["properties"].update(
+    #         ElectricalSeries_raw=get_schema_from_hdmf_class(ElectricalSeries),
+    #         ElectricalSeries_processed=get_schema_from_hdmf_class(ElectricalSeries),
+    #     )
+    #     return metadata_schema
+
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
         session_id = lfp_file_path.stem

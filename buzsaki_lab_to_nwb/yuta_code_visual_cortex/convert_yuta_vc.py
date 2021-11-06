@@ -35,37 +35,39 @@ subject_genotypes.update(
 subject_genotypes.update({f"YMV{subject_num}": "VGAT-Cre::Ai32" for subject_num in ["06", "08", "12"]})
 
 
-def convert_session(session_path: FolderPathType, nwbfile_path: FilePathType):
-    """Wrap converter for Parallel use."""
-    print(f"Processsing {session_path}...")
-    session_name = session_path.stem
-    subject_name = session_path.parent.name
-    dat_file_path = session_path / f"{session_name}.dat"
-    eeg_file_path = session_path / f"{session_name}.eeg"
+# def convert_session(session_path: FolderPathType, nwbfile_path: FilePathType):
+session_path = session_list[:1][0]
+nwbfile_path = nwbfile_list[:1][0]
+"""Wrap converter for Parallel use."""
+print(f"Processsing {session_path}...")
+session_name = session_path.stem
+subject_name = session_path.parent.name
+dat_file_path = session_path / f"{session_name}.dat"
+eeg_file_path = session_path / f"{session_name}.eeg"
 
-    source_data = dict(
-        NeuroscopeRecording=dict(file_path=str(dat_file_path), gain=conversion_factor),
-        NeuroscopeLFP=dict(file_path=str(eeg_file_path), gain=conversion_factor),
-        YutaVCBehavior=dict(folder_path=str(session_path)),
-        PhySorting=dict(folder_path=str(session_path), exclude_cluster_groups=["noise", "mua"]),
-    )
-    converter = YutaVCNWBConverter(source_data=source_data)
-    conversion_options = dict(
-        NeuroscopeRecording=dict(stub_test=stub_test),
-        NeuroscopeLFP=dict(stub_test=stub_test),
-        PhySorting=dict(stub_test=stub_test),
-    )
-    metadata = converter.get_metadata()
-    metadata["Subject"].update(genotype=subject_genotypes[subject_name])
-    metadata_from_yaml = load_metadata_from_file(metadata_path)
-    metadata = dict_deep_update(metadata, metadata_from_yaml)
-    converter.run_conversion(
-        nwbfile_path=str(nwbfile_path), conversion_options=conversion_options, metadata=metadata, overwrite=True
-    )
-    sys.stdout.flush()  # Needed for verbosity in Parallel
-
-
-Parallel(n_jobs=n_jobs)(
-    delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
-    for session_path, nwbfile_path in zip(session_list, nwbfile_list)
+source_data = dict(
+    NeuroscopeRecording=dict(file_path=str(dat_file_path), gain=conversion_factor),
+    NeuroscopeLFP=dict(file_path=str(eeg_file_path), gain=conversion_factor),
+    YutaVCBehavior=dict(folder_path=str(session_path)),
+    PhySorting=dict(folder_path=str(session_path), exclude_cluster_groups=["noise", "mua"]),
 )
+converter = YutaVCNWBConverter(source_data=source_data)
+conversion_options = dict(
+    NeuroscopeRecording=dict(stub_test=stub_test, es_key="ElectricalSeries_raw"),
+    NeuroscopeLFP=dict(stub_test=stub_test),
+    PhySorting=dict(stub_test=stub_test),
+)
+metadata = converter.get_metadata()
+metadata["Subject"].update(genotype=subject_genotypes[subject_name])
+metadata_from_yaml = load_metadata_from_file(metadata_path)
+metadata = dict_deep_update(metadata, metadata_from_yaml)
+converter.run_conversion(
+    nwbfile_path=str(nwbfile_path), conversion_options=conversion_options, metadata=metadata, overwrite=True
+)
+sys.stdout.flush()  # Needed for verbosity in Parallel
+
+
+# Parallel(n_jobs=n_jobs)(
+#     delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
+#     for session_path, nwbfile_path in zip(session_list[:1], nwbfile_list[:1])
+# )

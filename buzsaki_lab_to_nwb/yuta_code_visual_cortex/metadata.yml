@@ -28,6 +28,8 @@ Ecephys:
       description:
         Electrophysiological data were acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with
         20 kHz rate.
+  ElectricalSeries_raw:
+    name: ElectricalSeries
   UnitProperties:
     - name: max_channel
       description: Channel that observed the maximum waveform amplitude for the unit.
