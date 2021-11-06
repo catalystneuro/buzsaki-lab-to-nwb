@@ -88,7 +88,7 @@ class YutaVCNWBConverter(NWBConverter):
 
         subject_id, datetime_string = str(lfp_file_path.stem).split("_")
         session_start = datetime.strptime(datetime_string, "%y%m%d")
-        session_start = session_start.astimezone(tz=dateutil.tz.gettz("US/Eastern")).isoformat()
+        session_start = session_start.replace(tzinfo=dateutil.tz.gettz("US/Eastern")).isoformat()
 
         metadata = super().get_metadata()
         metadata["NWBFile"].update(session_start_time=session_start, session_id=session_id)
