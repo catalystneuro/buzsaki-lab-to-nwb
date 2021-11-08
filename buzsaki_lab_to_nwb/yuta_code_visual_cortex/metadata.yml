@@ -1,0 +1,56 @@
+NWBFile:
+  related_publications:
+    Senzai, Y., Fernandez-Ruiz, A., & Buzsáki, G. (2019). Layer-specific physiological features and interlaminar
+    interactions in the primary visual cortex of the mouse. Neuron, 101(3), 500-513.
+  session_description:
+    The relationship between mesoscopic local field potentials (LFPs) and single-neuron firing in the multi-layered 
+    neocortex is poorly understood. Simultaneous recordings from all layers in the primary visual cortex (V1) of the 
+    behaving mouse revealed functionally defined layers in V1. The depth of maximum spike power and sink-source 
+    distributions of LFPs provided consistent laminar landmarks across animals. Coherence of gamma oscillations 
+    (30–100 Hz) and spike-LFP coupling identified six physiological layers and further sublayers. Firing rates, 
+    burstiness, and other electrophysiological features of neurons displayed unique layer and brain state dependence.
+    Spike transmission strength from layer 2/3 cells to layer 5 pyramidal cells and interneurons was stronger during
+    waking compared with non-REM sleep but stronger during non-REM sleep among deep-layer excitatory neurons. A subset 
+    of deep-layer neurons was active exclusively in the DOWN state of non-REM sleep. These results bridge mesoscopic 
+    LFPs and single-neuron interactions with laminar structure in V1. Subjects were between 3 and 8 months of age.
+  institution: NYU
+  lab: Buzsaki
+  experimenter:
+    - Yuta Senzai
+Subject:
+  species: Mus musculus
+  sex: M
+  weight: 28-35g
+Ecephys:
+  Device:
+    - name: Device_ecephys
+      description:
+        Electrophysiological data were acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with
+        20 kHz rate.
+  ElectricalSeries_raw:
+    name: ElectricalSeries
+  UnitProperties:
+    - name: max_channel
+      description: Channel that observed the maximum waveform amplitude for the unit.
+    - name: peak_voltage
+      description: Magnitude of peak voltage for the unit.
+    - name: theta_modulation_index
+      description: Index of theta modulation.
+    - name: synaptic_effect
+      description: Classification of the synaptic effect (excitatory or inhibitory). Unknown if undetermined.
+    - name: cell_type
+      description: Classification of the cell type.
+    - name: refractory_period_violation
+      description: Score for the violation of the refractory period.
+    - name: population_mod_index
+      description: Population modulation index.
+    - name: polarity
+      description: Polarity of the unit.
+    - name: firing_rate
+      description: Average firing rate of the unit.
+    - name: coefficient_of_variation
+      description: Coefficient of variation for the unit activity.
+    - name: brain_region
+      description: Assigned brain region where the unit is located.
+    - name: ab_ratio
+      description: AB ratio for the unit.
