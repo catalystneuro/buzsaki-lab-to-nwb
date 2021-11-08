@@ -2,7 +2,7 @@ NWBFile:
   related_publications:
     Senzai, Y., Fernandez-Ruiz, A., & Buzsáki, G. (2019). Layer-specific physiological features and interlaminar
     interactions in the primary visual cortex of the mouse. Neuron, 101(3), 500-513.
-  experiment_description:
+  session_description:
     The relationship between mesoscopic local field potentials (LFPs) and single-neuron firing in the multi-layered 
     neocortex is poorly understood. Simultaneous recordings from all layers in the primary visual cortex (V1) of the 
     behaving mouse revealed functionally defined layers in V1. The depth of maximum spike power and sink-source 
@@ -12,7 +12,7 @@ NWBFile:
     Spike transmission strength from layer 2/3 cells to layer 5 pyramidal cells and interneurons was stronger during
     waking compared with non-REM sleep but stronger during non-REM sleep among deep-layer excitatory neurons. A subset 
     of deep-layer neurons was active exclusively in the DOWN state of non-REM sleep. These results bridge mesoscopic 
-    LFPs and single-neuron interactions with laminar structure in V1.
+    LFPs and single-neuron interactions with laminar structure in V1. Subjects were between 3 and 8 months of age.
   institution: NYU
   lab: Buzsaki
   experimenter:
@@ -21,7 +21,6 @@ Subject:
   species: Mus musculus
   sex: M
   weight: 28-35g
-  age: 3-8 months
 Ecephys:
   Device:
     - name: Device_ecephys
