@@ -28,7 +28,7 @@ session_list = [session for session in session_list if session.is_dir()]
 nwbfile_list = [nwb_output_path / f"{session.stem}.nwb" for session in session_list]
 
 subject_genotypes = dict(YMV04="CaMKII-Cre::Ai32", YMV07="CaMKII-Cre::Ai35")
-subject_genotypes.update({f"YMV{subject_num}": "Ai35" for subject_num in ["01", "02", "03"]})
+subject_genotypes.update({f"YMV0{subject_num}": "Ai35" for subject_num in range(1, 4)})
 subject_genotypes.update(
     {f"YMV{subject_num}": "PV-Cre::Ai32" for subject_num in ["05", "09", "10", "11"] + [str(x) for x in range(13, 20)]}
 )
