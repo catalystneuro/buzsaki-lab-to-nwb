@@ -2,3 +2,4 @@ from .yuta_code_visual_cortex.yutavcnwbconverter import YutaVCNWBConverter
 from .yuta_code_mossy_cell.yutanwbconverter import YutaNWBConverter
 from .grosmark_code.grosmarknwbconverter import GrosmarkNWBConverter
 from .petersen_code.petersennwbconverter import PetersenNWBConverter
+from .tingley_code_septal.tingleyseptalnwbconverter import TingleySeptalNWBConverter
