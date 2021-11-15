@@ -5,6 +5,7 @@ from datetime import datetime
 
 from nwb_conversion_tools import NWBConverter, NeuroscopeRecordingInterface, NeuroscopeLFPInterface, PhySortingInterface
 
+
 class TingleySeptalNWBConverter(NWBConverter):
     """Primary conversion class for the SenzaiY visual cortex data set."""
 
