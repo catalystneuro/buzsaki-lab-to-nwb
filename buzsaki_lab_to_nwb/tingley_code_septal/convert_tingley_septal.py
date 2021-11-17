@@ -17,7 +17,7 @@ invalid_session = [
     "z_novel_cage_test_160227_165229",  # Test
 ]
 
-session_list = [
+session_path_list = [
     session
     for subject in data_path.iterdir()
     if subject.is_dir() and subject.name in subject_list
@@ -26,26 +26,27 @@ session_list = [
 ]
 
 
-for session_path in session_list:
+for session_path in session_path_list:
     session_id = session_path.name
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
+    xml_file_path = session_path / f"{session_id}.xml"
+
     nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
 
     source_data = dict(
-        NeuroscopeLFP=dict(file_path=str(lfp_file_path), gain=conversion_factor),
+        NeuroscopeLFP=dict(file_path=str(lfp_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)),
     )
     conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
 
     if raw_file_path.is_file():
-        print("Here")
         source_data.update(
             NeuroscopeRecording=dict(
-                file_path=str(raw_file_path),
-                gain=conversion_factor,
+                file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
             )
         )
     conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
+    converter = TingleySeptalNWBConverter(source_data)
 
     metadata = None
     # metadata = converter.get_metadata()
