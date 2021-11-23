@@ -7,11 +7,13 @@ conversion_factor = 0.195  # Intan
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
 nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 
-subject_list = ["DT2", "DT5", "DT7", "DT8", "D79"]
+subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
 # subject_list = ['DT5']
 
 invalid_session = [
     "20170411_1296um_1152um_170411_113418",  # No data
+    "20170527_1260um_1072um_merge",  # No data
+    "20170528_1332um_1108um_170528_114153",  # No data
     "z_Intruder_test_160304_152951",  # Test
     "z_USV_test_3612um_1360um_20160307_160307_202140",  # Test
     "z_novel_cage_test_160227_165229",  # Test
