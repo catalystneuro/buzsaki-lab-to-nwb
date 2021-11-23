@@ -3,7 +3,12 @@ import dateutil
 from pathlib import Path
 from datetime import datetime
 
-from nwb_conversion_tools import NWBConverter, NeuroscopeRecordingInterface, NeuroscopeLFPInterface, PhySortingInterface
+from nwb_conversion_tools import (
+    NWBConverter,
+    NeuroscopeRecordingInterface,
+    NeuroscopeLFPInterface,
+    NeuroscopeSortingInterface,
+)
 
 
 class TingleySeptalNWBConverter(NWBConverter):
@@ -12,5 +17,5 @@ class TingleySeptalNWBConverter(NWBConverter):
     data_interface_classes = dict(
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
-        PhySorting=PhySortingInterface,
+        NeuroscopeSorting=NeuroscopeSortingInterface,
     )

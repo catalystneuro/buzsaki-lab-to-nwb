@@ -30,6 +30,8 @@ session_path_list = [
 
 for session_path in session_path_list:
     session_id = session_path.name
+    print('----------------')
+    print(session_path)
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
@@ -47,6 +49,16 @@ for session_path in session_path_list:
                 file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
             )
         )
+
+    # clu_matches_in_session = len(list(session_path.glob("*.clu*")))
+    # res_matches_in_session = len(list(session_path.glob("*.res*")))
+    # if clu_matches_in_session > 0 and res_matches_in_session > 0:
+    #     source_data.update(
+    #         NeuroscopeSorting=dict(
+    #             folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
+    #         )
+    #     )
+
     conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
     converter = TingleySeptalNWBConverter(source_data)
 
