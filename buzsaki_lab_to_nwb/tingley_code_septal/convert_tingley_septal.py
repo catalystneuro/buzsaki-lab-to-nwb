@@ -30,7 +30,7 @@ session_path_list = [
 
 for session_path in session_path_list:
     session_id = session_path.name
-    print('----------------')
+    print("----------------")
     print(session_path)
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
