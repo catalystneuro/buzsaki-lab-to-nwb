@@ -68,7 +68,7 @@ for session_path in session_path_list:
     #     source_data.update(
     #         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
     #     )
-    
+
     conversion_options.update(
         NeuroscopeRecording=dict(stub_test=stub_test), NeuroscopeSorting=dict(stub_test=stub_test)
     )
