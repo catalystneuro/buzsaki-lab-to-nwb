@@ -30,16 +30,16 @@ session_path_list = [
 
 for session_path in session_path_list:
     session_id = session_path.name
-    print('----------------')
+    print("----------------")
     print(session_path)
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
 
-    print('raw file available', raw_file_path.is_file())
-    print('lfp file available', lfp_file_path.is_file() )
-    print('spikes file available', spikes_matfile_path.is_file())
+    print("raw file available", raw_file_path.is_file())
+    print("lfp file available", lfp_file_path.is_file())
+    print("spikes file available", spikes_matfile_path.is_file())
     nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
 
     source_data = dict(
@@ -59,7 +59,6 @@ for session_path in session_path_list:
     #         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
     #     )
 
-    
     # clu_matches_in_session = len(list(session_path.glob("*.clu*")))
     # res_matches_in_session = len(list(session_path.glob("*.res*")))
     # if clu_matches_in_session > 0 and res_matches_in_session > 0:
@@ -70,13 +69,12 @@ for session_path in session_path_list:
     #         )
     #     )
 
-    
     if spikes_matfile_path.is_file():
-        source_data.update(
-            CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
-        )
+        source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
 
-    conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test), NeuroscopeSorting=dict(stub_test=stub_test))
+    conversion_options.update(
+        NeuroscopeRecording=dict(stub_test=stub_test), NeuroscopeSorting=dict(stub_test=stub_test)
+    )
     converter = TingleySeptalNWBConverter(source_data)
 
     metadata = None
