@@ -54,11 +54,6 @@ for session_path in session_path_list:
     #         )
     #     )
 
-    # if spikes_matfile_path.is_file():
-    #     source_data.update(
-    #         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
-    #     )
-
     # clu_matches_in_session = len(list(session_path.glob("*.clu*")))
     # res_matches_in_session = len(list(session_path.glob("*.res*")))
     # if clu_matches_in_session > 0 and res_matches_in_session > 0:
@@ -69,9 +64,11 @@ for session_path in session_path_list:
     #         )
     #     )
 
-    if spikes_matfile_path.is_file():
-        source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
-
+    # if spikes_matfile_path.is_file():
+    #     source_data.update(
+    #         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
+    #     )
+    
     conversion_options.update(
         NeuroscopeRecording=dict(stub_test=stub_test), NeuroscopeSorting=dict(stub_test=stub_test)
     )
