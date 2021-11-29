@@ -8,6 +8,7 @@ from nwb_conversion_tools import (
     NeuroscopeRecordingInterface,
     NeuroscopeLFPInterface,
     NeuroscopeSortingInterface,
+    CellExplorerSortingInterface,
 )
 
 
@@ -18,4 +19,5 @@ class TingleySeptalNWBConverter(NWBConverter):
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         NeuroscopeSorting=NeuroscopeSortingInterface,
+        CellExplorerSorting=CellExplorerSortingInterface,
     )

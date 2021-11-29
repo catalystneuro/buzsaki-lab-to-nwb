@@ -30,12 +30,16 @@ session_path_list = [
 
 for session_path in session_path_list:
     session_id = session_path.name
-    print("----------------")
+    print('----------------')
     print(session_path)
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
+    spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
 
+    print('raw file available', raw_file_path.is_file())
+    print('lfp file available', lfp_file_path.is_file() )
+    print('spikes file available', spikes_matfile_path.is_file())
     nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
 
     source_data = dict(
@@ -43,28 +47,41 @@ for session_path in session_path_list:
     )
     conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
 
-    if raw_file_path.is_file():
-        source_data.update(
-            NeuroscopeRecording=dict(
-                file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
-            )
-        )
+    # if raw_file_path.is_file():
+    #     source_data.update(
+    #         NeuroscopeRecording=dict(
+    #             file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
+    #         )
+    #     )
 
+    # if spikes_matfile_path.is_file():
+    #     source_data.update(
+    #         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
+    #     )
+
+    
     # clu_matches_in_session = len(list(session_path.glob("*.clu*")))
     # res_matches_in_session = len(list(session_path.glob("*.res*")))
     # if clu_matches_in_session > 0 and res_matches_in_session > 0:
+    #     print('sorted data available')
     #     source_data.update(
     #         NeuroscopeSorting=dict(
     #             folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
     #         )
     #     )
 
-    conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
+    
+    if spikes_matfile_path.is_file():
+        source_data.update(
+            CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
+        )
+
+    conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test), NeuroscopeSorting=dict(stub_test=stub_test))
     converter = TingleySeptalNWBConverter(source_data)
 
     metadata = None
-    # metadata = converter.get_metadata()
-    # metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
+    metadata = converter.get_metadata()
+    ## metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
