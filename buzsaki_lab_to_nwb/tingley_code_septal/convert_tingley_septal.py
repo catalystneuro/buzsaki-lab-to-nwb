@@ -87,9 +87,8 @@ for session_path in session_path_list:
 
     converter = TingleySeptalNWBConverter(source_data)
 
-    metadata = None
     metadata = converter.get_metadata()
-    ## metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
+    # metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
