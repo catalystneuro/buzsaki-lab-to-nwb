@@ -1,4 +1,7 @@
 from pathlib import Path
+import warnings
+
+from scipy.io import loadmat
 
 from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 
@@ -8,7 +11,6 @@ data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
 nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
-# subject_list = ['DT5']
 
 invalid_session = [
     "20170411_1296um_1152um_170411_113418",  # No data
@@ -28,52 +30,64 @@ session_path_list = [
 ]
 
 
+counter = 0
 for session_path in session_path_list:
-    session_id = session_path.name
     print("----------------")
     print(session_path)
+    counter += 1
+    print(f"session {counter} of {len(session_path_list)}")
+    session_id = session_path.name
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
+    session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
+    nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
 
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
     print("spikes file available", spikes_matfile_path.is_file())
-    nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
+    
+    source_data = dict()
+    conversion_options = dict()
 
     source_data = dict(
         NeuroscopeLFP=dict(file_path=str(lfp_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)),
     )
-    conversion_options = dict(NeuroscopeLFP=dict(stub_test=stub_test))
+    conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test))
 
-    # if raw_file_path.is_file():
-    #     source_data.update(
-    #         NeuroscopeRecording=dict(
-    #             file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
-    #         )
-    #     )
+    if raw_file_path.is_file():
+        source_data.update(
+            NeuroscopeRecording=dict(
+                file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
+            )
+        )
+        conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test, es_key="ElectricalSeries_raw"))
 
-    # clu_matches_in_session = len(list(session_path.glob("*.clu*")))
-    # res_matches_in_session = len(list(session_path.glob("*.res*")))
-    # if clu_matches_in_session > 0 and res_matches_in_session > 0:
-    #     print('sorted data available')
-    #     source_data.update(
-    #         NeuroscopeSorting=dict(
-    #             folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
-    #         )
-    #     )
+    clu_matches_in_session = len(list(session_path.glob("*.clu*")))
+    res_matches_in_session = len(list(session_path.glob("*.res*")))
+    if clu_matches_in_session > 0 and res_matches_in_session > 0:
+        print("sorted data available")
+        source_data.update(
+            NeuroscopeSorting=dict(
+                folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
+            )
+        )
+        conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
 
-    # if spikes_matfile_path.is_file():
-    #     source_data.update(
-    #         CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path))
-    #     )
+    
+    if spikes_matfile_path.is_file():
+        try:
+            loadmat(spikes_matfile_path)
+            loadmat(session_info_matfile_path)
+            # code will drop down to the except below if this encounters an error
+            source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
 
-    conversion_options.update(
-        NeuroscopeRecording=dict(stub_test=stub_test), NeuroscopeSorting=dict(stub_test=stub_test)
-    )
+        except NotImplementedError:
+            warnings.warn("The CellExplorer data for this session is of the different version.")
+
     converter = TingleySeptalNWBConverter(source_data)
-
+    
     metadata = None
     metadata = converter.get_metadata()
     ## metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
