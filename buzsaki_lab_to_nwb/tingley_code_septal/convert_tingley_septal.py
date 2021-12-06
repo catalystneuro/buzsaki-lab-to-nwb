@@ -47,7 +47,7 @@ for session_path in session_path_list:
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
     print("spikes file available", spikes_matfile_path.is_file())
-    
+
     source_data = dict()
     conversion_options = dict()
 
@@ -75,7 +75,6 @@ for session_path in session_path_list:
         )
         conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
 
-    
     if spikes_matfile_path.is_file():
         try:
             loadmat(spikes_matfile_path)
@@ -87,7 +86,7 @@ for session_path in session_path_list:
             warnings.warn("The CellExplorer data for this session is of the different version.")
 
     converter = TingleySeptalNWBConverter(source_data)
-    
+
     metadata = None
     metadata = converter.get_metadata()
     ## metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
