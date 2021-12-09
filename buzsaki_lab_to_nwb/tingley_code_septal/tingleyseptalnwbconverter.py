@@ -13,6 +13,7 @@ from nwb_conversion_tools import (
 
 from .tingleyseptalbehaviorinterface import TingleySeptalBehaviorInterface
 
+
 class TingleySeptalNWBConverter(NWBConverter):
     """Primary conversion class for the Tingley Septal data project"""
 
