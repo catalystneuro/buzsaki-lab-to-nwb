@@ -52,7 +52,6 @@ for session_path in session_path_list:
 
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
-    print("spikes file available", spikes_matfile_path.is_file())
     print("behavior / position mat file available", behavior_matfile_path.is_file())
     source_data = dict()
     conversion_options = dict()
@@ -73,7 +72,7 @@ for session_path in session_path_list:
     clu_matches_in_session = len(list(session_path.glob("*.clu*")))
     res_matches_in_session = len(list(session_path.glob("*.res*")))
     if clu_matches_in_session > 0 and res_matches_in_session > 0:
-        print("sorted data available")
+        print("neuroscope sorted data available", True)
         source_data.update(
             NeuroscopeSorting=dict(
                 folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
@@ -83,6 +82,7 @@ for session_path in session_path_list:
 
     if spikes_matfile_path.is_file():
         try:
+            print("spikes matlab file available", spikes_matfile_path.is_file())
             loadmat(spikes_matfile_path)
             loadmat(session_info_matfile_path)
             source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))

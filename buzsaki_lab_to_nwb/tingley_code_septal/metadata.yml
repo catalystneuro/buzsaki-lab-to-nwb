@@ -15,3 +15,9 @@ Ecephys:
       description:
         Electrophysiological data were acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with
         20 kHz rate.
+  # UnitProperties:
+  #   - name: region
+  #     description: Location in cortex.
+  # ElectricalSeries_raw:
+  #   name: ElectricalSeries
+

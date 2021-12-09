@@ -32,9 +32,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         behavior_file_path = Path(session_path) / f"{session_id}.behavior.mat"
 
         behavior_mat = read_matlab_file(str(behavior_file_path))["behavior"]
-        time_stamps = behavior_mat["timestamps"]
-        starting_time = time_stamps[0][0]
-        rate = behavior_mat["samplingRate"]
+        timestamps = np.array(behavior_mat["timestamps"])[...,0]
 
         position = behavior_mat["position"]
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
@@ -58,8 +56,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             data=H5DataIO(pos_data, compression="gzip"),
             reference_frame="unknown",
             conversion=conversion,
-            starting_time=starting_time,
-            rate=float(rate),
+            timestamps=timestamps,
             resolution=np.nan,
         )
 
@@ -88,8 +85,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
                 data=H5DataIO(pos_data, compression="gzip"),
                 reference_frame="unknown",
                 conversion=conversion,
-                starting_time=starting_time,
-                rate=float(rate),
+                timestamps=timestamps,
                 resolution=np.nan,
             )
             compass_obj.add_spatial_series(spatial_series_object)
