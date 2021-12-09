@@ -32,7 +32,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         behavior_file_path = Path(session_path) / f"{session_id}.behavior.mat"
 
         behavior_mat = read_matlab_file(str(behavior_file_path))["behavior"]
-        timestamps = np.array(behavior_mat["timestamps"])[...,0]
+        timestamps = np.array(behavior_mat["timestamps"])[..., 0]
 
         position = behavior_mat["position"]
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
