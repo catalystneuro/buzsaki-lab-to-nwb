@@ -11,13 +11,15 @@ from nwb_conversion_tools import (
     CellExplorerSortingInterface,
 )
 
+from .tingleyseptalbehaviorinterface import TingleySeptalBehaviorInterface
 
 class TingleySeptalNWBConverter(NWBConverter):
-    """Primary conversion class for the SenzaiY visual cortex data set."""
+    """Primary conversion class for the Tingley Septal data project"""
 
     data_interface_classes = dict(
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         NeuroscopeSorting=NeuroscopeSortingInterface,
         CellExplorerSorting=CellExplorerSortingInterface,
+        TingleySeptalBehavior=TingleySeptalBehaviorInterface,
     )

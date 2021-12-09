@@ -29,6 +29,7 @@ session_path_list = [
     if session.is_dir() and session.name not in invalid_session
 ]
 
+# session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT9/20170508_468um_36um_170508_102251")]
 
 counter = 0
 for session_path in session_path_list:
@@ -42,12 +43,13 @@ for session_path in session_path_list:
     xml_file_path = session_path / f"{session_id}.xml"
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
     session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
+    behavior_matfile_path = session_path / f"{session_id}.behavior.mat"
     nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
 
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
     print("spikes file available", spikes_matfile_path.is_file())
-
+    print("behavior / position mat file available", behavior_matfile_path.is_file())
     source_data = dict()
     conversion_options = dict()
 
@@ -79,11 +81,13 @@ for session_path in session_path_list:
         try:
             loadmat(spikes_matfile_path)
             loadmat(session_info_matfile_path)
-            # code will drop down to the except below if this encounters an error
             source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
 
         except NotImplementedError:
-            warnings.warn("The CellExplorer data for this session is of the different version.")
+            warnings.warn("The CellExplorer data for this session is of a different version.")
+
+    if behavior_matfile_path.is_file():
+        source_data.update(TingleySeptalBehavior=dict(folder_path=str(session_path)))
 
     converter = TingleySeptalNWBConverter(source_data)
 
