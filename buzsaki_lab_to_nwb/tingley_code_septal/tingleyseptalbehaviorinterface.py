@@ -39,14 +39,14 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         position = behavior_mat["position"]
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
         pos_data = np.array(pos_data)[:, :, 0]
-        
+
         units = behavior_mat.get("units", None)
         if units == "m":
             conversion = 1.0
         else:
             warnings.warn(f"Spatial units {units} not listed in meters; " "setting conversion to nan.")
             conversion = np.nan
-        
+
         description = behavior_mat.get("description", "generic_position_tracking").replace("/", "-")
         rotation_type = behavior_mat.get("rotationType", "non_specified")
 
