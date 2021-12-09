@@ -2,13 +2,17 @@ from pathlib import Path
 import warnings
 
 from scipy.io import loadmat
+from nwb_conversion_tools.utils.metadata import load_metadata_from_file
+from nwb_conversion_tools.utils.json_schema import dict_deep_update
 
 from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 
 stub_test = True
 conversion_factor = 0.195  # Intan
+metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
 nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
+nwb_output_path = Path("/home/jovyan/nwb_test")
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
 
@@ -92,7 +96,8 @@ for session_path in session_path_list:
     converter = TingleySeptalNWBConverter(source_data)
 
     metadata = converter.get_metadata()
-    # metadata["Subject"].update(weight=f"{subject_weight[subject_name]}g")
+    metadata_from_yaml = load_metadata_from_file(metadata_path)
+    metadata = dict_deep_update(metadata, metadata_from_yaml)
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
