@@ -39,26 +39,16 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         position = behavior_mat["position"]
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
         pos_data = np.array(pos_data)[:, :, 0]
-
-        try:
-            units = behavior_mat["units"]
-            if units == "m":
-                conversion = 1.0
-            else:
-                warnings.warn(f"Spatial units {units} not listed in meters; " "setting conversion to nan.")
-                conversion = np.nan
-        except KeyError:
-            warnings.warn(f"Units not available")
-            units = None
+        
+        units = behavior_mat.get("units", None)
+        if units == "m":
+            conversion = 1.0
+        else:
+            warnings.warn(f"Spatial units {units} not listed in meters; " "setting conversion to nan.")
             conversion = np.nan
-        try:
-            description = behavior_mat["description"].replace("/", "")
-        except KeyError:
-            description = "generic_position_tracking"
-        try:
-            rotation_type = behavior_mat["rotationType"]
-        except KeyError:
-            rotation_type = "non_specified"
+        
+        description = behavior_mat.get("description", "generic_position_tracking").replace("/", "-")
+        rotation_type = behavior_mat.get("rotationType", "non_specified")
 
         pos_obj = Position(name=f"{description}")
 
