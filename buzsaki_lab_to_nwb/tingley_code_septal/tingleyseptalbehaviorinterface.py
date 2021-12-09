@@ -6,7 +6,7 @@ import numpy as np
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 from pynwb.file import NWBFile, TimeIntervals
-from pynwb.behavior import SpatialSeries, Position
+from pynwb.behavior import SpatialSeries, Position, CompassDirection
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from nwb_conversion_tools.utils.conversion_tools import get_module
 from nwb_conversion_tools.utils.json_schema import FolderPathType
@@ -62,14 +62,23 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             rate=float(rate),
             resolution=np.nan,
         )
+        
+        # When available add the error to this module
+        
         pos_obj.add_spatial_series(spatial_series_object)
 
-        # Orientation
+        # Compass 
+        module_name = "Orientation"
+        module_description = "Contains behavioral data concerning orientation."
+        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+          
+        compass_obj = CompassDirection(name=f"route centric")
+
         try:
             orientation = behavior_mat["orientation"]
             orientation_data = [
                 [x, y, z, w]
-                for (x, y, z, w) in zip(orientation["x"], orientation["y"], orientation["y"], orientation["w"])
+                for (x, y, z, w) in zip(orientation["x"], orientation["y"], orientation["z"], orientation["w"])
             ]
             orientation_data = np.array(orientation_data)[..., 0]
 
@@ -83,11 +92,11 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
                 rate=float(rate),
                 resolution=np.nan,
             )
-            pos_obj.add_spatial_series(spatial_series_object)
+            compass_obj.add_spatial_series(spatial_series_object)
         except KeyError:
             warnings.warn(f"Orientation data not found")
 
-        processing_module.add_data_interface(pos_obj)
+        processing_module.add_data_interface(compass_obj)
 
         # States
         module_name = "Neural states"
