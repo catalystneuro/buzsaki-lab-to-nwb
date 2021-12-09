@@ -62,16 +62,16 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             rate=float(rate),
             resolution=np.nan,
         )
-        
+
         # When available add the error to this module
-        
+
         pos_obj.add_spatial_series(spatial_series_object)
 
-        # Compass 
+        # Compass
         module_name = "Orientation"
         module_description = "Contains behavioral data concerning orientation."
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-          
+
         compass_obj = CompassDirection(name=f"route centric")
 
         try:
