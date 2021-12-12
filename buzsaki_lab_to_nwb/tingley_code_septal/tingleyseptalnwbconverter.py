@@ -25,24 +25,23 @@ class TingleySeptalNWBConverter(NWBConverter):
         TingleySeptalBehavior=TingleySeptalBehaviorInterface,
     )
 
-    
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
 
         session_path = lfp_file_path.parent
         session_id = session_path.stem
         subject_id = session_path.parent.name
-        split = session_id.split('_')
-        
-        if 'DT' in split[0]:  
+        split = session_id.split("_")
+
+        if "DT" in split[0]:
             date = split[5]
         else:
             date = split[0]
 
-        if date == '20170229':
-            date = '20170228'  # 2017 is not a leap year (?!)
+        if date == "20170229":
+            date = "20170228"  # 2017 is not a leap year (?!)
 
-        if split[-1] == 'merge':
+        if split[-1] == "merge":
             datetime_string = date
             session_start = datetime.strptime(datetime_string, "%Y%m%d")
         else:
@@ -52,7 +51,7 @@ class TingleySeptalNWBConverter(NWBConverter):
 
         session_start = session_start.replace(tzinfo=dateutil.tz.gettz("US/Eastern")).isoformat()
         metadata = super().get_metadata()
- 
+
         metadata["NWBFile"].update(session_start_time=session_start, session_id=session_id)
         metadata.update(Subject=dict(subject_id=subject_id))
         return metadata
