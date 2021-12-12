@@ -36,7 +36,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
         position = behavior_mat["position"]
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
-        pos_data = np.array(pos_data)[:, :, 0]
+        pos_data = np.array(pos_data)[..., 0]
 
         units = behavior_mat.get("units", None)
         if units == "m":
@@ -60,9 +60,25 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             resolution=np.nan,
         )
 
-        # When available add the error to this module
-
         pos_obj.add_spatial_series(spatial_series_object)
+
+        # Add error if available
+        errorPerMarker = behavior_mat.get("errorPerMarker", None)
+        if errorPerMarker:
+            error_data = np.array([error for error in errorPerMarker])[..., 0]
+
+            spatial_series_object = SpatialSeries(
+                name=f"Error per marker",
+                description=f"Error per marker",
+                data=H5DataIO(error_data, compression="gzip"),
+                reference_frame="unknown",
+                conversion=conversion,
+                timestamps=timestamps,
+                resolution=np.nan,
+            )
+            pos_obj.add_spatial_series(spatial_series_object)
+
+        processing_module.add_data_interface(pos_obj)
 
         # Compass
         module_name = "Orientation"
@@ -82,7 +98,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             spatial_series_object = SpatialSeries(
                 name=f"Orientation",
                 description=f"(x, y, z, w) orientation coordinates, orientation type: {rotation_type}",
-                data=H5DataIO(pos_data, compression="gzip"),
+                data=H5DataIO(orientation_data, compression="gzip"),
                 reference_frame="unknown",
                 conversion=conversion,
                 timestamps=timestamps,
