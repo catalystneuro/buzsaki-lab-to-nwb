@@ -79,14 +79,14 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             pos_obj.add_spatial_series(spatial_series_object)
 
         processing_module.add_data_interface(pos_obj)
-        
+
         # Add trials
         events = behavior_mat["events"]
         trial_interval_list = events["trialIntervals"]
         trial_list = events["trials"]
-        direction_list = [trial.get("direction", 'not available') for trial in trial_list]
-        trial_type_list = [trial.get("type", 'not available')  for trial in trial_list]
-        
+        direction_list = [trial.get("direction", "not available") for trial in trial_list]
+        trial_type_list = [trial.get("type", "not available") for trial in trial_list]
+
         table = TimeIntervals(name="Trials", description="Description of the trial type and direction")
         table.add_column(name="direction", description="direction of the trial")
         table.add_column(name="trial_type", description="type of trial")
