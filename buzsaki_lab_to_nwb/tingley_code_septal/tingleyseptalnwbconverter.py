@@ -2,6 +2,7 @@
 import dateutil
 from pathlib import Path
 from datetime import datetime
+from copy import deepcopy
 
 from nwb_conversion_tools import (
     NWBConverter,
@@ -12,6 +13,25 @@ from nwb_conversion_tools import (
 )
 
 from .tingleyseptalbehaviorinterface import TingleySeptalBehaviorInterface
+
+
+DEVICE_INFO = dict(
+    cambridge=dict(
+        name="Cambridge prob (1 x 64)",
+        description=(
+            "Silicon probe from Cambridge Neurotech. Electrophysiological data were "
+            "acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with20 kHz rate."
+        ),
+    ),
+    neuronexus_4_8=dict(
+        name="Neuronexus probe (4 x 8)",
+        description=(
+            "A 4 (shanks) x 8 (electrodes) silicon probe from Neuronexus. Electrophysiological data were "
+            "acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with 20 kHz rate."
+        ),
+    ),
+    # TODO: add other types
+)
 
 
 class TingleySeptalNWBConverter(NWBConverter):
@@ -54,4 +74,15 @@ class TingleySeptalNWBConverter(NWBConverter):
 
         metadata["NWBFile"].update(session_start_time=session_start, session_id=session_id)
         metadata.update(Subject=dict(subject_id=subject_id))
+
+        original_metadata = deepcopy(metadata)
+        # look at original_metadata["Ecephys"]["ElectrodeGroups"]
+        # for each group, count # electrodes
+        # count # of consecutive jumps between # of electrodes
+        # inferred_devices = dict(1="this device", ... 8="other device")
+        inferred_devices = dict()
+        unique_inferred_devices = set(inferred_devices.values())
+        metadata["Ecephys"]["Device"] = [DEVICE_INFO for inferred_device in unique_inferred_devices]
+        for group_idx, inferred_device in inferred_devices.items():
+            metadata["Ecephys"]["ElectrodeGroup"][group_idx].update(device="map_to_correct_device")
         return metadata
