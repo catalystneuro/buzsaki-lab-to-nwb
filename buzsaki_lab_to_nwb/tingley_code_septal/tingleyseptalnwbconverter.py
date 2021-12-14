@@ -82,7 +82,7 @@ class TingleySeptalNWBConverter(NWBConverter):
         # inferred_devices = dict(1="this device", ... 8="other device")
         inferred_devices = dict()
         unique_inferred_devices = set(inferred_devices.values())
-        metadata["Ecephys"]["Device"] = [DEVICE_INFO for inferred_device in unique_inferred_devices]
+        metadata["Ecephys"]["Device"] = [DEVICE_INFO[inferred_device] for inferred_device in unique_inferred_devices]
         for group_idx, inferred_device in inferred_devices.items():
             metadata["Ecephys"]["ElectrodeGroup"][group_idx].update(device="map_to_correct_device")
         return metadata
