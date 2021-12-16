@@ -23,11 +23,11 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
     def run_conversion(self, nwbfile: NWBFile, metadata: dict):
         session_path = Path(self.source_data["folder_path"])
         session_id = session_path.stem
-        
+
         # Load the file with behavioral data
         behavior_file_path = Path(session_path) / f"{session_id}.behavior.mat"
         behavior_mat = read_matlab_file(str(behavior_file_path))["behavior"]
-        
+
         # Add trials
         events = behavior_mat["events"]
         trial_interval_list = events["trialIntervals"]
@@ -37,7 +37,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
         nwbfile.add_trial_column(name="direction", description="direction of the trial")
         nwbfile.add_trial_column(name="trial_type", description="type of trial")
-                
+
         data = []
         for (start_time, stop_time), direction, trial_type in zip(trial_interval_list, direction_list, trial_type_list):
             data.append(
@@ -49,7 +49,6 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
                 )
             )
         [nwbfile.add_trial(**row) for row in sorted(data, key=lambda x: x["start_time"])]
-
 
         # Position
         module_name = "Position"
@@ -104,7 +103,6 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
         processing_module.add_data_interface(pos_obj)
 
-        
         # Compass
         module_name = "Orientation"
         module_description = "Contains behavioral data concerning orientation."

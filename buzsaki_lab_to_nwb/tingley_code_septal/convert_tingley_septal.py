@@ -92,7 +92,7 @@ for session_path in session_path_list:
             print("spikes matlab file available", spikes_matfile_path.is_file())
             loadmat(spikes_matfile_path)
             loadmat(session_info_matfile_path)
-            #source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
+            # source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
             source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
 
         except NotImplementedError:
