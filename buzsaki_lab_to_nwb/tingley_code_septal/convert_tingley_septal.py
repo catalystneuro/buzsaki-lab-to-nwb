@@ -102,7 +102,7 @@ for session_path in session_path_list:
         source_data.update(TingleySeptalBehavior=dict(folder_path=str(session_path)))
 
     converter = TingleySeptalNWBConverter(source_data)
-
+    
     metadata = converter.get_metadata()
     metadata_from_yaml = load_metadata_from_file(metadata_path)
     metadata = dict_deep_update(metadata, metadata_from_yaml)

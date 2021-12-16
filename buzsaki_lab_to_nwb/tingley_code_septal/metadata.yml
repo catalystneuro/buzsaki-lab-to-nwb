@@ -9,12 +9,6 @@ NWBFile:
     - David Tingley
 Subject:
   species: Rattus norvegicus
-Ecephys:
-  Device:
-    - name: Device_ecephys
-      description:
-        Electrophysiological data were acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with
-        20 kHz rate.
   # UnitProperties:
   #   - name: region
   #     description: Location in cortex.
