@@ -12,7 +12,11 @@ conversion_factor = 0.195  # Intan
 metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
 nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
-nwb_output_path = Path("/home/jovyan/nwb_test")
+if stub_test:
+    nwb_output_path = Path("/home/jovyan/nwb_test")
+else:
+    nwb_output_path = Path("/home/jovyan/nwb_test_complete")
+nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
 
@@ -33,7 +37,7 @@ session_path_list = [
     if session.is_dir() and session.name not in invalid_session
 ]
 
-# session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT9/20170508_468um_36um_170508_102251")]
+# session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT8/20170220_216um_1944um_170220_192456")]
 
 counter = 0
 for session_path in session_path_list:
@@ -48,7 +52,10 @@ for session_path in session_path_list:
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
     session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
     behavior_matfile_path = session_path / f"{session_id}.behavior.mat"
-    nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
+    if stub_test:
+        nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
+    else:
+        nwbfile_path = nwb_output_path / f"{session_id}.nwb"
 
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
@@ -85,7 +92,8 @@ for session_path in session_path_list:
             print("spikes matlab file available", spikes_matfile_path.is_file())
             loadmat(spikes_matfile_path)
             loadmat(session_info_matfile_path)
-            source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
+            #source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
+            source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
 
         except NotImplementedError:
             warnings.warn("The CellExplorer data for this session is of a different version.")
