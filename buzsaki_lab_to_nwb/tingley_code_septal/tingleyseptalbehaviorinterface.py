@@ -31,24 +31,26 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         # Add trials
         events = behavior_mat["events"]
         trial_interval_list = events["trialIntervals"]
-        trial_list = events["trials"]
-        direction_list = [trial.get("direction", "not available") for trial in trial_list]
-        trial_type_list = [trial.get("type", "not available") for trial in trial_list]
-
-        nwbfile.add_trial_column(name="direction", description="direction of the trial")
-        nwbfile.add_trial_column(name="trial_type", description="type of trial")
 
         data = []
-        for (start_time, stop_time), direction, trial_type in zip(trial_interval_list, direction_list, trial_type_list):
+        for start_time, stop_time in trial_interval_list:
             data.append(
                 dict(
                     start_time=float(start_time),
                     stop_time=float(stop_time),
-                    direction=direction,
-                    trial_type=trial_type,
                 )
             )
         [nwbfile.add_trial(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+
+        trial_list = events["trials"]
+        direction_list = [trial.get("direction", "") for trial in trial_list]
+        trial_type_list = [trial.get("type", "") for trial in trial_list]
+
+        if not all([direction == "" for direction in direction_list]):
+            nwbfile.add_trial_column(name="direction", description="direction of the trial", data=direction_list)
+
+        if not all([trial_type == "" for trial_type in trial_type_list]):
+            nwbfile.add_trial_column(name="trial_type", description="type of trial", data=trial_type_list)
 
         # Position
         module_name = "Position"
