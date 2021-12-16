@@ -51,7 +51,10 @@ DEVICE_INFO = dict(
             "acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with 20 kHz rate."
         ),
     ),
-    to_be_determined=dict(name="Name to be determined", description=("according to author reference sites a few millimeters dorsal to the rest")),
+    to_be_determined=dict(
+        name="Name to be determined",
+        description=("according to author reference sites a few millimeters dorsal to the rest"),
+    ),
 )
 
 
@@ -117,5 +120,5 @@ class TingleySeptalNWBConverter(NWBConverter):
         metadata["Ecephys"]["Device"] = [DEVICE_INFO[inferred_device] for inferred_device in unique_inferred_devices]
         for group_idx, inferred_device in inferred_devices.items():
             metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(device=DEVICE_INFO[inferred_device]["name"])
-        
+
         return metadata
