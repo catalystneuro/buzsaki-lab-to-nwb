@@ -14,6 +14,8 @@ from nwb_conversion_tools import (
 )
 
 from .tingleyseptalbehaviorinterface import TingleySeptalBehaviorInterface
+from .tingleyseptal_utils import read_matlab_file
+
 
 DEVICE_INFO = dict(
     cambridge=dict(
@@ -51,9 +53,12 @@ DEVICE_INFO = dict(
             "acquired using an Intan RHD2000 system (Intan Technologies LLC) digitized with 20 kHz rate."
         ),
     ),
-    to_be_determined=dict(
-        name="Name to be determined",
-        description=("according to author reference sites a few millimeters dorsal to the rest"),
+    old_neuronexus_probe=dict(
+        name="Old neuronexus probe",
+        description=(
+            "according to author thse are reference sites a few millimeters dorsal from the rest"
+            "recorded from an older neuronexus probe"
+        ),
     ),
 )
 
@@ -73,6 +78,7 @@ class TingleySeptalNWBConverter(NWBConverter):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
 
         session_path = lfp_file_path.parent
+        subject = str(session_path.parent.stem)
         session_id = session_path.stem
         subject_id = session_path.parent.name
         split = session_id.split("_")
@@ -99,26 +105,30 @@ class TingleySeptalNWBConverter(NWBConverter):
         metadata["NWBFile"].update(session_start_time=session_start, session_id=session_id)
         metadata.update(Subject=dict(subject_id=subject_id))
 
-        # Group re-organization
-        # original_metadata = deepcopy(metadata)
-
+        # Group mapping
         extractor = self.data_interface_objects["NeuroscopeLFP"].recording_extractor
-        counts = Counter(extractor.get_channel_groups())
+        counts = Counter(extractor.get_channel_groups())  # group_id : number_of_channels relationship
 
         inference_dic = {
             64: "cambridge",
-            99: "neuronexus_4_8",  # Can disambiguate between 4x8 and 8x8 with available info.
+            8: "neuronexus_4_8",
             12: "neuronexus_5_12",
-            8: "neuronexus_8_8",
+            88: "neuronexus_8_8",  # Can disambiguate between 4x8 and 8x8 with available info.
             10: "neuronexus_6_10",
-            4: "to_be_determined",
+            4: "old_neuronexus_probe",
         }
 
-        inferred_devices = {key: inference_dic[value] for key, value in counts.items()}
+        if subject == "DT9":  # This subject can be disambiguated by the number of channels per group
+            inferred_devices = {i: inference_dic[8] for i in range(1, 5)}
+            inferred_devices.update({i: inference_dic[88] for i in range(5, 5 + 8)})
+        else:
+            inferred_devices = {key: inference_dic[value] for key, value in counts.items()}
 
         unique_inferred_devices = set(inferred_devices.values())
         metadata["Ecephys"]["Device"] = [DEVICE_INFO[inferred_device] for inferred_device in unique_inferred_devices]
         for group_idx, inferred_device in inferred_devices.items():
             metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(device=DEVICE_INFO[inferred_device]["name"])
+
+        # Add region
 
         return metadata
