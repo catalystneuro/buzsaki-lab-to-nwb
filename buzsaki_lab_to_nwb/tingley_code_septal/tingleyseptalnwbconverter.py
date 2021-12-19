@@ -74,6 +74,24 @@ class TingleySeptalNWBConverter(NWBConverter):
         TingleySeptalBehavior=TingleySeptalBehaviorInterface,
     )
 
+    def __init__(self, source_data: dict):
+        super().__init__(source_data=source_data)
+
+        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
+        session_path = lfp_file_path.parent
+        session_id = session_path.stem
+
+        # Add region
+        session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
+        if session_info_matfile_path.is_file():
+            session_info_matfile = read_matlab_file(session_info_matfile_path)["sessionInfo"]
+            channel_region_list = session_info_matfile.get("region", None)
+
+            for j, channel_id in enumerate(self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()):
+                self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_property(
+                    channel_id=channel_id, property_name="brain_area", value=channel_region_list[j]
+            )
+    
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
 
@@ -107,7 +125,8 @@ class TingleySeptalNWBConverter(NWBConverter):
 
         # Group mapping
         extractor = self.data_interface_objects["NeuroscopeLFP"].recording_extractor
-        counts = Counter(extractor.get_channel_groups())  # group_id : number_of_channels relationship
+        channel_groups = extractor.get_channel_groups()
+        counts = Counter(channel_groups)  # group_id : number_of_channels relationship
 
         inference_dic = {
             64: "cambridge",
@@ -129,6 +148,18 @@ class TingleySeptalNWBConverter(NWBConverter):
         for group_idx, inferred_device in inferred_devices.items():
             metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(device=DEVICE_INFO[inferred_device]["name"])
 
-        # Add region
-
+        # Add region to groups
+        session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
+        if session_info_matfile_path.is_file():
+            session_info_matfile = read_matlab_file(session_info_matfile_path)["sessionInfo"]
+            channel_region_list = session_info_matfile.get("region", None)
+            if channel_region_list:
+                channel_group_to_region = {
+                    group: region for (group, region) in zip(channel_groups, channel_region_list)
+                }
+                for group_idx, region in channel_group_to_region.items():
+                    metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(location=region)
+                
+                #raise Error
+                
         return metadata

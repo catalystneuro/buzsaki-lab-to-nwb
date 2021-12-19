@@ -13,9 +13,9 @@ metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
 nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 if stub_test:
-    nwb_output_path = Path("/home/jovyan/nwb_test")
+    nwb_output_path = Path("/home/jovyan/nwb_stub")
 else:
-    nwb_output_path = Path("/home/jovyan/nwb_test_complete")
+    nwb_output_path = Path("/home/jovyan/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
@@ -89,7 +89,7 @@ for session_path in session_path_list:
 
     if spikes_matfile_path.is_file():
         try:
-            print("spikes matlab file available", spikes_matfile_path.is_file())
+            print("spikes and sessionInfo matlab files available", spikes_matfile_path.is_file())    
             loadmat(spikes_matfile_path)
             loadmat(session_info_matfile_path)
             # source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))

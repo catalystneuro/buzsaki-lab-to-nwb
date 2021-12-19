@@ -9,9 +9,3 @@ NWBFile:
     - David Tingley
 Subject:
   species: Rattus norvegicus
-  # UnitProperties:
-  #   - name: region
-  #     description: Location in cortex.
-  # ElectricalSeries_raw:
-  #   name: ElectricalSeries
-
