@@ -54,7 +54,7 @@ DEVICE_INFO = dict(
         ),
     ),
     old_neuronexus_probe=dict(
-        name="Old neuronexus probe",
+        name="Neuronexus probe (4 x 1)",
         description=(
             "according to author thse are reference sites a few millimeters dorsal from the rest"
             "recorded from an older neuronexus probe"
