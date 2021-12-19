@@ -87,11 +87,13 @@ class TingleySeptalNWBConverter(NWBConverter):
             session_info_matfile = read_matlab_file(session_info_matfile_path)["sessionInfo"]
             channel_region_list = session_info_matfile.get("region", None)
 
-            for j, channel_id in enumerate(self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()):
+            for j, channel_id in enumerate(
+                self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()
+            ):
                 self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_property(
                     channel_id=channel_id, property_name="brain_area", value=channel_region_list[j]
-            )
-    
+                )
+
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
 
@@ -159,7 +161,7 @@ class TingleySeptalNWBConverter(NWBConverter):
                 }
                 for group_idx, region in channel_group_to_region.items():
                     metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(location=region)
-                
-                #raise Error
-                
+
+                # raise Error
+
         return metadata

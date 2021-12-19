@@ -89,7 +89,7 @@ for session_path in session_path_list:
 
     if spikes_matfile_path.is_file():
         try:
-            print("spikes and sessionInfo matlab files available", spikes_matfile_path.is_file())    
+            print("spikes and sessionInfo matlab files available", spikes_matfile_path.is_file())
             loadmat(spikes_matfile_path)
             loadmat(session_info_matfile_path)
             # source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
