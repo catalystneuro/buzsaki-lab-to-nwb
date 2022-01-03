@@ -8,12 +8,12 @@ hdf5storage==0.1.18
 PyYAML==5.4
 jsonschema==3.2.0
 psutil==5.8.0
-lxml==4.6.3
+lxml==4.6.5
 spikeextractors==0.9.7
 spikesorters==0.4.4
 spiketoolkit==0.7.5
 neo==0.9.0
 roiextractors==0.3.1
-nwb-conversion-tools==0.9.3
+git+https://github.com/catalystneuro/nwb-conversion-tools.git@55dc42853e3204b560f8e44b149ab0508e36852f
 mat4py==0.5.0
 mat73==0.52
