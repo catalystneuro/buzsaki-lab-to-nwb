@@ -14,6 +14,6 @@ spikesorters==0.4.4
 spiketoolkit==0.7.5
 neo==0.9.0
 roiextractors==0.3.1
-nwb-conversion-tools @ git+https://github.com/SpikeInterface/spikeextractors.git
+git+https://github.com/catalystneuro/nwb-conversion-tools.git@55dc42853e3204b560f8e44b149ab0508e36852f
 mat4py==0.5.0
 mat73==0.52
