@@ -85,17 +85,19 @@ for session_path in session_path_list:
     res_matches_in_session = len(list(session_path.glob("*.res*")))
 
     if spikes_matfile_path.is_file():
-        print("cell explorer data is used")
+        print("cell explorer spiking data is used")
         source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
     else:
         if clu_matches_in_session > 0 and res_matches_in_session > 0:
-            print("neuroscope sorted data is used")
+            print("neuroscope spiking data is used")
             source_data.update(
                 NeuroscopeSorting=dict(
                     folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
                 )
             )
             conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
+        else:
+            print("not spiking data available")
 
     if behavior_matfile_path.is_file():
         source_data.update(TingleySeptalBehavior=dict(folder_path=str(session_path)))

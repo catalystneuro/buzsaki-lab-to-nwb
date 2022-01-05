@@ -106,12 +106,6 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         processing_module.add_data_interface(pos_obj)
 
         # Compass
-        module_name = "Orientation"
-        module_description = "Contains behavioral data concerning orientation."
-        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-
-        compass_obj = CompassDirection(name=f"route centric")
-
         try:
             orientation = behavior_mat["orientation"]
             orientation_data = [
@@ -119,6 +113,12 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
                 for (x, y, z, w) in zip(orientation["x"], orientation["y"], orientation["z"], orientation["w"])
             ]
             orientation_data = np.array(orientation_data)[..., 0]
+
+            module_name = "Orientation"
+            module_description = "Contains behavioral data concerning orientation."
+            processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+
+            compass_obj = CompassDirection(name=f"route centric")
 
             spatial_series_object = SpatialSeries(
                 name=f"Orientation",
@@ -130,10 +130,10 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
                 resolution=np.nan,
             )
             compass_obj.add_spatial_series(spatial_series_object)
+            processing_module.add_data_interface(compass_obj)
+        
         except KeyError:
             warnings.warn(f"Orientation data not found")
-
-        processing_module.add_data_interface(compass_obj)
 
         # States
         module_name = "Neural states"
