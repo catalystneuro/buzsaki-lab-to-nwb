@@ -83,17 +83,20 @@ for session_path in session_path_list:
 
     clu_matches_in_session = len(list(session_path.glob("*.clu*")))
     res_matches_in_session = len(list(session_path.glob("*.res*")))
-    if clu_matches_in_session > 0 and res_matches_in_session > 0:
-        print("neuroscope sorted data available", True)
-        source_data.update(
-            NeuroscopeSorting=dict(
-                folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
-            )
-        )
-        conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
-
+    
     if spikes_matfile_path.is_file():
+        print("cell explorer data is used")
         source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
+    else:
+        if clu_matches_in_session > 0 and res_matches_in_session > 0:
+            print("neuroscope sorted data is used")
+            source_data.update(
+                NeuroscopeSorting=dict(
+                    folder_path=str(session_path), keep_mua_units=False, xml_file_path=str(xml_file_path)
+                )
+            )
+            conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
+
 
     if behavior_matfile_path.is_file():
         source_data.update(TingleySeptalBehavior=dict(folder_path=str(session_path)))
@@ -104,7 +107,6 @@ for session_path in session_path_list:
     metadata = converter.get_metadata()
     metadata_from_yaml = load_dict_from_file(metadata_path)
     metadata = dict_deep_update(metadata, metadata_from_yaml)
-    print('---------')
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
