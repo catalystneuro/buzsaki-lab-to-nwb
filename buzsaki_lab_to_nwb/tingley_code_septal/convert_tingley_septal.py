@@ -83,7 +83,7 @@ for session_path in session_path_list:
 
     clu_matches_in_session = len(list(session_path.glob("*.clu*")))
     res_matches_in_session = len(list(session_path.glob("*.res*")))
-    
+
     if spikes_matfile_path.is_file():
         print("cell explorer data is used")
         source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
@@ -96,7 +96,6 @@ for session_path in session_path_list:
                 )
             )
             conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
-
 
     if behavior_matfile_path.is_file():
         source_data.update(TingleySeptalBehavior=dict(folder_path=str(session_path)))
