@@ -9,13 +9,13 @@ from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 
 stub_test = True
 conversion_factor = 0.195  # Intan
-#metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
-metadata_path = ("/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
+# metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
+metadata_path = "/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml"
 
-#data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
+# data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
 data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
 
-#nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
+# nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 if stub_test:
     nwb_output_path = Path("/home/heberto/nwb_stub")
 else:
@@ -104,7 +104,7 @@ for session_path in session_path_list:
     metadata = converter.get_metadata()
     metadata_from_yaml = load_dict_from_file(metadata_path)
     metadata = dict_deep_update(metadata, metadata_from_yaml)
-    print('---------')
+    print("---------")
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
