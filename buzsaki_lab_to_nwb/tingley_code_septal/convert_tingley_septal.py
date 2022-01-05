@@ -2,20 +2,24 @@ from pathlib import Path
 import warnings
 
 from scipy.io import loadmat
-from nwb_conversion_tools.utils.metadata import load_metadata_from_file
+from nwb_conversion_tools.utils.json_schema import load_dict_from_file
 from nwb_conversion_tools.utils.json_schema import dict_deep_update
 
 from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 
 stub_test = True
 conversion_factor = 0.195  # Intan
-metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
-data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
+#metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
+metadata_path = ("/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
+
+#data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
+data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
+
+#nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 if stub_test:
-    nwb_output_path = Path("/home/jovyan/nwb_stub")
+    nwb_output_path = Path("/home/heberto/nwb_stub")
 else:
-    nwb_output_path = Path("/home/jovyan/nwb")
+    nwb_output_path = Path("/home/heberto/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
@@ -67,6 +71,7 @@ for session_path in session_path_list:
         NeuroscopeLFP=dict(file_path=str(lfp_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)),
     )
     conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test))
+    # conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test, es_key="lfp"))
 
     if raw_file_path.is_file():
         source_data.update(
@@ -88,24 +93,18 @@ for session_path in session_path_list:
         conversion_options.update(NeuroscopeSorting=dict(stub_test=stub_test))
 
     if spikes_matfile_path.is_file():
-        try:
-            print("spikes and sessionInfo matlab files available", spikes_matfile_path.is_file())
-            loadmat(spikes_matfile_path)
-            loadmat(session_info_matfile_path)
-            # source_data.update(CellExplorerSorting=dict(spikes_matfile_path=str(spikes_matfile_path)))
-            source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
-
-        except NotImplementedError:
-            warnings.warn("The CellExplorer data for this session is of a different version.")
+        source_data.update(CellExplorerSorting=dict(file_path=str(spikes_matfile_path)))
 
     if behavior_matfile_path.is_file():
         source_data.update(TingleySeptalBehavior=dict(folder_path=str(session_path)))
 
     converter = TingleySeptalNWBConverter(source_data)
 
+    metadata = None
     metadata = converter.get_metadata()
-    metadata_from_yaml = load_metadata_from_file(metadata_path)
+    metadata_from_yaml = load_dict_from_file(metadata_path)
     metadata = dict_deep_update(metadata, metadata_from_yaml)
+    print('---------')
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
