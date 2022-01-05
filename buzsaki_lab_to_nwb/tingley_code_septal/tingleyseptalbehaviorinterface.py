@@ -131,7 +131,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             )
             compass_obj.add_spatial_series(spatial_series_object)
             processing_module.add_data_interface(compass_obj)
-        
+
         except KeyError:
             warnings.warn(f"Orientation data not found")
 
