@@ -136,7 +136,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             warnings.warn(f"Orientation data not found")
 
         # States
-        module_name = "Neural states"
+        module_name = "ecephys"
         module_description = "Contains behavioral data concerning classified states."
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
