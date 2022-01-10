@@ -147,7 +147,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
             state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM", MAstate="MA")
             sleep_state_dic = mat_file["SleepState"]["ints"]
-            table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
+            table = TimeIntervals(name="sleep_states", description="Sleep state of the animal.")
             table.add_column(name="label", description="Sleep state.")
 
             data = []
