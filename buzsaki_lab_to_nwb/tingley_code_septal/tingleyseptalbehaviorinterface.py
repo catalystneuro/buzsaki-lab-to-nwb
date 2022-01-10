@@ -76,7 +76,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         pos_obj = Position(name=f"{description.replace(" ", "_")}")
 
         spatial_series_object = SpatialSeries(
-            name=f"Position",
+            name="position",
             description=f"(x,y,z) coordinates tracking subject movement through",
             data=H5DataIO(pos_data, compression="gzip"),
             reference_frame="unknown",
