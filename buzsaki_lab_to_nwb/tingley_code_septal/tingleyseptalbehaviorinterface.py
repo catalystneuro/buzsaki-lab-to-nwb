@@ -94,7 +94,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
             spatial_series_object = SpatialSeries(
                 name="error_per_marker",
-                description=f"Error per marker",
+                description="Error per marker.",
                 data=H5DataIO(error_data, compression="gzip"),
                 reference_frame="unknown",
                 conversion=conversion,
