@@ -64,7 +64,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         pos_data = np.array(pos_data)[..., 0]
 
         unit = behavior_mat.get("units", None)
-        
+
         if unit == ["m", "meter", "meters"]:
             conversion = 1.0
         else:
@@ -81,7 +81,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             description="(x,y,z) coordinates tracking subject movement.",
             data=H5DataIO(pos_data, compression="gzip"),
             reference_frame="unknown",
-            unit=unit, 
+            unit=unit,
             conversion=conversion,
             timestamps=timestamps,
             resolution=np.nan,
