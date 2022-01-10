@@ -93,7 +93,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             error_data = np.array([error for error in errorPerMarker])[..., 0]
 
             spatial_series_object = SpatialSeries(
-                name=f"Error per marker",
+                name="error_per_marker",
                 description=f"Error per marker",
                 data=H5DataIO(error_data, compression="gzip"),
                 reference_frame="unknown",
