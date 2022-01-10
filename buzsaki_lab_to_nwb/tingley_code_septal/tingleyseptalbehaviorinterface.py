@@ -77,7 +77,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
         spatial_series_object = SpatialSeries(
             name="position",
-            description=f"(x,y,z) coordinates tracking subject movement through",
+            description="(x,y,z) coordinates tracking subject movement.",
             data=H5DataIO(pos_data, compression="gzip"),
             reference_frame="unknown",
             conversion=conversion,
