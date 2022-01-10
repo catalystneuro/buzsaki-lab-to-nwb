@@ -53,7 +53,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             nwbfile.add_trial_column(name="trial_type", description="type of trial", data=trial_type_list)
 
         # Position
-        module_name = "Position"
+        module_name = "behavior"
         module_description = "Contains behavioral data concerning position."
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
