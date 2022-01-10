@@ -121,7 +121,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             compass_obj = CompassDirection(name=f"route centric")
 
             spatial_series_object = SpatialSeries(
-                name=f"Orientation",
+                name="orientation",
                 description=f"(x, y, z, w) orientation coordinates, orientation type: {rotation_type}",
                 data=H5DataIO(orientation_data, compression="gzip"),
                 reference_frame="unknown",
