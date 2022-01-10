@@ -63,23 +63,25 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
         pos_data = np.array(pos_data)[..., 0]
 
-        units = behavior_mat.get("units", None)
-        if units == "m":
+        unit = behavior_mat.get("units", None)
+        
+        if unit == ["m", "meter", "meters"]:
             conversion = 1.0
         else:
-            warnings.warn(f"Spatial units {units} not listed in meters; " "setting conversion to nan.")
+            warnings.warn(f"Spatial units {unit} not listed in meters; " "setting conversion to nan.")
             conversion = np.nan
 
         description = behavior_mat.get("description", "generic_position_tracking").replace("/", "-")
         rotation_type = behavior_mat.get("rotationType", "non_specified")
 
-        pos_obj = Position(name=f"{description.replace(" ", "_")}")
+        pos_obj = Position(name=f"{description}".replace(" ", "_"))
 
         spatial_series_object = SpatialSeries(
             name="position",
             description="(x,y,z) coordinates tracking subject movement.",
             data=H5DataIO(pos_data, compression="gzip"),
             reference_frame="unknown",
+            unit=unit, 
             conversion=conversion,
             timestamps=timestamps,
             resolution=np.nan,
@@ -118,7 +120,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             module_description = "Contains behavioral data concerning orientation."
             processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
-            compass_obj = CompassDirection(name=f"route centric")
+            compass_obj = CompassDirection(name=f"route_centric")
 
             spatial_series_object = SpatialSeries(
                 name="orientation",
