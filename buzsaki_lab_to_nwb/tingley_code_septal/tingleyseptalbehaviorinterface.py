@@ -73,7 +73,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         description = behavior_mat.get("description", "generic_position_tracking").replace("/", "-")
         rotation_type = behavior_mat.get("rotationType", "non_specified")
 
-        pos_obj = Position(name=f"{description}")
+        pos_obj = Position(name=f"{description.replace(" ", "_")}")
 
         spatial_series_object = SpatialSeries(
             name=f"Position",
