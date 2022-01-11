@@ -10,10 +10,10 @@ from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 stub_test = True
 conversion_factor = 0.195  # Intan
 metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
-#metadata_path = "/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml"
+# metadata_path = "/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml"
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-#data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
+# data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
 
 # nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 if stub_test:
@@ -42,7 +42,7 @@ session_path_list = [
     if session.is_dir() and session.name not in invalid_session
 ]
 
-#session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT7/20170409_1152um_1152um_170409_115803")]
+# session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT7/20170409_1152um_1152um_170409_115803")]
 
 counter = 0
 for session_path in session_path_list:
