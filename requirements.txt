@@ -1,9 +1,8 @@
-
-pynwb==1.4.0
-tqdm==4.60.0
+pynwb>=1.4.0  
+tqdm>=4.60.0
 numpy==1.19.3
-pandas==1.2.3
-scipy==1.4.1
+pandas>=1.2.3
+scipy>=1.4.1
 h5py==2.10.0
 hdf5storage==0.1.18
 PyYAML==5.4
@@ -11,7 +10,7 @@ jsonschema==3.2.0
 psutil==5.8.0
 lxml==4.6.5
 spikeextractors==0.9.7
-neo==0.9.0
+neo==0.9.0  # it is 0.9.0 in nwb-conversion-tools
 mat4py==0.5.0
 mat73==0.52
 nwb-conversion-tools @ git+https://github.com/catalystneuro/nwb-conversion-tools.git@55dc42853e3204b560f8e44b149ab0508e36852f

@@ -1,21 +1,13 @@
-name: convert_to_nwb
+name: buzsaki-lab-to-nwb-env
 channels:
 - defaults
 - anaconda
 - conda-forge
 dependencies:
-- python=3.7
+- python==3.7
 - ipython
+- pandas>=1.2.3
 - pip
-- numpy
-- scipy
-- jupyter
-- matplotlib
-- cycler
-- h5py
-- pynwb
-- hdmf
 - pip:
-  - ndx-grayscalevolume
-  - git+https://github.com/NeurodataWithoutBorders/nwbn-conversion-tools
+  - -r requirements.txt
   - -e .
