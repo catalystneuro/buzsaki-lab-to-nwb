@@ -116,11 +116,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             ]
             orientation_data = np.array(orientation_data)[..., 0]
 
-            module_name = "orientation"
-            module_description = "Contains behavioral data concerning orientation."
-            processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-
-            compass_obj = CompassDirection(name=f"route_centric")
+            compass_obj = CompassDirection(name=f"allocentric_frame_analysis")
 
             spatial_series_object = SpatialSeries(
                 name="orientation",
