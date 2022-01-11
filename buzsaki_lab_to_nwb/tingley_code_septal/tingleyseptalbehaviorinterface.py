@@ -63,7 +63,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
         pos_data = np.array(pos_data)[..., 0]
 
-        unit = behavior_mat.get("units", None)
+        unit = behavior_mat.get("units", "")
 
         if unit == ["m", "meter", "meters"]:
             conversion = 1.0
