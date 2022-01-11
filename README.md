@@ -8,6 +8,15 @@ $ git clone https://github.com/catalystneuro/buzsaki-lab-to-nwb
 $ pip install -e buzsaki-lab-to-nwb
 ```
 
+Alternatively, to clone the repository and set up a conda environment, do:
+```
+$ git clone https://github.com/catalystneuro/buzsaki-lab-to-nwb
+$ cd nwb-conversion-tools
+$ conda env create --file make_env.yml
+$ conda activate buzsaki-lab-to-nwb-env
+$ pip install .
+```
+
 # Workflow
 Here is a basic description of the standard conversion pipeline for this project.
 
