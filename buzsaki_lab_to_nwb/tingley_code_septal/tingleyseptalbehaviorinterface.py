@@ -96,7 +96,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
             spatial_series_object = SpatialSeries(
                 name="error_per_marker",
-                description="Error per marker.",
+                description="Estimated error for marker tracking from optitrack system.",
                 data=H5DataIO(error_data, compression="gzip"),
                 reference_frame="unknown",
                 conversion=conversion,
@@ -116,7 +116,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             ]
             orientation_data = np.array(orientation_data)[..., 0]
 
-            compass_obj = CompassDirection(name=f"allocentric_frame_analysis")
+            compass_obj = CompassDirection(name=f"allocentric_frame_tracking")
 
             spatial_series_object = SpatialSeries(
                 name="orientation",
