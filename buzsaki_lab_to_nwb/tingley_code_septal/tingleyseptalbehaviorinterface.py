@@ -63,7 +63,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         pos_data = [[x, y, z] for (x, y, z) in zip(position["x"], position["y"], position["y"])]
         pos_data = np.array(pos_data)[..., 0]
 
-        unit = behavior_mat.get("units", None)
+        unit = behavior_mat.get("units", "")
 
         if unit == ["m", "meter", "meters"]:
             conversion = 1.0
@@ -74,7 +74,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         description = behavior_mat.get("description", "generic_position_tracking").replace("/", "-")
         rotation_type = behavior_mat.get("rotationType", "non_specified")
 
-        pos_obj = Position(name=f"{description}".replace(" ", "_"))
+        pos_obj = Position(name=f"{description}_task".replace(" ", "_"))
 
         spatial_series_object = SpatialSeries(
             name="position",
@@ -96,7 +96,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
 
             spatial_series_object = SpatialSeries(
                 name="error_per_marker",
-                description="Error per marker.",
+                description="Estimated error for marker tracking from optitrack system.",
                 data=H5DataIO(error_data, compression="gzip"),
                 reference_frame="unknown",
                 conversion=conversion,
@@ -116,11 +116,7 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
             ]
             orientation_data = np.array(orientation_data)[..., 0]
 
-            module_name = "orientation"
-            module_description = "Contains behavioral data concerning orientation."
-            processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-
-            compass_obj = CompassDirection(name=f"route_centric")
+            compass_obj = CompassDirection(name=f"allocentric_frame_tracking")
 
             spatial_series_object = SpatialSeries(
                 name="orientation",
