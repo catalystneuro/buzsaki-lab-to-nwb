@@ -6,6 +6,7 @@ channels:
 dependencies:
 - python>=3.7
 - ipython
+- scipy
 - pandas>=1.2.3
 - pip
 - pip:

@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 import warnings
 
 from scipy.io import loadmat
@@ -6,22 +7,19 @@ from nwb_conversion_tools.utils.json_schema import load_dict_from_file
 from nwb_conversion_tools.utils.json_schema import dict_deep_update
 
 from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
+from joblib import Parallel, delayed
 
-stub_test = False
+n_jobs = 20
+stub_test = True
 conversion_factor = 0.195  # Intan
 metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
-# metadata_path = "/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml"
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-# data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
 
-# nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 if stub_test:
-    nwb_output_path = Path("/home/jovyan/nwb_stub")
-    # nwb_output_path = Path("/home/heberto/nwb_stub")
+    nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwb_stub")
 else:
-    nwb_output_path = Path("/home/heberto/nwb")
-    nwb_output_path = Path("/home/jovyan/nwb")
+    nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
@@ -43,15 +41,18 @@ session_path_list = [
     if session.is_dir() and session.name not in invalid_session
 ]
 
-# session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT7/20170409_1152um_1152um_170409_115803")]
-session_path_list = [session_path_list[141]] 
+if stub_test:
+    # Number here is to reference in discussion
+    nwbfile_list = [nwb_output_path / f"{n:03d}_{session.stem}_stub.nwb" for n, session in enumerate(session_path_list)]
+else:
+    nwbfile_list = [nwb_output_path / f"{session.stem}.nwb" for n, session in enumerate(session_path_list)]
 
-counter = 0
-for session_path in session_path_list:
+
+def convert_session(session_path, nwbfile_path):
     print("----------------")
     print(session_path)
-    counter += 1
-    print(f"session {counter} of {len(session_path_list)}")
+    print(nwbfile_path)
+    
     session_id = session_path.name
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
@@ -59,10 +60,7 @@ for session_path in session_path_list:
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
     session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
     behavior_matfile_path = session_path / f"{session_id}.behavior.mat"
-    if stub_test:
-        nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
-    else:
-        nwbfile_path = nwb_output_path / f"{session_id}.nwb"
+
 
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
@@ -118,3 +116,11 @@ for session_path in session_path_list:
         conversion_options=conversion_options,
         overwrite=True,
     )
+    print("Done with conversion")
+    sys.stdout.flush()  # Needed for verbosity in Parallel
+
+
+Parallel(n_jobs=n_jobs)(
+    delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
+    for session_path, nwbfile_path in zip(session_path_list, nwbfile_list)
+)
