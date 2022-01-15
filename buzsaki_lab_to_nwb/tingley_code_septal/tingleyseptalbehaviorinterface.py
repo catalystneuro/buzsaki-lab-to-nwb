@@ -10,6 +10,7 @@ from pynwb.behavior import SpatialSeries, Position, CompassDirection
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from nwb_conversion_tools.utils.conversion_tools import get_module
 from nwb_conversion_tools.utils.json_schema import FolderPathType
+from spikeextractors import NeuroscopeRecordingExtractor
 
 from .tingleyseptal_utils import read_matlab_file
 
@@ -163,3 +164,26 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
                     )
             [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
             processing_module.add(table)
+
+        # Add epochs
+        lfp_file_path = session_path / f"{session_path.name}.lfp"
+        raw_file_path = session_path / f"{session_id}.dat"
+        xml_file_path = session_path / f"{session_id}.xml"
+
+        if raw_file_path.is_file():
+            recorder = NeuroscopeRecordingExtractor(file_path=raw_file_path, xml_file_path=xml_file_path)
+        else:
+            recorder = NeuroscopeRecordingExtractor(file_path=lfp_file_path, xml_file_path=xml_file_path)
+
+        num_frames = recorder.get_num_frames()
+        sampling_frequency = recorder.get_sampling_frequency()
+        end_of_the_session = num_frames / sampling_frequency
+
+        session_start = 0.0
+        start_trials_time = min([interval[0] for interval in trial_interval_list])
+        end_trials_time = max([interval[1] for interval in trial_interval_list])
+        end_of_the_session = end_of_the_session
+
+        nwbfile.add_epoch(start_time=session_start, stop_time=start_trials_time, tags="before trials")
+        nwbfile.add_epoch(start_time=start_trials_time, stop_time=end_trials_time, tags="during trials")
+        nwbfile.add_epoch(start_time=end_trials_time, stop_time=end_of_the_session, tags="after trials")
