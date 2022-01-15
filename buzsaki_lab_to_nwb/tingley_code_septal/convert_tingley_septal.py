@@ -10,19 +10,18 @@ from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 from joblib import Parallel, delayed
 
 n_jobs = 20
-stub_test = False
+stub_test = True
 conversion_factor = 0.195  # Intan
 metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-# data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
+# data_path = Path("!/globus_data/Buzsaki/TingleyD/")
 
 if stub_test:
-    nwb_output_path = Path("/home/jovyan/nwb_stub")
-    # nwb_output_path = Path("/home/heberto/nwb_stub")
+    nwb_output_path = Path("~/nwb_stub")
 else:
-    nwb_output_path = Path("/home/heberto/nwb")
-    nwb_output_path = Path("/home/jovyan/nwb")
+    # nwb_output_path = Path("shared/catalystneuron/Buzsaki/TingleyD/nwb")
+    nwb_output_path = Path("~/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
@@ -44,7 +43,7 @@ session_path_list = [
 if stub_test:
     # Number here is to reference in discussion
     nwbfile_list = [
-        nwb_output_path / f"{n:03d}_{session.parent.stem}.{session.stem}_stub.nwb"
+        nwb_output_path / f"{n:03d}_{session.parent.stem}_{session.stem}_stub.nwb"
         for n, session in enumerate(session_path_list)
     ]
 else:
@@ -63,7 +62,6 @@ def convert_session(session_path, nwbfile_path):
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
-    session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
     behavior_matfile_path = session_path / f"{session_id}.behavior.mat"
 
     print("raw file available", raw_file_path.is_file())
