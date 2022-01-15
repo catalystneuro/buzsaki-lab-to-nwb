@@ -11,7 +11,7 @@ conversion_factor = 0.195  # Intan
 metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-#data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
+# data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
 
 if stub_test:
     nwb_output_path = Path("/home/jovyan/nwb_stub")
@@ -26,7 +26,7 @@ subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
 valid_sessions_path = Path("./tingley_code_septal/valid_sessions.yml")
 valid_session_dic = load_dict_from_file(valid_sessions_path)
 valid_sessions_list = []
-for subject,valid_sessions_for_subject in valid_session_dic.items():
+for subject, valid_sessions_for_subject in valid_session_dic.items():
     valid_sessions_list += valid_sessions_for_subject
 
 session_path_list = [
