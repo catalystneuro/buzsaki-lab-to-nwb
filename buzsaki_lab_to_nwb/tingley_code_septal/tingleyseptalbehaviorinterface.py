@@ -168,10 +168,12 @@ class TingleySeptalBehaviorInterface(BaseDataInterface):
         # Add epochs
         lfp_file_path = session_path / f"{session_path.name}.lfp"
         raw_file_path = session_path / f"{session_id}.dat"
+        xml_file_path = session_path / f"{session_id}.xml"
+
         if raw_file_path.is_file():
-            recorder = NeuroscopeRecordingExtractor(file_path=raw_file_path)
+            recorder = NeuroscopeRecordingExtractor(file_path=raw_file_path, xml_file_path=xml_file_path)
         else:
-            recorder = NeuroscopeRecordingExtractor(file_path=lfp_file_path)
+            recorder = NeuroscopeRecordingExtractor(file_path=lfp_file_path, xml_file_path=xml_file_path)
 
         num_frames = recorder.get_num_frames()
         sampling_frequency = recorder.get_sampling_frequency()
