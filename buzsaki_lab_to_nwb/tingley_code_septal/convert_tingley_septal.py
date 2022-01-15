@@ -1,11 +1,15 @@
 from pathlib import Path
+import sys
 import warnings
 
 from scipy.io import loadmat
-from nwb_conversion_tools.utils.json_schema import dict_deep_update, load_dict_from_file
+from nwb_conversion_tools.utils.json_schema import load_dict_from_file
+from nwb_conversion_tools.utils.json_schema import dict_deep_update
 
 from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
+from joblib import Parallel, delayed
 
+n_jobs = 20
 stub_test = False
 conversion_factor = 0.195  # Intan
 metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
@@ -37,25 +41,30 @@ session_path_list = [
     if session.is_dir() and session.name in valid_sessions_list
 ]
 
-counter = 0
-for session_path in session_path_list:
+if stub_test:
+    # Number here is to reference in discussion
+    nwbfile_list = [
+        nwb_output_path / f"{n:03d}_{session.parent.stem}.{session.stem}_stub.nwb"
+        for n, session in enumerate(session_path_list)
+    ]
+else:
+    nwbfile_list = [
+        nwb_output_path / f"{session.parent.stem}_{session.stem}.nwb" for n, session in enumerate(session_path_list)
+    ]
+
+
+def convert_session(session_path, nwbfile_path):
     print("----------------")
     print(session_path)
-    counter += 1
-    print(f"session {counter} of {len(session_path_list)}")
+    print(nwbfile_path)
+
     session_id = session_path.name
-    subject = str(session_path.parent.stem)
-    print(subject)
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
     spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
     session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
     behavior_matfile_path = session_path / f"{session_id}.behavior.mat"
-    if stub_test:
-        nwbfile_path = nwb_output_path / f"{session_id}_stub.nwb"
-    else:
-        nwbfile_path = nwb_output_path / f"{session_id}.nwb"
 
     print("raw file available", raw_file_path.is_file())
     print("lfp file available", lfp_file_path.is_file())
@@ -111,3 +120,11 @@ for session_path in session_path_list:
         conversion_options=conversion_options,
         overwrite=True,
     )
+    print("Done with conversion")
+    sys.stdout.flush()  # Needed for verbosity in Parallel
+
+
+Parallel(n_jobs=n_jobs)(
+    delayed(convert_session)(session_path=session_path, nwbfile_path=nwbfile_path)
+    for session_path, nwbfile_path in zip(session_path_list, nwbfile_list)
+)
