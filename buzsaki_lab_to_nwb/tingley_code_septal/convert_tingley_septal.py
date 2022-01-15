@@ -23,7 +23,7 @@ nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
 
-valid_sessions_path = Path("./tingley_code_septal/valid_sessions.yml")
+valid_sessions_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/valid_sessions.yml")
 valid_session_dic = load_dict_from_file(valid_sessions_path)
 valid_sessions_list = []
 for subject, valid_sessions_for_subject in valid_session_dic.items():
