@@ -15,7 +15,7 @@ conversion_factor = 0.195  # Intan
 metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-# data_path = Path("!/globus_data/Buzsaki/TingleyD/")
+# data_path = Path("~/globus_data/Buzsaki/TingleyD/")
 
 if stub_test:
     nwb_output_path = Path("~/nwb_stub")
