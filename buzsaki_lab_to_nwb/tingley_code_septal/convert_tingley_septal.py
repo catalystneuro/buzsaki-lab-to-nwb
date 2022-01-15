@@ -2,20 +2,17 @@ from pathlib import Path
 import warnings
 
 from scipy.io import loadmat
-from nwb_conversion_tools.utils.json_schema import load_dict_from_file
-from nwb_conversion_tools.utils.json_schema import dict_deep_update
+from nwb_conversion_tools.utils.json_schema import dict_deep_update, load_dict_from_file
 
 from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 
 stub_test = False
 conversion_factor = 0.195  # Intan
-metadata_path = Path("/home/jovyan/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
-# metadata_path = "/home/heberto/development/buzsaki-lab-to-nwb/buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml"
+metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-# data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
+#data_path = Path("/home/heberto/globus_data/Buzsaki/TingleyD/")
 
-# nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwbfiles")
 if stub_test:
     nwb_output_path = Path("/home/jovyan/nwb_stub")
     # nwb_output_path = Path("/home/heberto/nwb_stub")
@@ -26,25 +23,19 @@ nwb_output_path.mkdir(exist_ok=True)
 
 subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
 
-invalid_session = [
-    "20170411_1296um_1152um_170411_113418",  # No data
-    "20170527_1260um_1072um_merge",  # No data
-    "20170528_1332um_1108um_170528_114153",  # No data
-    "z_Intruder_test_160304_152951",  # Test
-    "z_USV_test_3612um_1360um_20160307_160307_202140",  # Test
-    "z_novel_cage_test_160227_165229",  # Test
-]
+valid_sessions_path = Path("./tingley_code_septal/valid_sessions.yml")
+valid_session_dic = load_dict_from_file(valid_sessions_path)
+valid_sessions_list = []
+for subject,valid_sessions_for_subject in valid_session_dic.items():
+    valid_sessions_list += valid_sessions_for_subject
 
 session_path_list = [
     session
     for subject in data_path.iterdir()
     if subject.is_dir() and subject.name in subject_list
     for session in subject.iterdir()
-    if session.is_dir() and session.name not in invalid_session
+    if session.is_dir() and session.name in valid_sessions_list
 ]
-
-# session_path_list = [Path("/shared/catalystneuro/Buzsaki/TingleyD/DT7/20170409_1152um_1152um_170409_115803")]
-session_path_list = [session_path_list[141]] 
 
 counter = 0
 for session_path in session_path_list:
@@ -53,6 +44,8 @@ for session_path in session_path_list:
     counter += 1
     print(f"session {counter} of {len(session_path_list)}")
     session_id = session_path.name
+    subject = str(session_path.parent.stem)
+    print(subject)
     lfp_file_path = session_path / f"{session_path.name}.lfp"
     raw_file_path = session_path / f"{session_id}.dat"
     xml_file_path = session_path / f"{session_id}.xml"
