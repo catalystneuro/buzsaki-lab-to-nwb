@@ -1,0 +1,5 @@
+mat4py==0.5.0
+mat73==0.52
+hdf5storage>=0.1.18
+nwb-conversion-tools @ git+https://github.com/catalystneuro/nwb-conversion-tools@53802f87788bd96ac73996f8e90c67c5734bbda1
+spikeextractors @ git+https://github.com/SpikeInterface/spikeextractors.git@e7fa83719deaa2cebbb1a741d124e877375aaeea

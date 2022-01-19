@@ -1,0 +1,13 @@
+name: buzsaki-lab-to-nwb-env-tingley
+channels:
+- defaults
+- anaconda
+- conda-forge
+dependencies:
+- python>=3.7
+- ipython
+- pip
+- pip:
+  - -r tingley_septal_requirements.txt
+  - -e .
+
