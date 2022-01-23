@@ -101,9 +101,13 @@ class TingleySeptalNWBConverter(NWBConverter):
         subject = str(session_path.parent.stem)
         session_id = session_path.stem
         subject_id = session_path.parent.name
+
+        # See the names in the valid session for this logic
         split = session_id.split("_")
 
-        if "DT" in split[0]:
+        if split[0] == "DT1":
+            date = split[2]
+        elif split[0] == "DT2":
             date = split[5]
         else:
             date = split[0]
@@ -111,7 +115,7 @@ class TingleySeptalNWBConverter(NWBConverter):
         if date == "20170229":
             date = "20170228"  # 2017 is not a leap year (?!)
 
-        if split[-1] == "merge":
+        if split[-1] == "merge" or split[0] == "DT1":
             datetime_string = date
             session_start = datetime.strptime(datetime_string, "%Y%m%d")
         else:
