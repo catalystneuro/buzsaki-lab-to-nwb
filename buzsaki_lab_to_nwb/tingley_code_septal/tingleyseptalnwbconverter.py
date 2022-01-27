@@ -88,7 +88,6 @@ class TingleySeptalNWBConverter(NWBConverter):
             channel_region_list = session_info_matfile.get("region", None)
             recording_extractor = self.data_interface_objects["NeuroscopeLFP"].recording_extractor
             recording_extractor.set_property(key="brain_region", values=channel_region_list)
-        
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
