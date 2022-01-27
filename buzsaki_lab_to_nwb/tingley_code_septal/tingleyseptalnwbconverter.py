@@ -83,16 +83,12 @@ class TingleySeptalNWBConverter(NWBConverter):
 
         # Add region
         session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
+
         if session_info_matfile_path.is_file():
             session_info_matfile = read_matlab_file(session_info_matfile_path)["sessionInfo"]
             channel_region_list = session_info_matfile.get("region", None)
-
-            for j, channel_id in enumerate(
-                self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()
-            ):
-                self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_property(
-                    channel_id=channel_id, property_name="brain_area", value=channel_region_list[j]
-                )
+            recording_extractor = self.data_interface_objects["NeuroscopeLFP"].recording_extractor
+            recording_extractor.set_property(key="brain_region", values=channel_region_list)
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
@@ -141,6 +137,7 @@ class TingleySeptalNWBConverter(NWBConverter):
             88: "neuronexus_8_8",  # Can disambiguate between 4x8 and 8x8 with available info.
             10: "neuronexus_6_10",
             4: "old_neuronexus_probe",
+            3: "neuronexus_4_8",
         }
 
         if subject == "DT9":  # This subject can be disambiguated by the number of channels per group
