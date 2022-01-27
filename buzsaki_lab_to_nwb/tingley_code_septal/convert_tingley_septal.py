@@ -2,7 +2,6 @@ from pathlib import Path
 import sys
 import warnings
 
-from scipy.io import loadmat
 from nwb_conversion_tools.utils.json_schema import load_dict_from_file
 from nwb_conversion_tools.utils.json_schema import dict_deep_update
 
@@ -15,7 +14,8 @@ ripple_paper = True
 conversion_factor = 0.195  # Intan
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-home_path = "~"
+home_path = Path("/home/jovyan/")
+
 if ripple_paper:
     metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata_ripples.yml")
     valid_sessions_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/valid_sessions_ripples.yml")
@@ -26,8 +26,8 @@ else:
 if stub_test:
     nwb_output_path = home_path / Path("nwb_stub")
 else:
-    # nwb_output_path = Path("shared/catalystneuron/Buzsaki/TingleyD/nwb")
-    nwb_output_path = home_path / Path("nwb")
+    # nwb_output_path = home_path / Path("nwb")
+    nwb_output_path = Path("shared/catalystneuron/Buzsaki/TingleyD/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
 valid_session_dic = load_dict_from_file(valid_sessions_path)

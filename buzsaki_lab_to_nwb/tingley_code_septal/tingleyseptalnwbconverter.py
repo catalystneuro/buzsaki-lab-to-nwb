@@ -1,7 +1,6 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
 import dateutil
 from pathlib import Path
-from copy import Error, deepcopy
 from collections import Counter
 from datetime import datetime
 
@@ -89,6 +88,7 @@ class TingleySeptalNWBConverter(NWBConverter):
             channel_region_list = session_info_matfile.get("region", None)
             recording_extractor = self.data_interface_objects["NeuroscopeLFP"].recording_extractor
             recording_extractor.set_property(key="brain_region", values=channel_region_list)
+        
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
@@ -164,5 +164,4 @@ class TingleySeptalNWBConverter(NWBConverter):
                     metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(location=region)
 
                 # raise Error
-
         return metadata
