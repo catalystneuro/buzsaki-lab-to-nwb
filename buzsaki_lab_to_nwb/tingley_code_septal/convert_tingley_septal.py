@@ -9,7 +9,7 @@ from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 from joblib import Parallel, delayed
 
 n_jobs = 20
-stub_test = True
+stub_test = False
 ripple_paper = True
 conversion_factor = 0.195  # Intan
 
@@ -27,7 +27,7 @@ if stub_test:
     nwb_output_path = home_path / Path("nwb_stub")
 else:
     # nwb_output_path = home_path / Path("nwb")
-    nwb_output_path = Path("shared/catalystneuron/Buzsaki/TingleyD/nwb")
+    nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
 valid_session_dic = load_dict_from_file(valid_sessions_path)
