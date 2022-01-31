@@ -52,11 +52,11 @@ def run_yuta_conv(session, nwbfile_path):
             YutaLFP=dict(file_path=str(eegfile_path), gain=conversion_factor),
             NeuroscopeSorting=dict(folder_path=str(session), keep_mua_units=False, load_waveforms=True),
             YutaPosition=dict(folder_path=str(session)),
-            YutaBehavior=dict(folder_path=str(session))
+            YutaBehavior=dict(folder_path=str(session)),
         )
         conversion_options = dict(
             YutaLFP=dict(stub_test=stub_test),
-            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True)
+            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True),
         )
         if datfile_path.is_file():
             source_data.update(NeuroscopeRecording=dict(file_path=str(datfile_path), gain=conversion_factor))
@@ -64,21 +64,21 @@ def run_yuta_conv(session, nwbfile_path):
         yuta_converter = YutaNWBConverter(source_data)
         metadata = yuta_converter.get_metadata()
         # Yuta specific info
-        metadata['NWBFile'].update(
+        metadata["NWBFile"].update(
             experimenter=experimenter,
             session_description=paper_descr,
-            related_publications=paper_info
+            related_publications=paper_info,
         )
-        metadata['Subject'].update(species="Mus musculus")
-        metadata['Ecephys']['Device'][0].update(name='Implant', description=device_descr)
-        for electrode_group_metadata in metadata['Ecephys']['ElectrodeGroup']:
+        metadata["Subject"].update(species="Mus musculus")
+        metadata["Ecephys"]["Device"][0].update(name="Implant", description=device_descr)
+        for electrode_group_metadata in metadata["Ecephys"]["ElectrodeGroup"]:
             electrode_group_metadata.update(location="unknown")
-            electrode_group_metadata.update(device_name='Implant')
+            electrode_group_metadata.update(device_name="Implant")
         yuta_converter.run_conversion(
             nwbfile_path=nwbfile_path,
             metadata=metadata,
             conversion_options=conversion_options,
-            overwrite=True
+            overwrite=True,
         )
     else:
         print(f"The folder ({session}) does not exist!")
