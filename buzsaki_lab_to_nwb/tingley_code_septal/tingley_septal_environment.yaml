@@ -1,4 +1,4 @@
-name: buzsaki-lab-to-nwb-env
+name: buzsaki-lab-to-nwb-env-tingley
 channels:
 - defaults
 - anaconda
@@ -6,8 +6,8 @@ channels:
 dependencies:
 - python>=3.7
 - ipython
-- pandas>=1.2.3
 - pip
 - pip:
-  - -r requirements.txt
+  - -r tingley_septal_requirements.txt
   - -e .
+
