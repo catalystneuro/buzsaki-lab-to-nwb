@@ -1,7 +1,6 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
 import dateutil
 from pathlib import Path
-from copy import Error, deepcopy
 from collections import Counter
 from datetime import datetime
 
@@ -83,16 +82,16 @@ class TingleySeptalNWBConverter(NWBConverter):
 
         # Add region
         session_info_matfile_path = session_path / f"{session_id}.sessionInfo.mat"
+
         if session_info_matfile_path.is_file():
             session_info_matfile = read_matlab_file(session_info_matfile_path)["sessionInfo"]
             channel_region_list = session_info_matfile.get("region", None)
+            recording_extractor = self.data_interface_objects["NeuroscopeLFP"].recording_extractor
+            recording_extractor.set_property(key="brain_area", values=channel_region_list)
 
-            for j, channel_id in enumerate(
-                self.data_interface_objects["NeuroscopeLFP"].recording_extractor.get_channel_ids()
-            ):
-                self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_property(
-                    channel_id=channel_id, property_name="brain_area", value=channel_region_list[j]
-                )
+            if "NeuroscopeRecording" in self.data_interface_objects:
+                recording_extractor = self.data_interface_objects["NeuroscopeRecording"].recording_extractor
+                recording_extractor.set_property(key="brain_area", values=channel_region_list)
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
@@ -101,9 +100,13 @@ class TingleySeptalNWBConverter(NWBConverter):
         subject = str(session_path.parent.stem)
         session_id = session_path.stem
         subject_id = session_path.parent.name
+
+        # See the names in the valid session for this logic
         split = session_id.split("_")
 
-        if "DT" in split[0]:
+        if split[0] == "DT1":
+            date = split[2]
+        elif split[0] == "DT2":
             date = split[5]
         else:
             date = split[0]
@@ -111,7 +114,7 @@ class TingleySeptalNWBConverter(NWBConverter):
         if date == "20170229":
             date = "20170228"  # 2017 is not a leap year (?!)
 
-        if split[-1] == "merge":
+        if split[-1] == "merge" or split[0] == "DT1":
             datetime_string = date
             session_start = datetime.strptime(datetime_string, "%Y%m%d")
         else:
@@ -137,6 +140,7 @@ class TingleySeptalNWBConverter(NWBConverter):
             88: "neuronexus_8_8",  # Can disambiguate between 4x8 and 8x8 with available info.
             10: "neuronexus_6_10",
             4: "old_neuronexus_probe",
+            3: "neuronexus_4_8",
         }
 
         if subject == "DT9":  # This subject can be disambiguated by the number of channels per group
@@ -161,7 +165,5 @@ class TingleySeptalNWBConverter(NWBConverter):
                 }
                 for group_idx, region in channel_group_to_region.items():
                     metadata["Ecephys"]["ElectrodeGroup"][group_idx - 1].update(location=region)
-
-                # raise Error
 
         return metadata

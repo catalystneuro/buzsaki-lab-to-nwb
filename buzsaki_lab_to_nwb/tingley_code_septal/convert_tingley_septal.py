@@ -2,7 +2,6 @@ from pathlib import Path
 import sys
 import warnings
 
-from scipy.io import loadmat
 from nwb_conversion_tools.utils.json_schema import load_dict_from_file
 from nwb_conversion_tools.utils.json_schema import dict_deep_update
 
@@ -10,26 +9,33 @@ from buzsaki_lab_to_nwb import TingleySeptalNWBConverter
 from joblib import Parallel, delayed
 
 n_jobs = 20
-stub_test = True
+stub_test = False
+ripple_paper = True
 conversion_factor = 0.195  # Intan
-metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
 
 data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-# data_path = Path("~/globus_data/Buzsaki/TingleyD/")
+home_path = Path("/home/jovyan/")
+
+if ripple_paper:
+    metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata_ripples.yml")
+    valid_sessions_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/valid_sessions_ripples.yml")
+else:
+    metadata_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/metadata.yml")
+    valid_sessions_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/valid_sessions.yml")
 
 if stub_test:
-    nwb_output_path = Path("~/nwb_stub")
+    nwb_output_path = home_path / Path("nwb_stub")
 else:
-    # nwb_output_path = Path("shared/catalystneuron/Buzsaki/TingleyD/nwb")
-    nwb_output_path = Path("~/nwb")
+    # nwb_output_path = home_path / Path("nwb")
+    nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwb")
 nwb_output_path.mkdir(exist_ok=True)
 
-subject_list = ["DT2", "DT5", "DT7", "DT8", "DT9"]
-
-valid_sessions_path = Path("./buzsaki_lab_to_nwb/tingley_code_septal/valid_sessions.yml")
 valid_session_dic = load_dict_from_file(valid_sessions_path)
 valid_sessions_list = []
+subject_list = []
+
 for subject, valid_sessions_for_subject in valid_session_dic.items():
+    subject_list.append(subject)
     valid_sessions_list += valid_sessions_for_subject
 
 session_path_list = [

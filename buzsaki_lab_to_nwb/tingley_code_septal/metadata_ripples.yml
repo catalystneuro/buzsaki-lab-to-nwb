@@ -1,0 +1,11 @@
+NWBFile:
+  related_publications:
+    Tingley, David, and György Buzsáki. "Routing of hippocampal ripples to subcortical structures via the lateral septum." Neuron 105.1 (2020) 138-149.
+  session_description:
+    The mnemonic functions of hippocampal sharp wave ripples (SPW-Rs) have been studied extensively. Because hippocampal outputs affect not only cortical but also subcortical targets, we examined the impact of SPW-Rs on the firing patterns of lateral septal (LS) neurons in behaving rats. A large fraction of SPW-Rs were temporally locked to high-frequency oscillations (HFOs) (120–180 Hz) in LS, with strongest coupling during non-rapid eye movement (NREM) sleep, followed by waking immobility. However, coherence and spike-local field potential (LFP) coupling between the two structures were low, suggesting that HFOs are generated locally within the LS GABAergic population. This hypothesis was supported by optogenetic induction of HFOs in LS. Spiking of LS neurons was largely independent of the sequential order of spiking in SPW-Rs but instead correlated with the magnitude of excitatory synchrony of the hippocampal output. Thus, LS is strongly activated by SPW-Rs and may convey hippocampal population events to its hypothalamic and brainstem targets.
+  institution: NYU
+  lab: Buzsaki
+  experimenter:
+    - David Tingley
+Subject:
+  species: Rattus norvegicus
