@@ -13,7 +13,7 @@ with open(os.path.join(here, "requirements.txt")) as f:
 
 setup(
     name="buzsaki-lab-to-nwb",
-    version="0.3.0",
+    version="0.4.0",
     description="NWB conversion scripts, functions, and classes for the Buzsaki lab.",
     long_description=long_description,
     long_description_content_type="text/markdown",
