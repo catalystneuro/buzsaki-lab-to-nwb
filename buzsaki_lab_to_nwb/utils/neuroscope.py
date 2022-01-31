@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from lxml import etree as et
 from tqdm import tqdm
-from typing import Optional, List, Iterable, Union
+from typing import Optional, List, Iterable
 from pathlib import Path
 
 from pynwb import NWBFile
@@ -167,21 +167,16 @@ def get_lfp_sampling_rate(session_path: str, xml_filepath: Optional[str] = None)
     return lfp_sampling_rate
 
 
-<<<<<<< HEAD:buzsaki_lab_to_nwb/neuroscope.py
 def add_position_data(
-        nwbfile: NWBFile,
-        session_path: str,
-        whl_file_path: OptionalPathType = None,
-        starting_time: float = 0.,
-        fs: float = 1250./32.,
-        names=("x0", "y0", "x1", "y1")
+    nwbfile: NWBFile,
+    session_path: str,
+    whl_file_path: OptionalPathType = None,
+    starting_time: float = 0.0,
+    fs: float = 1250.0 / 32.0,
+    names=("x0", "y0", "x1", "y1"),
 ):
     """
     Read and write raw position sensor data from .whl file.
-=======
-def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 20000 / 512, names=("x0", "y0", "x1", "y1")):
-    """Read raw position sensor data from .whl file.
->>>>>>> master:buzsaki_lab_to_nwb/utils/neuroscope.py
 
     Parameters
     ----------
@@ -192,7 +187,6 @@ def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 20000 / 5
     names: iterable
         names of column headings
     """
-<<<<<<< HEAD:buzsaki_lab_to_nwb/neuroscope.py
     session_id = Path(session_path).name
     if whl_file_path is None:
         whl_path = session_path / f"{session_id}.whl"
@@ -209,41 +203,9 @@ def add_position_data(nwbfile: NWBFile, session_path: str, fs: float = 20000 / 5
                 conversion=np.nan,  # whl is in arbitrary units
                 starting_time=starting_time,
                 rate=fs,
-                resolution=np.nan
+                resolution=np.nan,
             )
         )
-=======
-    session_name = os.path.split(session_path)[1]
-    whl_path = os.path.join(session_path, session_name + ".whl")
-    if not os.path.isfile(whl_path):
-        print(whl_path + " file not found!")
-        return
-    df = pd.read_csv(whl_path, sep="\t", names=names)
-
-    nwbfile.add_acquisition(
-        SpatialSeries(
-            "position_sensor0",
-            H5DataIO(df[["x0", "y0"]].values, compression="gzip"),
-            "unknown",
-            description="raw sensor data from sensor 0",
-            starting_time=0.0,
-            rate=fs,
-            resolution=np.nan,
-        )
-    )
-
-    nwbfile.add_acquisition(
-        SpatialSeries(
-            "position_sensor1",
-            H5DataIO(df[["x1", "y1"]].values, compression="gzip"),
-            "unknown",
-            description="raw sensor data from sensor 1",
-            starting_time=0.0,
-            rate=fs,
-            resolution=np.nan,
-        )
-    )
->>>>>>> master:buzsaki_lab_to_nwb/utils/neuroscope.py
 
 
 def read_spike_times(session_path: str, shankn: int, fs: float = 20000.0):
