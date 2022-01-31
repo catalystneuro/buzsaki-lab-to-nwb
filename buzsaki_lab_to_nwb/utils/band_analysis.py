@@ -16,22 +16,21 @@ def parse_passband(passband):
             'ripples':  (100, 250)
 
     """
-    if passband == 'delta':
+    if passband == "delta":
         passband = np.array([0, 4])
-    elif passband == 'theta':
+    elif passband == "theta":
         passband = np.array([4, 10])
-    elif passband == 'spindles':
+    elif passband == "spindles":
         passband = np.array([10, 20])
-    elif passband == 'gamma':
+    elif passband == "gamma":
         passband = np.array([30, 80])
-    elif passband == 'ripples':
+    elif passband == "ripples":
         passband = np.array([100, 250])
 
     return passband
 
 
-def filter_lfp(lfp, sampling_rate=1250.0, passband='theta', order=4, filter='butter',
-               ripple=20):
+def filter_lfp(lfp, sampling_rate=1250.0, passband="theta", order=4, filter="butter", ripple=20):
     """Apply a passband filter a signal. Butter is implemented but other
     filters are not.
 
@@ -65,16 +64,16 @@ def filter_lfp(lfp, sampling_rate=1250.0, passband='theta', order=4, filter='but
 
     passband = parse_passband(passband)
 
-    if filter == 'butter':
-        b, a = butter(order, passband / (sampling_rate / 2), 'bandpass')
+    if filter == "butter":
+        b, a = butter(order, passband / (sampling_rate / 2), "bandpass")
         filt = filtfilt(b, a, lfp)
         return filt
     else:
-        NotImplementedError('filter type not implemented')
+        NotImplementedError("filter type not implemented")
 
 
 def next_power_of_2(x):
-    return 1 if x == 0 else 2**(x - 1).bit_length()
+    return 1 if x == 0 else 2 ** (x - 1).bit_length()
 
 
 def hilbert_lfp(filt):
@@ -94,10 +93,9 @@ def hilbert_lfp(filt):
     """
     # hilbert runs way faster on a power of 2
     hilb = hilbert(filt, next_power_of_2(len(filt)))
-    hilb = hilb[:len(filt)]
+    hilb = hilb[: len(filt)]
 
     amp = np.abs(hilb)
-    phase = np.mod(np.angle(hilb), 2*np.pi)
+    phase = np.mod(np.angle(hilb), 2 * np.pi)
 
     return phase, amp
-

@@ -31,36 +31,30 @@ def conversion_function(source_paths, f_nwb, metafile, **kwargs):
     source_paths = {}
 
     # Instantiate a Neuroscope converter
-    converter = Neuroscope2NWB(
-        metadata=metadata,
-        source_paths=source_paths
-    )
+    converter = Neuroscope2NWB(metadata=metadata, source_paths=source_paths)
 
     # TODO ---------------------------------
-    raise NotImplementedError('TODO')
+    raise NotImplementedError("TODO")
     # --------------------------------------
 
     # Saves to NWB file
-    converter.save(
-        to_path=Path.cwd(),
-        read_check=True
-    )
+    converter.save(to_path=Path.cwd(), read_check=True)
 
 
 # If called directly fom terminal
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 6:
-        print('Error: Please provide source files, nwb file name and metafile.')
+        print("Error: Please provide source files, nwb file name and metafile.")
 
     f1 = sys.argv[1]
     f2 = sys.argv[2]
     f3 = sys.argv[3]
     source_paths = {
-        'paths1': {'type': 'file', 'path': f1},
-        'paths2': {'type': 'file', 'path': f2},
-        'paths3': {'type': 'file', 'path': f3}
+        "paths1": {"type": "file", "path": f1},
+        "paths2": {"type": "file", "path": f2},
+        "paths3": {"type": "file", "path": f3},
     }
     f_nwb = sys.argv[4]
     metafile = sys.argv[5]
