@@ -1,0 +1,11 @@
+name: buzsaki_tingley_long_term
+channels:
+- defaults
+- anaconda
+- conda-forge
+dependencies:
+- python==3.9
+- pip
+- pip:
+  - -e .
+  - -r tingley_long_term_requirements.txt
