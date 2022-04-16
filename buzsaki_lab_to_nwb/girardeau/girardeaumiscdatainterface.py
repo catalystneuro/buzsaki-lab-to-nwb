@@ -17,6 +17,7 @@ from ..neuroscope import get_events, check_module, add_position_data
 # LapType mat files seem to have some info on the air puffs and mouse track runs, but it's hard to decipher and
 #     not much documentation on it
 
+
 class GirardeauMiscInterface(BaseDataInterface):
     """Primary data interface for miscellaneous aspects of the GirardeauG dataset."""
 
@@ -29,8 +30,8 @@ class GirardeauMiscInterface(BaseDataInterface):
         nwbfile: NWBFile,
         metadata: dict,
         stub_test: bool = False,
-     ):
-        session_path = Path(self.source_data['folder_path'])
+    ):
+        session_path = Path(self.source_data["folder_path"])
         session_id = session_path.name
 
         # Stimuli
@@ -41,23 +42,19 @@ class GirardeauMiscInterface(BaseDataInterface):
 
         # Epochs
         df = pd.read_csv(
-            session_path / f"{session_id}.cat.evt",
-            sep=" ",
-            names=("time", "begin_or_end", "of", "epoch_name")
+            session_path / f"{session_id}.cat.evt", sep=" ", names=("time", "begin_or_end", "of", "epoch_name")
         )
         epoch_starts = []
-        for j in range(int(len(df)/2)):
-            epoch_starts.append(df['time'][2 * j])
+        for j in range(int(len(df) / 2)):
+            epoch_starts.append(df["time"][2 * j])
             nwbfile.add_epoch(
-                start_time=epoch_starts[j],
-                stop_time=df['time'][2 * j + 1],
-                tags=[df['epoch_name'][2 * j][18:]]
+                start_time=epoch_starts[j], stop_time=df["time"][2 * j + 1], tags=[df["epoch_name"][2 * j][18:]]
             )
 
         # Trials
         trialdata_path = session_path / f"{session_id}-TrackRunTimes.mat"
         if trialdata_path.is_file():
-            trials_data = loadmat(trialdata_path)['trackruntimes']
+            trials_data = loadmat(trialdata_path)["trackruntimes"]
             for trial_data in trials_data:
                 nwbfile.add_trial(start_time=trial_data[0], stop_time=trial_data[1])
 
@@ -65,10 +62,7 @@ class GirardeauMiscInterface(BaseDataInterface):
         whl_files = []
         for whl_file in whl_files:
             add_position_data(
-                nwbfile=nwbfile,
-                session_path=session_path,
-                whl_file_path=whl_file,
-                starting_time=epoch_starts[j]
+                nwbfile=nwbfile, session_path=session_path, whl_file_path=whl_file, starting_time=epoch_starts[j]
             )
 
         # States
@@ -76,7 +70,7 @@ class GirardeauMiscInterface(BaseDataInterface):
         # label renaming
         state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
         if sleep_state_fpath.is_file():
-            matin = loadmat(sleep_state_fpath)['SleepState']['ints'][0][0]
+            matin = loadmat(sleep_state_fpath)["SleepState"]["ints"][0][0]
 
             table = TimeIntervals(name="states", description="Sleep states of animal.")
             table.add_column(name="label", description="Sleep state.")
@@ -85,5 +79,5 @@ class GirardeauMiscInterface(BaseDataInterface):
             for name in matin.dtype.names:
                 for row in matin[name][0][0]:
                     data.append(dict(start_time=row[0], stop_time=row[1], label=state_label_names[name]))
-            [table.add_row(**row) for row in sorted(data, key=lambda x: x['start_time'])]
+            [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
             check_module(nwbfile, "behavior", "Contains behavioral data.").add(table)

@@ -33,17 +33,14 @@ class FujisawaMiscInterface(BaseDataInterface):
         l_r_dict = {1: "Right", 2: "Left"}
         for trial in trial_info:
             nwbfile.add_trial(
-                start_time=trial[0],
-                stop_time=trial[1],
-                reward_time=trial[2],
-                left_or_right=l_r_dict[int(trial[3])]
+                start_time=trial[0], stop_time=trial[1], reward_time=trial[2], left_or_right=l_r_dict[int(trial[3])]
             )
 
         # Position
         pos_info = mat_file["whlrl"]
         pos_data = [pos_info[:, 0:1], pos_info[:, 2:3]]
-        starting_time = 0.
-        rate = 20000/512  # from CRCNS info
+        starting_time = 0.0
+        rate = 20000 / 512  # from CRCNS info
         conversion = np.nan  # whl are arbitrary units
         pos_obj = Position(name="Position")
         for j in range(2):
@@ -55,13 +52,11 @@ class FujisawaMiscInterface(BaseDataInterface):
                 conversion=conversion,
                 starting_time=starting_time,
                 rate=rate,
-                resolution=np.nan
+                resolution=np.nan,
             )
             pos_obj.add_spatial_series(spatial_series_object)
         get_module(
-            nwbfile=nwbfile,
-            name="behavior",
-            description="Contains processed behavioral data."
+            nwbfile=nwbfile, name="behavior", description="Contains processed behavioral data."
         ).add_data_interface(pos_obj)
 
         linearized_pos = mat_file["whlrld"][:, 6]
@@ -78,7 +73,7 @@ class FujisawaMiscInterface(BaseDataInterface):
             conversion=conversion,
             starting_time=starting_time,
             rate=rate,
-            resolution=np.nan
+            resolution=np.nan,
         )
         lin_pos_obj.add_spatial_series(lin_spatial_series_object)
         get_module(nwbfile=nwbfile, name="behavior").add_data_interface(lin_pos_obj)

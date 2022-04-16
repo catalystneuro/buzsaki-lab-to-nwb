@@ -26,14 +26,14 @@ class MPGInterface(BaseDataInterface):
         nwbfile: NWBFile,
         metadata: dict,
         stub_test: bool = False,
-     ):
+    ):
         if stub_test:
             count_max = 10
         else:
             count_max = np.inf
 
-        (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
-        file_paths = self.source_data['file_paths']
+        (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split(".")
+        file_paths = self.source_data["file_paths"]
         for file in file_paths:
             cap = cv2.VideoCapture(file)
             if int(major_ver) < 3:
@@ -55,6 +55,6 @@ class MPGInterface(BaseDataInterface):
                 name=f"Video: {Path(file).name}",
                 description="Video recorded by camera.",
                 data=H5DataIO(mov, compression="gzip"),
-                rate=fps
+                rate=fps,
             )
             nwbfile.add_acquisition(video)
