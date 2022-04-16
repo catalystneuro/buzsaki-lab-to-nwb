@@ -26,24 +26,21 @@ for session_path in convert_sessions:
         NeuroscopeLFP=dict(file_path=eeg_file_path, gain=conversion_factor),
         CellExplorerSorting=dict(spikes_matfile_path=spikes_matfile_path),
         GirardeauMisc=dict(folder_path=folder_path),
-        MPG=dict(file_paths=mpg_file_paths)
+        MPG=dict(file_paths=mpg_file_paths),
     )
     conversion_options = dict(
         CellExplorerSorting=dict(stub_test=stub_test),
         NeuroscopeLFP=dict(stub_test=stub_test),
-        MPG=dict(stub_test=stub_test)
+        MPG=dict(stub_test=stub_test),
     )
     if raw_data_file_path.is_dir():
         source_data.update(NeuroscopeRecording=dict(file_path=str(raw_data_file_path), gain=conversion_factor))
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test, buffer_mb=2000))
     else:
-        conversion_options['CellExplorerSorting'].update(write_ecephys_metadata=True)
+        conversion_options["CellExplorerSorting"].update(write_ecephys_metadata=True)
 
     converter = GirardeauNWBConverter(source_data)
     metadata = converter.get_metadata()
     converter.run_conversion(
-        nwbfile_path=nwbfile_path,
-        metadata=metadata,
-        conversion_options=conversion_options,
-        overwrite=True
+        nwbfile_path=nwbfile_path, metadata=metadata, conversion_options=conversion_options, overwrite=True
     )

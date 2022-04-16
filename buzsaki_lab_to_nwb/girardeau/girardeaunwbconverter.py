@@ -3,8 +3,10 @@ from datetime import datetime
 from pathlib import Path
 
 from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeRecordingInterface, \
-    NeuroscopeLFPInterface
+from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import (
+    NeuroscopeRecordingInterface,
+    NeuroscopeLFPInterface,
+)
 from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
 
 from ..mpgdatainterface import MPGInterface
@@ -19,11 +21,11 @@ class GirardeauNWBConverter(NWBConverter):
         NeuroscopeLFP=NeuroscopeLFPInterface,
         CellExplorerSorting=CellExplorerSortingInterface,
         GirardeauMisc=GirardeauMiscInterface,
-        MPG=MPGInterface
+        MPG=MPGInterface,
     )
 
     def get_metadata(self):
-        lfp_file_path = Path(self.data_interface_objects['NeuroscopeLFP'].source_data['file_path'])
+        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
         session_id = lfp_file_path.stem
         session_start = datetime.strptime(session_id[6:], "%Y%m%d")
 
@@ -53,14 +55,14 @@ class GirardeauNWBConverter(NWBConverter):
         )
 
         metadata = super().get_metadata()
-        metadata['NWBFile'].update(
+        metadata["NWBFile"].update(
             session_start_time=session_start.astimezone(),
             session_id=session_id,
             institution="NYU",
             lab="Buzsaki",
             experimenter="Gabrielle Girardeau",
             session_description=paper_descr,
-            related_publications=paper_info
+            related_publications=paper_info,
         )
         metadata.update(
             Subject=dict(
@@ -68,14 +70,14 @@ class GirardeauNWBConverter(NWBConverter):
                 sex="Male",
                 genotype="Wild type",
                 weight="300g",
-                age="3 months"
+                age="3 months",
             )
         )
 
-        if 'Ecephys' not in metadata:  # If NeuroscopeRecording was not in source_data
+        if "Ecephys" not in metadata:  # If NeuroscopeRecording was not in source_data
             session_path = lfp_file_path.parent
             xml_file_path = str(session_path / f"{session_id}.xml")
             metadata.update(NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
-        metadata['Ecephys']['Device'][0].update(description=device_descr)
+        metadata["Ecephys"]["Device"][0].update(description=device_descr)
 
         return metadata
