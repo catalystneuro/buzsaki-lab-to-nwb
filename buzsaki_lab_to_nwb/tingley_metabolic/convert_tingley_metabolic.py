@@ -10,6 +10,8 @@ from buzsaki_lab_to_nwb.tingley_metabolic import (
     TingleyMetabolicConverter,
     load_subject_glucose_series,
     get_subject_ecephys_session_start_times,
+    segment_glucose_series,
+    get_session_datetime,
 )
 
 n_jobs = 20
@@ -46,15 +48,24 @@ def convert_session(session_path, nwbfile_path):
     print(nwbfile_path)
 
     session_id = session_path.name
-    lfp_file_path = session_path / f"{session_path.name}.lfp"
-    raw_file_path = session_path / f"{session_id}.dat"
     aux_file_path = session_path / "auxiliary.dat"
     rhd_file_path = session_path / f"{session_id}.rhd"
     xml_file_path = session_path / f"{session_id}.xml"
 
-    subject_id = session_id.split("_")[0]
-    subject_glucose_data = load_subject_glucose_series(session_path=session_path)
+    raw_file_path = session_path / f"{session_id}.dat"
+    lfp_file_path = session_path / f"{session_id}.lfp"
+    # if not raw_file_path.is_file() and (session_path / f"{session_id}.dat_orig").is_file:
+    #     raw_file_path = session_path / f"{session_id}.dat_orig"
+
+    # raw_file_path = session_path / f"{session_id}.dat" if (session_path / f"{session_id}.dat").is_file() else
+
+    subject_glucose_series = load_subject_glucose_series(session_path=session_path)
     subject_ecephys_session_start_times = get_subject_ecephys_session_start_times(session_path=session_path)
+    session_glucose_series = segment_glucose_series(
+        session_start_time=get_session_datetime(session_id=session_id),
+        glucose_series=subject_glucose_series,
+        ecephys_start_times=subject_ecephys_session_start_times,
+    )
     # segment the ecephys against the glucose, return sub-series of glucose
     # if sub-series is non-empty, include GlucoseInterface(series=sub_series)
     #     and increment the starting_times of .dat and .lfp interfaces
