@@ -58,40 +58,33 @@ for session_path in convert_sessions:
         source_data = dict(
             NeuroscopeSorting=dict(folder_path=folder_path, load_waveforms=True),
             NeuroscopeLFP=dict(file_path=eeg_file_path, gain=conversion_factor),
-            PeyracheMisc=dict(folder_path=folder_path)
+            PeyracheMisc=dict(folder_path=folder_path),
         )
         conversion_options = dict(
-            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True),
-            NeuroscopeLFP=dict(stub_test=stub_test)
+            NeuroscopeSorting=dict(stub_test=stub_test, write_waveforms=True), NeuroscopeLFP=dict(stub_test=stub_test)
         )
         if raw_data_folder_path.is_dir():
             folder_path = str(raw_data_folder_path)
-            source_data.update(
-                NeuroscopeRecording=dict(folder_path=folder_path, gain=conversion_factor)
-            )
-            conversion_options.update(
-                NeuroscopeRecording=dict(stub_test=stub_test)
-            )
+            source_data.update(NeuroscopeRecording=dict(folder_path=folder_path, gain=conversion_factor))
+            conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
         else:
-            conversion_options['NeuroscopeSorting'].update(write_ecephys_metadata=True)
+            conversion_options["NeuroscopeSorting"].update(write_ecephys_metadata=True)
 
         peyrache_converter = PeyracheNWBConverter(source_data)
         metadata = peyrache_converter.get_metadata()
 
         # Specific info
-        metadata['NWBFile'].update(
-            experimenter=experimenter,
-            session_description=paper_descr,
-            related_publications=paper_info
+        metadata["NWBFile"].update(
+            experimenter=experimenter, session_description=paper_descr, related_publications=paper_info
         )
-        metadata['Subject'].update(
+        metadata["Subject"].update(
             subject_id=session_path.parent.name,
         )
-        metadata['Ecephys']['Device'][0].update(description=device_descr)
+        metadata["Ecephys"]["Device"][0].update(description=device_descr)
 
         peyrache_converter.run_conversion(
             nwbfile_path=str(nwbfile_path),
             metadata=metadata,
             conversion_options=conversion_options,
-            overwrite=overwrite
+            overwrite=overwrite,
         )

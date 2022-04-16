@@ -3,8 +3,11 @@ from pathlib import Path
 from datetime import datetime
 
 from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import NeuroscopeRecordingInterface, \
-    NeuroscopeLFPInterface, NeuroscopeSortingInterface
+from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import (
+    NeuroscopeRecordingInterface,
+    NeuroscopeLFPInterface,
+    NeuroscopeSortingInterface,
+)
 
 from .fujisawamiscdatainterface import FujisawaMiscInterface
 
@@ -16,29 +19,26 @@ class FujisawaNWBConverter(NWBConverter):
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         NeuroscopeSorting=NeuroscopeSortingInterface,
-        Misc=FujisawaMiscInterface
+        Misc=FujisawaMiscInterface,
     )
 
     def get_metadata(self):
         lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
         session_id = lfp_file_path.parent.name
-        subject_id, _ = lfp_file_path.stem.split('.')
+        subject_id, _ = lfp_file_path.stem.split(".")
         datetime_string = "2008" + lfp_file_path.parent.parent.name[2:6]
         session_start = datetime.strptime(datetime_string, "%Y%m%d")
 
         metadata = super().get_metadata()
         metadata["NWBFile"].update(
-            session_start_time=session_start.astimezone(),
-            session_id=session_id,
-            institution="NYU",
-            lab="Buzsaki"
+            session_start_time=session_start.astimezone(), session_id=session_id, institution="NYU", lab="Buzsaki"
         )
         metadata.update(
             Subject=dict(
                 subject_id=lfp_file_path.parent.parent.parent.name,
                 species="Rattus norvegicus domestica",
                 sex="Male",
-                age="3-5 months"
+                age="3-5 months",
             )
         )
 
