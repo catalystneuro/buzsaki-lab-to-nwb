@@ -1,4 +1,4 @@
-"""Authors: Heberto Mayorquin and Cody Baker."""
+"""Authors: Cody Baker."""
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from nwb_conversion_tools.utils import FilePathType
 from pynwb import TimeSeries, H5DataIO
@@ -58,8 +58,9 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
         nwbfile.add_acquisition(
             TimeSeries(
                 name="Accelerometer",
+                description="Raw data from accelerometer sensors.",
                 units="Volts",
-                data=H5DataIO(self.memmap),  # should not need iterative write
+                data=H5DataIO(self.memmap.T),  # should not need iterative write
                 conversion=self.conversion,
                 rate=self.sampling_frequency,
             ),

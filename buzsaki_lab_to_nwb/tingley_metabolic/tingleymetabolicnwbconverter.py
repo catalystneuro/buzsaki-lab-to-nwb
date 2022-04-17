@@ -1,4 +1,4 @@
-"""Authors: Heberto Mayorquin and Cody Baker."""
+"""Authors: Cody Baker."""
 import dateutil
 from pathlib import Path
 from datetime import datetime
@@ -10,6 +10,7 @@ from nwb_conversion_tools import (
 )
 
 from .tingleymetabolicaccelerometerinterface import TingleyMetabolicAccelerometerInterface
+from .tingleymetabolicglucoseinterface import TingleyMetabolicGlucoseInterface
 
 
 DEVICE_INFO = dict(
@@ -37,6 +38,7 @@ class TingleyMetabolicConverter(NWBConverter):
         NeuroscopeRecording=NeuroscopeRecordingInterface,
         NeuroscopeLFP=NeuroscopeLFPInterface,
         Accelerometer=TingleyMetabolicAccelerometerInterface,
+        Glucose=TingleyMetabolicGlucoseInterface,
     )
 
     def get_metadata(self):

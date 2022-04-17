@@ -1,50 +1,58 @@
 """Author: Cody Baker."""
-from typing import List, Dict
+from typing import List, Optional
 from pathlib import Path
 from datetime import datetime
+from collections import namedtuple
 
 import numpy as np
 from pandas import read_csv, to_datetime
 
+BaseGlucoseSeries = namedtuple("GlucoseSeries", "timestamps isig")
 
-def load_subject_glucose_series(session_path: Path) -> Dict[datetime, float]:
+
+class GlucoseSeries(BaseGlucoseSeries):
+    def __init__(self, timestamps: Optional[List[datetime]] = None, isig: Optional[List[float]] = None):
+        timestamps = [] if timestamps is None else timestamps
+        isig = [] if isig is None else isig
+        self.order()
+
+    def __add__(self, glucose_series: BaseGlucoseSeries):
+        self.timestamps.extend(glucose_series.timestamps)
+        self.isig.extend(glucose_series.isig)
+        self.order()
+
+    def order(self):
+        sorted_indices = np.argsort(self.timestamps)
+        self.timestamps = list(np.array(self.timestamps)[sorted_indices])
+        self.isig = list(np.array(self.timestamps)[sorted_indices])
+
+    def subset(self, timestamp: datetime):
+        cutoff_idx = next(idx for idx, series_timestamp in enumerate(self.timestamps) if timestamp >= series_timestamp)
+        self.timestamps = self.timestamps[:cutoff_idx]
+        self.isig = self.isig[:cutoff_idx]
+
+
+def load_subject_glucose_series(session_path: Path) -> GlucoseSeries:
     """Given the subject_id string and the ecephys session_path, load all glucose series data for further parsing."""
     subject_path = session_path.parent
     all_csv = [x for x in subject_path.iterdir() if ".csv" in x.suffixes]
 
-    all_glucose_data = dict()
+    glucose_series = GlucoseSeries(timestamps=[], isig=[])
     for file_path in all_csv:
-        all_glucose_data.update(read_glucose_csv(file_path=file_path))
-
-    all_timestamps = np.array(list(all_glucose_data.keys()))
-    all_isig = np.array(list(all_glucose_data.values()))
-    sorted_indices = np.argsort(all_timestamps)
-    glucose_series = {k: v for k, v in zip(all_timestamps[sorted_indices], all_isig[sorted_indices])}
-
+        glucose_series += read_glucose_csv(file_path=file_path)
     return glucose_series
 
 
-def read_glucose_csv(file_path: Path) -> Dict[datetime, float]:
+def read_glucose_csv(file_path: Path) -> GlucoseSeries:
     """Parse a single glucose data file."""
     all_data = read_csv(filepath_or_buffer=file_path, skiprows=11)
-    excluded = all_data["Excluded"].astype(bool)
 
-    valid_timestamp_to_isig = {
-        datetime_timestamp: isig_value
-        for datetime_timestamp, isig_value in zip(
-            to_datetime(all_data["Timestamp"][excluded], infer_datetime_format=True), all_data["ISIG Value"][excluded]
-        )
-        if not np.isnan(isig_value) and isig_value != -9999
-    }
+    timestamps = all_data["ISIG Value"]
+    isig = to_datetime(all_data["Timestamp"], infer_datetime_format=True)
 
-    return valid_timestamp_to_isig
+    exclude = all_data["Excluded"].astype(bool) + np.isnan(isig) + (isig == -9999)
 
-
-def get_subject_ecephys_session_start_times(session_path: Path) -> List[datetime]:
-    """Return all the start times for the ecephys sessions for this subject."""
-    subject_path = session_path.parent
-    subject_session_ids = [x.name for x in subject_path.iterdir() if x.is_dir()]
-    return sorted([get_session_datetime(session_id) for session_id in subject_session_ids])
+    return GlucoseSeries(timestamps=timestamps[exclude], isig=isig[exclude])
 
 
 def get_session_datetime(session_id: str):
@@ -53,31 +61,15 @@ def get_session_datetime(session_id: str):
 
 
 def segment_glucose_series(
-    this_ecephys_start_time: datetime,
-    glucose_series: Dict[datetime, float],
-    ecephys_start_times: List[datetime],
-    ecephys_end_times: List[datetime],
-) -> (Dict[datetime, float], datetime):
-    """1."""
-    glucose_timestamps = list(glucose_series.keys())
+    this_ecephys_start_time: datetime, this_ecephys_stop_time: datetime, glucose_series: GlucoseSeries
+) -> (GlucoseSeries, datetime):
+    """
+    Return either the entire glucose history or the subset leading to the end of this ecephys session.
 
+    Also returns the NWB session start time.
+    """
     # If glucose recording ended before this ecephys session
-    if this_ecephys_start_time > glucose_timestamps[-1]:
-        return None, this_ecephys_start_time
-
-    segments = dict()
-    ecephys_start_times_to_segment_number = dict()
-    # Calculate segments
-    if ecephys_start_times[0] > glucose_timestamps[0]:  # if first ecephys session started before glucose recording
-        segments.update({0: (ecephys_start_times[0], ecephys_end_times[0])})
+    if this_ecephys_start_time > glucose_series[-1]:
+        return glucose_series, this_ecephys_start_time
     else:
-        if ecephys_start_times[0] > glucose_timestamps[-1]:  # if glucose recording ended before
-            segments.update({0: (glucose_timestamps[0], ecephys_end_times[0])})
-
-    glucose_series_per_segment = dict()
-    for segment_number, (start, stop) in segments.items():
-        glucose_series_per_segment.update({segment_number: {k: v for k, v in glucose_series if start <= k <= stop}})
-
-    # Get the segment for this session
-    this_session_segment_number = ecephys_start_times_to_segment_number[this_ecephys_start_time]
-    return glucose_series_per_segment[this_session_segment_number], segments[this_session_segment_number][0]
+        return glucose_series.subset(timestamp=this_ecephys_stop_time), glucose_series.timestamps[0]

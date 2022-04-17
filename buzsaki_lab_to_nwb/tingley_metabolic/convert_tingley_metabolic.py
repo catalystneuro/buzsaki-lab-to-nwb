@@ -1,20 +1,22 @@
 """Run entire conversion."""
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import timedelta
 
 from tqdm import tqdm
 from nwb_conversion_tools.utils.json_schema import load_dict_from_file
 from nwb_conversion_tools.utils.json_schema import dict_deep_update
+from spikeextractors import NeuroscopeRecordingExtractor
 
 from buzsaki_lab_to_nwb.tingley_metabolic import (
     TingleyMetabolicConverter,
     load_subject_glucose_series,
-    get_subject_ecephys_session_start_times,
     segment_glucose_series,
     get_session_datetime,
 )
 
 n_jobs = 20
+progress_bar_options = dict(desc="Running conversion...", position=0, leave=False)
 stub_test = True
 conversion_factor = 0.195  # Intan
 
@@ -31,11 +33,20 @@ else:
 nwb_output_path.mkdir(exist_ok=True)
 
 
-session_path_list = [subject_path.iterdir() for subject_path in (data_path / "metadata_metabolic.yml").iterdir()]
+subject_list = ["CGM1", "CGM2"]  # This list will change based on what has finished transfering to the Hub
+session_path_list = [subject_path for subject_path in data_path.iterdir() if subject_path.stem in subject_list]
 if stub_test:
-    nwbfile_list = [nwb_output_path / f"{session.parent.stem}_{session.stem}_stub.nwb" for session in session_path_list]
+    nwbfile_list = [
+        nwb_output_path / f"{subject_path.stem}_{session.stem}_stub.nwb"
+        for subject_path in session_path_list
+        for session in subject_path.iterdir()
+    ]
 else:
-    nwbfile_list = [nwb_output_path / f"{session.parent.stem}_{session.stem}.nwb" for session in session_path_list]
+    nwbfile_list = [
+        nwb_output_path / f"{subject_path.stem}_{session.stem}.nwb"
+        for subject_path in session_path_list
+        for session in subject_path.iterdir()
+    ]
 
 global_metadata = load_dict_from_file(metadata_path)
 subject_info_table = load_dict_from_file(subject_info_path)
@@ -47,6 +58,7 @@ def convert_session(session_path, nwbfile_path):
     print(session_path)
     print(nwbfile_path)
 
+    conversion_options = dict()
     session_id = session_path.name
     aux_file_path = session_path / "auxiliary.dat"
     rhd_file_path = session_path / f"{session_id}.rhd"
@@ -54,27 +66,27 @@ def convert_session(session_path, nwbfile_path):
 
     raw_file_path = session_path / f"{session_id}.dat"
     lfp_file_path = session_path / f"{session_id}.lfp"
+
+    print("raw file available...", raw_file_path.is_file())
+    print("lfp file available...", lfp_file_path.is_file())
+
+    # I know I'll need this for other sessions, just not yet
     # if not raw_file_path.is_file() and (session_path / f"{session_id}.dat_orig").is_file:
     #     raw_file_path = session_path / f"{session_id}.dat_orig"
 
     # raw_file_path = session_path / f"{session_id}.dat" if (session_path / f"{session_id}.dat").is_file() else
 
     subject_glucose_series = load_subject_glucose_series(session_path=session_path)
-    subject_ecephys_session_start_times = get_subject_ecephys_session_start_times(session_path=session_path)
-    session_glucose_series = segment_glucose_series(
-        session_start_time=get_session_datetime(session_id=session_id),
-        glucose_series=subject_glucose_series,
-        ecephys_start_times=subject_ecephys_session_start_times,
+    this_ecephys_start_time = get_session_datetime(session_id=session_id)
+    this_ecephys_stop_time = this_ecephys_start_time + timedelta(
+        seconds=NeuroscopeRecordingExtractor(file_path=lfp_file_path).get_num_frames() / 1250.0
     )
-    # segment the ecephys against the glucose, return sub-series of glucose
-    # if sub-series is non-empty, include GlucoseInterface(series=sub_series)
-    #     and increment the starting_times of .dat and .lfp interfaces
-    # else do not include glucose and just write ecephys with default start times
-
-    print("raw file available...", raw_file_path.is_file())
-    print("lfp file available...", lfp_file_path.is_file())
-    source_data = dict()
-    conversion_options = dict()
+    session_glucose_series, session_start_time = segment_glucose_series(
+        this_ecephys_start_time=this_ecephys_start_time,
+        this_ecephys_stop_time=this_ecephys_stop_time,
+        glucose_series=subject_glucose_series,
+    )
+    source_data = dict(Glucose=dict(glucose_series=session_glucose_series))
 
     source_data = dict(
         NeuroscopeLFP=dict(file_path=str(lfp_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)),
@@ -93,16 +105,15 @@ def convert_session(session_path, nwbfile_path):
         source_data.update(Accelerometer=dict(dat_file_path=str(aux_file_path), rhd_file_path=str(rhd_file_path)))
 
     converter = TingleyMetabolicConverter(source_data=source_data)
-
     metadata = converter.get_metadata()
     metadata = dict_deep_update(metadata, global_metadata)
     metadata["NWBFile"].update(
         session_description=subject_info_table.get(
             metadata["NWBFile"]["Subject"]["subject_id"],
             "Consult Supplementary Table 1 from the publication for more information about this session.",
-        )
+        ),
+        session_start_time=session_start_time,
     )
-
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,
@@ -112,10 +123,14 @@ def convert_session(session_path, nwbfile_path):
     print("Done with conversion!")
 
 
-with ProcessPoolExecutor(max_workers=n_jobs) as executor:
-    futures = []
-    for session_path, nwbfile_path in zip(session_path_list, nwbfile_list):
-        futures.append(executor.submit(convert_session, session_path=session_path, nwbfile_path=nwbfile_path))
-    completed_futures = tqdm(as_completed(futures), desc="Running conversion...", position=0, leave=False)
-    for future in completed_futures:
-        pass
+if n_jobs == 1:
+    for session_path, nwbfile_path in tqdm(zip(session_path_list, nwbfile_list), **progress_bar_options):
+        convert_session(session_path=session_path, nwbfile_path=nwbfile_path)
+else:
+    with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+        futures = []
+        for session_path, nwbfile_path in zip(session_path_list, nwbfile_list):
+            futures.append(executor.submit(convert_session, session_path=session_path, nwbfile_path=nwbfile_path))
+        completed_futures = tqdm(as_completed(futures), total=len(session_path_list), **progress_bar_options)
+        for future in completed_futures:
+            pass
