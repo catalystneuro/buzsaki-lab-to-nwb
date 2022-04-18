@@ -1,5 +1,5 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
-from pathlib import Path
+from typing import Optional, List
 
 from scipy.io import loadmat
 from pynwb import NWBFile, H5DataIO
@@ -9,11 +9,11 @@ from nwb_conversion_tools.tools.nwb_helpers import get_module
 from nwb_conversion_tools.utils import FilePathType
 
 
-class SleepStateInterface(BaseDataInterface):
+class TingleyMetabolicRipplesInterface(BaseDataInterface):
     """Data interface for handling ripples.mat files for the Tingley metabolic project."""
 
-    def __init__(self, mat_file_path: FilePathType):
-        super().__init__(mat_file_path=mat_file_path)
+    def __init__(self, mat_file_paths: FilePathType):
+        super().__init__(mat_file_paths=mat_file_paths)
 
     def run_conversion(self, nwbfile: NWBFile):
         processing_module = get_module(
@@ -22,8 +22,9 @@ class SleepStateInterface(BaseDataInterface):
             description="Intermediate data from extracellular electrophysiology recordings, e.g., LFP.",
         )
 
-        if Path(self.source_data["mat_file_path"]).exists():
-            mat_file = loadmat(self.source_data["mat_file_path"])
+        for mat_file_path in self.source_data["mat_file_paths"]:
+            table_name = mat_file_path.suffixes[-3].lstrip(".").title()
+            mat_file = loadmat(mat_file_path)
 
             mat_data = mat_file["ripples"]
             start_and_stop_times = mat_data["timestamps"][0][0]
@@ -51,7 +52,7 @@ class SleepStateInterface(BaseDataInterface):
                 amplitude="Amplitude of each point on the ripple.",
             )
 
-            table = TimeIntervals(name="Ripples", description="Identified ripple events and their metrics.")
+            table = TimeIntervals(name=table_name, description="Identified ripple events and their metrics.")
             for start_time, stop_time in start_and_stop_times:
                 table.add_row(start_time=start_time, stop_time=stop_time)
             for column_name, column_data in zip(

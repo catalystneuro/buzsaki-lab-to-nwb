@@ -68,6 +68,7 @@ def convert_session(session_path, nwbfile_path):
     aux_file_path = session_path / "auxiliary.dat"
     rhd_file_path = session_path / f"{session_id}.rhd"
     sleep_mat_file_path = session_path / f"{session_id}.SleepState.states.mat"
+    ripple_mat_file_paths = [x for x in session_path.iterdir() for suffix in x.suffixes if "ripples" in suffix.lower()]
 
     # I know I'll need this for other sessions, just not yet
     # if not raw_file_path.is_file() and (session_path / f"{session_id}.dat_orig").is_file:
@@ -105,6 +106,9 @@ def convert_session(session_path, nwbfile_path):
 
     if sleep_mat_file_path.is_file():
         source_data.update(SleepStates=dict(mat_file_path=str(sleep_mat_file_path)))
+
+    if any(ripple_mat_file_paths):
+        source_data.update(Ripples=dict(mat_file_paths=ripple_mat_file_paths))
 
     converter = TingleyMetabolicConverter(source_data=source_data)
     metadata = converter.get_metadata()

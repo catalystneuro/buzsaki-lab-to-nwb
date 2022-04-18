@@ -11,6 +11,7 @@ from nwb_conversion_tools import (
 
 from .tingleymetabolicaccelerometerinterface import TingleyMetabolicAccelerometerInterface
 from .tingleymetabolicglucoseinterface import TingleyMetabolicGlucoseInterface
+from .tingleymetabolicripplesinterface import TingleyMetabolicRipplesInterface
 from ..common_interfaces.sleepstatesinterface import SleepStatesInterface
 
 
@@ -41,6 +42,7 @@ class TingleyMetabolicConverter(NWBConverter):
         Accelerometer=TingleyMetabolicAccelerometerInterface,
         Glucose=TingleyMetabolicGlucoseInterface,
         SleepStates=SleepStatesInterface,
+        Ripples=TingleyMetabolicRipplesInterface,
     )
 
     def get_metadata(self):
