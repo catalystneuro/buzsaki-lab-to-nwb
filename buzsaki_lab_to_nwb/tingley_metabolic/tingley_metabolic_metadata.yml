@@ -1,6 +1,5 @@
 NWBFile:
-  related_publications: 
-    "Transformation of a spatial map across the hippocampal-lateral septal circuit." Neuron 98.6 (2018) 1229-1242.
+  related_publications: "Transformation of a spatial map across the hippocampal-lateral septal circuit. Neuron 98.6 (2018) 1229-1242."
   lab: "Buzsáki"
   experimenter:
     - "Author: Tingley, David"

@@ -5,16 +5,17 @@ from scipy.io import loadmat
 from pynwb import NWBFile
 from pynwb.file import TimeIntervals
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
-from nwb_conversion_tools.utils import FilePathType, get_module
+from nwb_conversion_tools.utils import FilePathType
+from nwb_conversion_tools.tools.nwb_helpers import get_module
 
 
-class SleepStateInterface(BaseDataInterface):
+class SleepStatesInterface(BaseDataInterface):
     """Data interface for handling sleepStates.mat files found across multiple projects."""
 
     def __init__(self, mat_file_path: FilePathType):
         super().__init__(mat_file_path=mat_file_path)
 
-    def run_conversion(self, nwbfile: NWBFile):
+    def run_conversion(self, nwbfile: NWBFile, metadata):
         processing_module = get_module(
             nwbfile=nwbfile, name="behavior", description="Contains behavioral data concerning classified states."
         )

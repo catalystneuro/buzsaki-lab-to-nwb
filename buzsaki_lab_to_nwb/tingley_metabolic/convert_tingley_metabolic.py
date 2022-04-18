@@ -4,27 +4,24 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import timedelta
 
 from tqdm import tqdm
-from nwb_conversion_tools.utils.json_schema import load_dict_from_file
-from nwb_conversion_tools.utils.json_schema import dict_deep_update
+from nwb_conversion_tools.utils import load_dict_from_file, dict_deep_update
 from spikeextractors import NeuroscopeRecordingExtractor
 
-from buzsaki_lab_to_nwb.tingley_metabolic import (
-    TingleyMetabolicConverter,
-    load_subject_glucose_series,
-    segment_glucose_series,
-    get_session_datetime,
-)
+from buzsaki_lab_to_nwb.tingley_metabolic import TingleyMetabolicConverter, get_session_datetime
 
-n_jobs = 20
+n_jobs = 1
 progress_bar_options = dict(desc="Running conversion...", position=0, leave=False)
 stub_test = True
 conversion_factor = 0.195  # Intan
 
-data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-home_path = Path("/home/jovyan/")
+# data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
+# home_path = Path("/home/jovyan/")
 
-metadata_path = Path(__file__) / "tingley_metabolic_metadata.yml"
-subject_info_path = Path(__file__) / "tingley_metabolic_subject_info.yml"
+data_path = Path("E:/BuzsakiData/TingleyD")
+home_path = Path("E:/BuzsakiData/TingleyD/")
+
+metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
+subject_info_path = Path(__file__).parent / "tingley_metabolic_subject_info.yml"
 
 if stub_test:
     nwb_output_path = home_path / Path("nwb_stub")
@@ -33,8 +30,14 @@ else:
 nwb_output_path.mkdir(exist_ok=True)
 
 
-subject_list = ["CGM1", "CGM2"]  # This list will change based on what has finished transfering to the Hub
-session_path_list = [subject_path for subject_path in data_path.iterdir() if subject_path.stem in subject_list]
+subject_list = ["CGM1"]  # This list will change based on what has finished transfering to the Hub
+session_path_list = [
+    session_path
+    for subject_path in data_path.iterdir()
+    if subject_path.is_dir()
+    for session_path in subject_path.iterdir()
+    if subject_path.stem in subject_list and session_path.is_dir()
+]
 if stub_test:
     nwbfile_list = [
         nwb_output_path / f"{subject_path.stem}_{session.stem}_stub.nwb"
@@ -75,28 +78,32 @@ def convert_session(session_path, nwbfile_path):
     #     raw_file_path = session_path / f"{session_id}.dat_orig"
 
     # raw_file_path = session_path / f"{session_id}.dat" if (session_path / f"{session_id}.dat").is_file() else
-
-    subject_glucose_series = load_subject_glucose_series(session_path=session_path)
     this_ecephys_start_time = get_session_datetime(session_id=session_id)
     this_ecephys_stop_time = this_ecephys_start_time + timedelta(
         seconds=NeuroscopeRecordingExtractor(file_path=lfp_file_path).get_num_frames() / 1250.0
     )
-    session_glucose_series, session_start_time = segment_glucose_series(
-        this_ecephys_start_time=this_ecephys_start_time,
-        this_ecephys_stop_time=this_ecephys_stop_time,
-        glucose_series=subject_glucose_series,
-    )
-    source_data = dict(Glucose=dict(glucose_series=session_glucose_series))
-
     source_data = dict(
-        NeuroscopeLFP=dict(file_path=str(lfp_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)),
+        Glucose=dict(
+            session_path=str(session_path),
+            ecephys_start_time=str(this_ecephys_start_time),
+            ecephys_stop_time=str(this_ecephys_stop_time),
+        ),
+        NeuroscopeLFP=dict(
+            file_path=str(lfp_file_path),
+            gain=conversion_factor,
+            xml_file_path=str(xml_file_path),
+            spikeextractors_backend=True,
+        ),
     )
     conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test))
 
     if raw_file_path.is_file():
         source_data.update(
             NeuroscopeRecording=dict(
-                file_path=str(raw_file_path), gain=conversion_factor, xml_file_path=str(xml_file_path)
+                file_path=str(raw_file_path),
+                gain=conversion_factor,
+                xml_file_path=str(xml_file_path),
+                spikeextractors_backend=True,
             )
         )
         conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
@@ -104,8 +111,8 @@ def convert_session(session_path, nwbfile_path):
     if aux_file_path.is_file() and rhd_file_path.is_file():
         source_data.update(Accelerometer=dict(dat_file_path=str(aux_file_path), rhd_file_path=str(rhd_file_path)))
 
-    if sleep_mat_file_path.is_file():
-        source_data.update(SleepStates=dict(mat_file_path=str(sleep_mat_file_path)))
+    # if sleep_mat_file_path.is_file():
+    #     source_data.update(SleepStates=dict(mat_file_path=str(sleep_mat_file_path)))
 
     if any(ripple_mat_file_paths):
         source_data.update(Ripples=dict(mat_file_paths=ripple_mat_file_paths))
@@ -115,10 +122,10 @@ def convert_session(session_path, nwbfile_path):
     metadata = dict_deep_update(metadata, global_metadata)
     metadata["NWBFile"].update(
         session_description=subject_info_table.get(
-            metadata["NWBFile"]["Subject"]["subject_id"],
+            metadata["Subject"]["subject_id"],
             "Consult Supplementary Table 1 from the publication for more information about this session.",
         ),
-        session_start_time=session_start_time,
+        session_start_time=str(converter.data_interface_objects["Glucose"].session_start_time),
     )
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),

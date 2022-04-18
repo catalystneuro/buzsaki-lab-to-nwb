@@ -1,2 +1,2 @@
 from .tingleymetabolicnwbconverter import TingleyMetabolicConverter
-from .tingley_metabolic_utils import load_subject_glucose_series, get_subject_ecephys_session_start_times
+from .tingley_metabolic_utils import get_session_datetime

@@ -53,11 +53,8 @@ class TingleyMetabolicConverter(NWBConverter):
 
         session_id_split = session_id.split("_")[:-2]
         subject_id = session_id_split[0]
-        date_string = session_id_split[-2:]
-        session_start_time = datetime.strptime(date_string=date_string, format="%Y%m%d%H%M%S")
-        session_start_time = session_start_time.replace(tzinfo=dateutil.tz.gettz("US/Eastern")).isoformat()
 
         metadata = super().get_metadata()
-        metadata["NWBFile"].update(session_start_time=session_start_time, session_id=session_id)
+        metadata["NWBFile"].update(session_id=session_id)
         metadata.update(Subject=dict(subject_id=subject_id))
         return metadata

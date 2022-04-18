@@ -42,7 +42,7 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
         # Manually confirmed result is still memmap after slicing
         self.memmap = read_binary(file=dat_file_path, numchan=numchan, dtype=dtype)[:3, ::4]
 
-    def run_conversion(self, nwbfile):
+    def run_conversion(self, nwbfile, metadata):
         nwbfile.add_acquisition(
             TimeSeries(
                 name="Accelerometer",

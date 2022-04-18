@@ -1,6 +1,4 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
-from typing import Optional, List
-
 from scipy.io import loadmat
 from pynwb import NWBFile, H5DataIO
 from pynwb.file import TimeIntervals
@@ -15,7 +13,7 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
     def __init__(self, mat_file_paths: FilePathType):
         super().__init__(mat_file_paths=mat_file_paths)
 
-    def run_conversion(self, nwbfile: NWBFile):
+    def run_conversion(self, nwbfile: NWBFile, metadata):
         processing_module = get_module(
             nwbfile=nwbfile,
             name="ecephys",
