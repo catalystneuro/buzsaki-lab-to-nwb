@@ -60,15 +60,14 @@ def convert_session(session_path, nwbfile_path):
 
     conversion_options = dict()
     session_id = session_path.name
-    aux_file_path = session_path / "auxiliary.dat"
-    rhd_file_path = session_path / f"{session_id}.rhd"
-    xml_file_path = session_path / f"{session_id}.xml"
 
+    xml_file_path = session_path / f"{session_id}.xml"
     raw_file_path = session_path / f"{session_id}.dat"
     lfp_file_path = session_path / f"{session_id}.lfp"
 
-    print("raw file available...", raw_file_path.is_file())
-    print("lfp file available...", lfp_file_path.is_file())
+    aux_file_path = session_path / "auxiliary.dat"
+    rhd_file_path = session_path / f"{session_id}.rhd"
+    sleep_mat_file_path = session_path / f"{session_id}.SleepState.states.mat"
 
     # I know I'll need this for other sessions, just not yet
     # if not raw_file_path.is_file() and (session_path / f"{session_id}.dat_orig").is_file:
@@ -103,6 +102,9 @@ def convert_session(session_path, nwbfile_path):
 
     if aux_file_path.is_file() and rhd_file_path.is_file():
         source_data.update(Accelerometer=dict(dat_file_path=str(aux_file_path), rhd_file_path=str(rhd_file_path)))
+
+    if sleep_mat_file_path.is_file():
+        source_data.update(SleepStates=dict(mat_file_path=str(sleep_mat_file_path)))
 
     converter = TingleyMetabolicConverter(source_data=source_data)
     metadata = converter.get_metadata()

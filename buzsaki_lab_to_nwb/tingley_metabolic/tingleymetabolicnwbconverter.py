@@ -11,6 +11,7 @@ from nwb_conversion_tools import (
 
 from .tingleymetabolicaccelerometerinterface import TingleyMetabolicAccelerometerInterface
 from .tingleymetabolicglucoseinterface import TingleyMetabolicGlucoseInterface
+from ..common_interfaces.sleepstatesinterface import SleepStatesInterface
 
 
 DEVICE_INFO = dict(
@@ -39,6 +40,7 @@ class TingleyMetabolicConverter(NWBConverter):
         NeuroscopeLFP=NeuroscopeLFPInterface,
         Accelerometer=TingleyMetabolicAccelerometerInterface,
         Glucose=TingleyMetabolicGlucoseInterface,
+        SleepStates=SleepStatesInterface,
     )
 
     def get_metadata(self):

@@ -22,18 +22,6 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
         ii)   Even though the .rhd specifies the accelerometer data is acquired at 5kHz, the .dat has it stored at
               20kHz by duplicating the data value at every 4th index. I can only assume this was done for easier
               side-by-side analysis of the raw data (which was acquired at 20kHz).
-
-        Parameters
-        ----------
-        dat_file_path : FilePathType
-          DESCRIPTION.
-        rhd_file_path : FilePathType
-          DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
         """
         rhd_info = read_rhd(filename=rhd_file_path)
         first_aux_entry = next(
