@@ -16,7 +16,7 @@ class SleepStateInterface(BaseDataInterface):
 
     def run_conversion(self, nwbfile: NWBFile):
         processing_module = get_module(
-            nwbfile=nwbfile, name="ecephys", description="Contains behavioral data concerning classified states."
+            nwbfile=nwbfile, name="behavior", description="Contains behavioral data concerning classified states."
         )
 
         if Path(self.source_data["mat_file_path"]).exists():
