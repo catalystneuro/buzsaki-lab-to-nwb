@@ -13,11 +13,6 @@ class TingleyMetabolicGlucoseInterface(BaseDataInterface):
 
     def __init__(self, session_path: FilePathType, ecephys_start_time: str, ecephys_stop_time: str):
         glucose_timestamps, glucose_isig = load_subject_glucose_series(session_path=session_path)
-        # session_glucose_series, session_start_time = segment_glucose_series(
-        #     ecephys_start_time=datetime.fromisoformat(ecephys_start_time),
-        #     ecephys_stop_time=datetime.fromisoformat(ecephys_stop_time),
-        #     glucose_series=subject_glucose_series,
-        # )
         self.session_start_time = glucose_timestamps[0]
         glucose_timestamps_floats_from_datetime = [
             (glucose_timestamp - self.session_start_time).total_seconds() for glucose_timestamp in glucose_timestamps

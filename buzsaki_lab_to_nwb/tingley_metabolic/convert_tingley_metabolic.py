@@ -95,7 +95,6 @@ def convert_session(session_path, nwbfile_path):
             spikeextractors_backend=True,
         ),
     )
-    conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test))
 
     if raw_file_path.is_file():
         source_data.update(
@@ -121,12 +120,31 @@ def convert_session(session_path, nwbfile_path):
     metadata = converter.get_metadata()
     metadata = dict_deep_update(metadata, global_metadata)
     metadata["NWBFile"].update(
-        session_description=subject_info_table.get(
+        # session_description=subject_info_table.get(
+        #     metadata["Subject"]["subject_id"],
+        #     "Consult Supplementary Table 1 from the publication for more information about this session.",
+        # ),
+        experiment_description=subject_info_table.get(
             metadata["Subject"]["subject_id"],
             "Consult Supplementary Table 1 from the publication for more information about this session.",
         ),
-        session_start_time=str(converter.data_interface_objects["Glucose"].session_start_time),
     )
+    if metadata["Ecephys"]["Device"][0]["name"] == "Device_ecephys":
+        del metadata["Ecephys"]["Device"][0]
+    for electrode_group_metadata in metadata["Ecephys"]["ElectrodeGroup"]:
+        electrode_group_metadata.update(device=metadata["Ecephys"]["Device"][0]["name"])
+
+    ecephys_start_increment = (
+        this_ecephys_start_time - converter.data_interface_objects["Glucose"].session_start_time
+    ).total_seconds()
+    conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test, starting_time=ecephys_start_increment))
+    if raw_file_path.is_file():
+        conversion_options.update(
+            NeuroscopeRecording=dict(
+                stub_test=stub_test, starting_time=ecephys_start_increment, es_key="ElectricalSeries_raw"
+            )
+        )
+
     converter.run_conversion(
         nwbfile_path=str(nwbfile_path),
         metadata=metadata,

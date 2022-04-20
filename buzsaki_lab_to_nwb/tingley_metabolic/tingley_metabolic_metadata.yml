@@ -1,8 +1,38 @@
 NWBFile:
-  related_publications: "Transformation of a spatial map across the hippocampal-lateral septal circuit. Neuron 98.6 (2018) 1229-1242."
-  lab: "Buzsáki"
+  related_publications: "https://doi.org/10.1038/s41586-021-03811-w"
+  lab: Buzsáki
+  institution: NYU
   experimenter:
-    - "Author: Tingley, David"
-    - "Author: Buzsáki, György"
+    - Tingley, David
+    - McClain, Kathryn
+    - Kaya, Ekin
+    - Carpenter, Jordan
+    - Buzsáki, György
+  keywords:
+    - glucose
+    - ecephys
+    - pharmacology
 Subject:
+  description: > 
+    A total of 45 adult Long Evans rats were used in this study. Five were used for the hippocampal and lateral septal 
+    in vivo recordings26. Ten rats were used for chronic electrophysiological recordings paired with glucose 
+    monitoring. Eight rats were used for optogenetic induction of SPW-Rs and glucose monitoring. Six rats were used for 
+    the DREADD experiment, and seven rats were used as controls for this experiment. Three additional rats were used 
+    for simultaneous dorsal and ventral hippocampus recordings. Six additional rats were used for the posterior 
+    parietal cortex (PPC) optogenetic stimulation control experiments. Sample sizes were selected to match cohort 
+    sizes where applicable.
   species: Rattus norvegicus
+  strain: Long Evans
+  sex: U
+Ecephys:
+  Device:
+    - name: IntanDevice
+      description: >
+        Recordings were conducted using the Intan RHD2000 interface board, sampled at 20 kHz. Amplification and 
+        digitization were done on the head stage. Data were visualized with Neurosuite software. All 
+        local field potential (LFP) analyses (ripple detection, state scoring and so on) were conducted on 
+        the 1,250-Hz down-sampled signal.
+  ElectricalSeries_raw:
+    name: ElectricalSeriesRaw
+  ElectricalSeries_lfp:
+    name: ElectricalSeriesLFP

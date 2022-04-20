@@ -55,6 +55,9 @@ class TingleyMetabolicConverter(NWBConverter):
         subject_id = session_id_split[0]
 
         metadata = super().get_metadata()
-        metadata["NWBFile"].update(session_id=session_id)
+        metadata["NWBFile"].update(
+            session_id=session_id,
+            session_start_time=str(self.data_interface_objects["Glucose"].session_start_time),
+        )
         metadata.update(Subject=dict(subject_id=subject_id))
         return metadata
