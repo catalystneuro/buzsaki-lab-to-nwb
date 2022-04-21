@@ -60,4 +60,6 @@ class TingleyMetabolicConverter(NWBConverter):
             session_start_time=str(self.data_interface_objects["Glucose"].session_start_time),
         )
         metadata.update(Subject=dict(subject_id=subject_id))
+        if "NeuroscopeRecording" in self.data_interface_objects:
+            metadata["Ecephys"].update(ElectricalSeries_raw=dict(name="ElectricalSeriesRaw"))
         return metadata

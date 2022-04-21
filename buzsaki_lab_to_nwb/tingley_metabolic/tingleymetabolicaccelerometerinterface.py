@@ -25,12 +25,10 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
         """
         rhd_info = read_rhd(filename=rhd_file_path)
         first_aux_entry = next(
-            header_info_entry
-            for header_info_entry in rhd_info[1]
-            if header_info_entry["native_channel_name"] == "A-AUX1"
+            header_info_entry for header_info_entry in rhd_info[1] if "AUX1" in header_info_entry["native_channel_name"]
         )
         first_aux_sub_entry = next(
-            header_info_entry for header_info_entry in rhd_info[2] if header_info_entry[0] == "A-AUX1"
+            header_info_entry for header_info_entry in rhd_info[2] if "AUX1" in header_info_entry[0]
         )
 
         # Manually confirmed that all aux channels have same properties
@@ -42,14 +40,16 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
         # Manually confirmed result is still memmap after slicing
         self.memmap = read_binary(file=dat_file_path, numchan=numchan, dtype=dtype)[:3, ::4]
 
-    def run_conversion(self, nwbfile, metadata):
+    def run_conversion(self, nwbfile, metadata, stub_test: bool = False, ecephys_start_time: float = 0.0):
+        stub_frames = 200 if stub_test else None
         nwbfile.add_acquisition(
             TimeSeries(
                 name="Accelerometer",
                 description="Raw data from accelerometer sensors.",
-                units="Volts",
-                data=H5DataIO(self.memmap.T),  # should not need iterative write
+                unit="Volts",
+                data=H5DataIO(self.memmap.T[:stub_frames, :], compression="gzip"),  # should not need iterative write
                 conversion=self.conversion,
                 rate=self.sampling_frequency,
+                starting_time=ecephys_start_time,
             ),
         )

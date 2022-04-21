@@ -32,7 +32,7 @@ Ecephys:
         digitization were done on the head stage. Data were visualized with Neurosuite software. All 
         local field potential (LFP) analyses (ripple detection, state scoring and so on) were conducted on 
         the 1,250-Hz down-sampled signal.
-  ElectricalSeries_raw:
-    name: ElectricalSeriesRaw
+    - name: Medtronic iPro2 CGM
+      description: Continuous Glucose Monitoring (CGM) system used to track subject glucose levels.
   ElectricalSeries_lfp:
     name: ElectricalSeriesLFP

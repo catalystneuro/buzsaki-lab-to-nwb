@@ -26,8 +26,8 @@ class TingleyMetabolicGlucoseInterface(BaseDataInterface):
                 name="GlucoseLevel",
                 description="Raw current from Medtronic iPro2 ISIG tracking.",
                 unit="nA",
-                data=H5DataIO(self.glucose_isig),  # should not need iterative write
+                data=H5DataIO(self.glucose_isig, compression="gzip"),  # should not need iterative write
                 conversion=1.0,
-                timestamps=H5DataIO(self.glucose_timestamps),
+                timestamps=H5DataIO(self.glucose_timestamps, compression="gzip"),
             ),
         )

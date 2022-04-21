@@ -4,16 +4,16 @@ from pynwb import NWBFile, H5DataIO
 from pynwb.file import TimeIntervals
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from nwb_conversion_tools.tools.nwb_helpers import get_module
-from nwb_conversion_tools.utils import FilePathType
 
 
 class TingleyMetabolicRipplesInterface(BaseDataInterface):
     """Data interface for handling ripples.mat files for the Tingley metabolic project."""
 
-    def __init__(self, mat_file_paths: FilePathType):
+    def __init__(self, mat_file_paths: list):
         super().__init__(mat_file_paths=mat_file_paths)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata):
+    def run_conversion(self, nwbfile: NWBFile, metadata, stub_test: bool = False, ecephys_start_time: float = 0.0):
+        stub_events = 5 if stub_test else None
         processing_module = get_module(
             nwbfile=nwbfile,
             name="ecephys",
@@ -22,19 +22,19 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
 
         for mat_file_path in self.source_data["mat_file_paths"]:
             table_name = mat_file_path.suffixes[-3].lstrip(".").title()
-            mat_file = loadmat(mat_file_path)
+            mat_file = loadmat(file_name=mat_file_path)
 
             mat_data = mat_file["ripples"]
-            start_and_stop_times = mat_data["timestamps"][0][0]
-            durations = [x[0] for x in mat_data["data"][0][0]["duration"][0][0]]
-            peaks = [x[0] for x in mat_data["peaks"][0][0]]
-            peak_normed_powers = [x[0] for x in mat_data["peakNormedPower"][0][0]]
-            peak_frequencies = [x[0] for x in mat_data["data"][0][0]["peakFrequency"][0][0]]
-            peak_amplitudes = [x[0] for x in mat_data["data"][0][0]["peakAmplitude"][0][0]]
-            ripples = mat_data["maps"][0][0]["ripples"][0][0]
-            frequencies = mat_data["maps"][0][0]["frequency"][0][0]
-            phases = mat_data["maps"][0][0]["phase"][0][0]
-            amplitudes = mat_data["maps"][0][0]["amplitude"][0][0]
+            start_and_stop_times = mat_data["timestamps"][0][0][:stub_events]
+            durations = [x[0] for x in mat_data["data"][0][0]["duration"][0][0]][:stub_events]
+            peaks = [x[0] for x in mat_data["peaks"][0][0]][:stub_events]
+            peak_normed_powers = [x[0] for x in mat_data["peakNormedPower"][0][0]][:stub_events]
+            peak_frequencies = [x[0] for x in mat_data["data"][0][0]["peakFrequency"][0][0]][:stub_events]
+            peak_amplitudes = [x[0] for x in mat_data["data"][0][0]["peakAmplitude"][0][0]][:stub_events]
+            ripples = mat_data["maps"][0][0]["ripples"][0][0][:stub_events]
+            frequencies = mat_data["maps"][0][0]["frequency"][0][0][:stub_events]
+            phases = mat_data["maps"][0][0]["phase"][0][0][:stub_events]
+            amplitudes = mat_data["maps"][0][0]["amplitude"][0][0][:stub_events]
 
             descriptions = dict(
                 duration="Duration of the ripple event.",
@@ -52,16 +52,20 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
 
             table = TimeIntervals(name=table_name, description=f"Identified {table_name} events and their metrics.")
             for start_time, stop_time in start_and_stop_times:
-                table.add_row(start_time=start_time, stop_time=stop_time)
+                table.add_row(start_time=ecephys_start_time + start_time, stop_time=ecephys_start_time + stop_time)
             for column_name, column_data in zip(
                 list(descriptions), [durations, peaks, peak_normed_powers, peak_frequencies, peak_amplitudes]
             ):
-                table.add_column(name=column_name, description=descriptions[column_name], data=H5DataIO(column_data))
+                table.add_column(
+                    name=column_name,
+                    description=descriptions[column_name],
+                    data=H5DataIO(column_data, compression="gzip"),
+                )
             for column_name, column_data in zip(list(indexed_descriptions), [ripples, frequencies, phases, amplitudes]):
                 table.add_column(
                     name=column_name,
                     description=indexed_descriptions[column_name],
                     index=list(range(column_data.shape[0])),
-                    data=H5DataIO(column_data),
+                    data=H5DataIO(column_data, compression="gzip"),
                 )
             processing_module.add(table)
