@@ -1,4 +1,4 @@
-name: buzsaki_tingley_long_term
+name: buzsaki_tingley_metabolic
 channels:
 - defaults
 - anaconda
@@ -9,4 +9,4 @@ dependencies:
 - git
 - pip:
   - -e .
-  - -r buzsaki_lab_to_nwb/tingley_long_term/tingley_long_term_requirements.txt
+  - -r buzsaki_lab_to_nwb/tingley_metabolic/tingley_metabolic_requirements.txt
