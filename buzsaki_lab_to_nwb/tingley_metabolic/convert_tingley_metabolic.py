@@ -1,5 +1,4 @@
 """Run entire conversion."""
-import os
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import timedelta
@@ -44,8 +43,10 @@ session_path_list = [
 if stub_test:
     nwb_output_path = data_path / "nwb_stub"
 else:
-    nwb_output_path = data_path / f"nwb_{subject_list[0]}"
+    nwb_output_path = data_path / f"nwb_{subject_list[0]}_running"
+    nwb_final_output_path = data_path / f"nwb_{subject_list[0]}"
 nwb_output_path.mkdir(exist_ok=True)
+nwb_final_output_path.mkdir(exist_ok=True)
 
 
 if stub_test:
@@ -170,7 +171,7 @@ def convert_session(session_path, nwbfile_path):
         conversion_options=conversion_options,
         overwrite=True,
     )
-    os.system(f"mv {nwbfile_path} {nwb_final_output_path / nwbfile_path.name}")
+    nwbfile_path.rename(nwb_final_output_path / nwbfile_path.name)
 
 
 if n_jobs == 1:
