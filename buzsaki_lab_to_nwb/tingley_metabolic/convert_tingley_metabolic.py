@@ -10,28 +10,27 @@ from spikeextractors import NeuroscopeRecordingExtractor
 
 from buzsaki_lab_to_nwb.tingley_metabolic import TingleyMetabolicConverter, get_session_datetime
 
-n_jobs = 1
+n_jobs = 10
 progress_bar_options = dict(desc="Running conversion...", position=0, leave=False)
-stub_test = True
+stub_test = False
 conversion_factor = 0.195  # Intan
+buffer_gb = 10
+# note that on DANDIHub, max number of actual I/O operations on processes seems limited to 8-10,
+# so total mem isn't technically buffer_gb * n_jobs
 
-# data_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/")
-# home_path = Path("/home/jovyan/")
+data_path = Path("/shared/catalystneuro/TingleyD/")
+home_path = Path("/home/jovyan/")
 
-data_path = Path("E:/BuzsakiData/TingleyD")
-home_path = Path("E:/BuzsakiData/TingleyD/")
+# data_path = Path("E:/BuzsakiData/TingleyD")
+# home_path = Path("E:/BuzsakiData/TingleyD/")
 
 metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
 subject_info_path = Path(__file__).parent / "tingley_metabolic_subject_info.yml"
 
-if stub_test:
-    nwb_output_path = home_path / Path("nwb_stub")
-else:
-    nwb_output_path = Path("/shared/catalystneuro/Buzsaki/TingleyD/nwb")
-nwb_output_path.mkdir(exist_ok=True)
 
-
-subject_list = ["CGM1", "CGM3"]  # This list will change based on what has finished transfering to the Hub
+subject_list = [
+    "CGM3"
+]  # [1,2,3,4,30,31,32,36,37,39]]  # This list will change based on what has finished transfering to the Hub
 session_path_list = [
     session_path
     for subject_path in data_path.iterdir()
@@ -39,6 +38,15 @@ session_path_list = [
     for session_path in subject_path.iterdir()
     if session_path.is_dir()
 ]
+
+
+if stub_test:
+    nwb_output_path = data_path / "nwb_stub"
+else:
+    nwb_output_path = data_path / f"nwb_{subject_list[0]}"
+nwb_output_path.mkdir(exist_ok=True)
+
+
 if stub_test:
     nwbfile_list = [nwb_output_path / f"{session.stem}_stub.nwb" for session in session_path_list]
 else:
@@ -50,6 +58,7 @@ subject_info_table = load_dict_from_file(subject_info_path)
 
 def convert_session(session_path, nwbfile_path):
     """Run coonversion."""
+    simplefilter("ignore")
     conversion_options = dict()
     session_id = session_path.name
 
@@ -69,7 +78,8 @@ def convert_session(session_path, nwbfile_path):
     # raw_file_path = session_path / f"{session_id}.dat" if (session_path / f"{session_id}.dat").is_file() else
     ecephys_start_time = get_session_datetime(session_id=session_id)
     ecephys_stop_time = ecephys_start_time + timedelta(
-        seconds=NeuroscopeRecordingExtractor(file_path=lfp_file_path).get_num_frames() / 1250.0
+        seconds=NeuroscopeRecordingExtractor(file_path=lfp_file_path, xml_file_path=xml_file_path).get_num_frames()
+        / 1250.0
     )
     source_data = dict(
         Glucose=dict(
@@ -108,15 +118,19 @@ def convert_session(session_path, nwbfile_path):
     converter = TingleyMetabolicConverter(source_data=source_data)
     metadata = converter.get_metadata()
     metadata = dict_deep_update(metadata, global_metadata)
+    session_description = "Consult Supplementary Table 1 from the publication for more information about this session."
     metadata["NWBFile"].update(
         # session_description=subject_info_table.get(
         #     metadata["Subject"]["subject_id"],
         #     "Consult Supplementary Table 1 from the publication for more information about this session.",
         # ),
-        experiment_description=subject_info_table.get(
-            metadata["Subject"]["subject_id"],
-            "Consult Supplementary Table 1 from the publication for more information about this session.",
-        ),
+        # experiment_description=subject_info_table.get(
+        #    metadata["Subject"]["subject_id"],
+        #    "Consult Supplementary Table 1 from the publication for more information about this session.",
+        # ),
+        # Since no mapping of subject_ids to ST1, just leave this for all.
+        session_description=session_description,
+        experiment_description=session_description,
     )
     if metadata["Ecephys"]["Device"][0]["name"] == "Device_ecephys":
         del metadata["Ecephys"]["Device"][0]
@@ -126,11 +140,18 @@ def convert_session(session_path, nwbfile_path):
     ecephys_start_time_increment = (
         ecephys_start_time - converter.data_interface_objects["Glucose"].session_start_time
     ).total_seconds()
-    conversion_options.update(NeuroscopeLFP=dict(stub_test=stub_test, starting_time=ecephys_start_time_increment))
+    conversion_options.update(
+        NeuroscopeLFP=dict(
+            stub_test=stub_test, starting_time=ecephys_start_time_increment, iterator_opts=dict(buffer_gb=buffer_gb)
+        )
+    )
     if raw_file_path.is_file():
         conversion_options.update(
             NeuroscopeRecording=dict(
-                stub_test=stub_test, starting_time=ecephys_start_time_increment, es_key="ElectricalSeries_raw"
+                stub_test=stub_test,
+                starting_time=ecephys_start_time_increment,
+                es_key="ElectricalSeries_raw",
+                iterator_opts=dict(buffer_gb=buffer_gb),
             )
         )
     if aux_file_path.is_file() and rhd_file_path.is_file():
@@ -155,6 +176,7 @@ if n_jobs == 1:
         simplefilter("ignore")
         convert_session(session_path=session_path, nwbfile_path=nwbfile_path)
 else:
+    simplefilter("ignore")
     with ProcessPoolExecutor(max_workers=n_jobs) as executor:
         futures = []
         for session_path, nwbfile_path in zip(session_path_list, nwbfile_list):

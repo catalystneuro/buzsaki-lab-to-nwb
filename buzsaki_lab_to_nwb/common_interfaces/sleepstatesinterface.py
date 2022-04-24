@@ -21,25 +21,30 @@ class SleepStatesInterface(BaseDataInterface):
         )
 
         if Path(self.source_data["mat_file_path"]).exists():
-            mat_file = loadmat(file_name=self.source_data["mat_file_path"])
+            try:
+                mat_file = loadmat(file_name=self.source_data["mat_file_path"])
+                mat_file_is_scipy_readable = True
+            except NotImplementedError:
+                mat_file_is_scipy_readable = False
 
-            sleep_state_dic = mat_file["SleepState"]["ints"][0][0]
-            state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM", MAstate="MA")
-            table = TimeIntervals(name="sleep_states", description="Sleep state of the animal.")
-            table.add_column(name="label", description="Sleep state.")
+            if mat_file_is_scipy_readable:  # To-Do, re-do indexing for an hdfstorage reader
+                sleep_state_dic = mat_file["SleepState"]["ints"][0][0]
+                state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM", MAstate="MA")
+                table = TimeIntervals(name="sleep_states", description="Sleep state of the animal.")
+                table.add_column(name="label", description="Sleep state.")
 
-            data = []
-            for sleep_state in set(mat_file["SleepState"]["ints"][0][0].dtype.names):
-                values = sleep_state_dic[sleep_state][0][0]
-                if len(values) != 0 and isinstance(values[0], int):
-                    values = [values]
-                for start_time, stop_time in values:
-                    data.append(
-                        dict(
-                            start_time=ecephys_start_time + float(start_time),
-                            stop_time=ecephys_start_time + float(stop_time),
-                            label=state_label_names[sleep_state],
+                data = []
+                for sleep_state in set(mat_file["SleepState"]["ints"][0][0].dtype.names):
+                    values = sleep_state_dic[sleep_state][0][0]
+                    if len(values) != 0 and isinstance(values[0], int):
+                        values = [values]
+                    for start_time, stop_time in values:
+                        data.append(
+                            dict(
+                                start_time=ecephys_start_time + float(start_time),
+                                stop_time=ecephys_start_time + float(stop_time),
+                                label=state_label_names[sleep_state],
+                            )
                         )
-                    )
-            [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
-            processing_module.add(table)
+                [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+                processing_module.add(table)
