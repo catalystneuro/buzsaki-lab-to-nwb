@@ -145,7 +145,6 @@ for session_idx in session_idxs:
                 spikeextractors_backend=True,
             )
         )
-        conversion_options.update(NeuroscopeRecording=dict(stub_test=stub_test))
 
     if aux_file_path.is_file() and rhd_file_path.is_file():
         source_data.update(Accelerometer=dict(dat_file_path=str(aux_file_path), rhd_file_path=str(rhd_file_path)))
@@ -183,7 +182,9 @@ for session_idx in session_idxs:
     ).total_seconds()
     conversion_options.update(
         NeuroscopeLFP=dict(
-            stub_test=stub_test, starting_time=ecephys_start_time_increment, iterator_opts=dict(buffer_gb=buffer_gb)
+            stub_test=stub_test,
+            starting_time=ecephys_start_time_increment,
+            iterator_opts=dict(buffer_gb=buffer_gb, display_progress=True),
         )
     )
     if raw_file_path.is_file():
@@ -192,7 +193,7 @@ for session_idx in session_idxs:
                 stub_test=stub_test,
                 starting_time=ecephys_start_time_increment,
                 es_key="ElectricalSeries_raw",
-                iterator_opts=dict(buffer_gb=buffer_gb),
+                iterator_opts=dict(buffer_gb=buffer_gb, display_progress=True),
             )
         )
     if aux_file_path.is_file() and rhd_file_path.is_file():
@@ -218,5 +219,5 @@ for session_idx in session_idxs:
                 print(f"shutil.rmtree failed to clean directory for session {session_id}")
     dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_output_path)
 
-    y_n = input("Continue with dataset conversion? (y/n) ")
+    y_n = input("\nContinue with dataset conversion? (y/n) ")
     assert y_n.lower() == "y"
