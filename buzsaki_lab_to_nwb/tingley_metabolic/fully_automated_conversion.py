@@ -44,10 +44,12 @@ for session_idx in session_idxs:
     session_id = sessions[session_idx]
     # assert f"{session_id}/{session_id}.lfp" in all_content, "Skip session_idx {session_idx} - bad session!"
     if f"{session_id}/{session_id}.lfp" not in all_content:
-        y_n = input(
-            f"Skipping session_id {session_id} because there was no LFP (and hence likely a bad session). "
-            "Continue? (y/n) "
-        )
+        y_n = ""
+        while y_n.lower() != "y" or y_n.lower() != "n":
+            y_n = input(
+                f"Skipping session_id {session_id} because there was no LFP (and hence likely a bad session). "
+                "Continue? (y/n) "
+            )
         assert y_n.lower() == "y"
         continue
     content_to_attempt_transfer = [
@@ -75,10 +77,12 @@ for session_idx in session_idxs:
     content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
     total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6)
     total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6)
-    y_n = input(
-        f"Converting session {session_id} will cost an estimated ${total_cost} and take {total_time/3600} hours. "
-        "Continue? (y/n)"
-    )
+    y_n = ""
+    while y_n.lower() != "y" or y_n.lower() != "n":
+        y_n = input(
+            f"Converting session {session_id} will cost an estimated ${total_cost} and take {total_time/3600} hours. "
+            "Continue? (y/n)"
+        )
     assert y_n.lower() == "y"
 
     metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
@@ -219,5 +223,7 @@ for session_idx in session_idxs:
                 print(f"shutil.rmtree failed to clean directory for session {session_id}")
     dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_output_path)
 
-    y_n = input("\nContinue with dataset conversion? (y/n) ")
+    y_n = ""
+    while y_n.lower() != "y" or y_n.lower() != "n":
+        y_n = input("\nContinue with dataset conversion? (y/n)\n")
     assert y_n.lower() == "y"
