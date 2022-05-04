@@ -9,8 +9,10 @@ from pandas import read_csv, to_datetime
 
 def load_subject_glucose_series(session_path) -> (List[datetime], List[float]):
     """Given the subject_id string and the ecephys session_path, load all glucose series data for further parsing."""
-    subject_path = Path(session_path).parent
-    all_csv = [x for x in subject_path.iterdir() if ".csv" in x.suffixes]
+    all_csv = [x for x in Path(session_path).iterdir() if ".csv" in x.suffixes]
+    if not all_csv:
+        subject_path = Path(session_path).parent
+        all_csv = [x for x in subject_path.iterdir() if ".csv" in x.suffixes]
 
     timestamps = []
     isig = []
