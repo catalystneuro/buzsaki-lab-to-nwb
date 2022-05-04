@@ -20,7 +20,7 @@ from buzsaki_lab_to_nwb.tingley_metabolic import TingleyMetabolicConverter, get_
 
 buzsaki_globus_endpoint_id = "188a6110-96db-11eb-b7a9-f57b2d55370d"
 hub_globus_endpoint_id = "2b9b4d14-82a8-11ec-9f34-ed182a728dff"
-#hub_globus_endpoint_id = "3d82aa0a-bc1d-11ec-8f83-e31722b18688"
+# hub_globus_endpoint_id = "3d82aa0a-bc1d-11ec-8f83-e31722b18688"
 dandiset_id = "000233"
 
 stub_test = False
@@ -30,7 +30,7 @@ buffer_gb = 50
 data_path = Path("/shared/catalystneuro/TingleyD/")
 home_path = Path("/home/jovyan/")
 
-#data_path = Path("C:/Users/Raven/Documents/TingleyD/")
+# data_path = Path("C:/Users/Raven/Documents/TingleyD/")
 
 
 base_buzsaki_path = Path("/TingleyD/Tingley2021_ripple_glucose_paper/")
