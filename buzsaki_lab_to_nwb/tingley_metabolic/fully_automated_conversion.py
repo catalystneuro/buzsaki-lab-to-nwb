@@ -1,20 +1,71 @@
 """Run entire conversion."""
 from pathlib import Path
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import timedelta
 from warnings import simplefilter
 
 from tqdm import tqdm
+from nwb_conversion_tools.tools.data_transfers import (
+    dandi_upload,
+    estimate_total_conversion_runtime,
+    estimate_s3_conversion_cost,
+    get_globus_dataset_content_sizes,
+    transfer_globus_content,
+)
 from nwb_conversion_tools.utils import load_dict_from_file, dict_deep_update
 from spikeextractors import NeuroscopeRecordingExtractor
 
 from buzsaki_lab_to_nwb.tingley_metabolic import TingleyMetabolicConverter, get_session_datetime
 
-n_jobs = 1
+buzsaki_globus_endpoint_id = "188a6110-96db-11eb-b7a9-f57b2d55370d"
+hub_globus_endpoint_id = "52de6745-40b8-4d2c-9a0b-610874c564f5"
+dandiset_id = "000233"
+
+base_buzsaki_path = Path("TingleyD/Tingley2021_ripple_glucose_paper/")
+subject = "CGM36"
+all_content = get_globus_dataset_content_sizes(
+    globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject).as_posix()
+)
+sessions = list(set([Path(x).parent.name for x in all_content]) - set([""]))
+
+session_idx = 1
+session_id = sessions[session_idx]
+assert f"{session_id}/{session_id}.lfp" in all_content, "Skip session_idx {session_idx} - bad session!"
+content_to_attempt_transfer = [
+    f"{session_id}/{session_id}.xml",
+    # f"{session_id}/{session_id}.dat",
+    f"{session_id}/{session_id}.lfp",
+    f"{session_id}/auxiliary.dat",
+    f"{session_id}/info.rhd",
+    f"{session_id}/{session_id}.SleepState.states.mat",
+    f"{session_id}/",
+]
+content_to_attempt_transfer.extend([x for x in all_content if Path(x).suffix == ".csv"])
+# Ripple files are a little trickier, can have multiple text forms
+content_to_attempt_transfer.extend(
+    [
+        x
+        for x in all_content
+        if Path(x).parent.name == session_id
+        for suffix in Path(x).suffixes
+        if "ripples" in suffix.lower()
+    ]
+)
+content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
+
+content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
+total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6)
+total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6)
+y_n = input(
+    f"Converting session {session_id} will cost an estimated ${total_cost} and take {total_time/3600} hours. "
+    "Continue? (y/n)"
+)
+assert y_n.lower() == "y"
+
+
 progress_bar_options = dict(desc="Running conversion...", position=0, leave=False)
-stub_test = True
+stub_test = False
 conversion_factor = 0.195  # Intan
-buffer_gb = 1
+buffer_gb = 50
 # note that on DANDIHub, max number of actual I/O operations on processes seems limited to 8-10,
 # so total mem isn't technically buffer_gb * n_jobs
 
@@ -58,9 +109,7 @@ else:
 global_metadata = load_dict_from_file(metadata_path)
 subject_info_table = load_dict_from_file(subject_info_path)
 
-
-def convert_session(session_path, nwbfile_path):
-    """Run coonversion."""
+for session_path, nwbfile_path in tqdm(zip(session_path_list, nwbfile_list), **progress_bar_options):
     simplefilter("ignore")
     conversion_options = dict()
     session_id = session_path.name
@@ -173,18 +222,4 @@ def convert_session(session_path, nwbfile_path):
         overwrite=True,
     )
     nwbfile_path.rename(nwb_final_output_path / nwbfile_path.name)
-
-
-if n_jobs == 1:
-    for session_path, nwbfile_path in tqdm(zip(session_path_list, nwbfile_list), **progress_bar_options):
-        simplefilter("ignore")
-        convert_session(session_path=session_path, nwbfile_path=nwbfile_path)
-else:
-    simplefilter("ignore")
-    with ProcessPoolExecutor(max_workers=n_jobs) as executor:
-        futures = []
-        for session_path, nwbfile_path in zip(session_path_list, nwbfile_list):
-            futures.append(executor.submit(convert_session, session_path=session_path, nwbfile_path=nwbfile_path))
-        completed_futures = tqdm(as_completed(futures), total=len(session_path_list), **progress_bar_options)
-        for future in completed_futures:
-            pass  # To get tqdm to show
+    dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_final_output_path)
