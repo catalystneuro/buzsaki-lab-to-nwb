@@ -42,7 +42,9 @@ all_content = get_globus_dataset_content_sizes(
     globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject_id).as_posix()
 )
 dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
-dandi_session_datetimes = ["_".join(x.split("/")[1].split("_")[1].split("-")[-2:]) for x in dandi_content]  # probably a better way to do this, just brute forcing for now
+dandi_session_datetimes = [
+    "_".join(x.split("/")[1].split("_")[1].split("-")[-2:]) for x in dandi_content
+]  # probably a better way to do this, just brute forcing for now
 sessions = natsorted(
     list(
         set([Path(x).parent.name for x in all_content])
@@ -62,23 +64,19 @@ sessions = natsorted(
     )
 )
 
-session_idxs = set(range(len(sessions))) # - set([15])
+session_idxs = set(range(len(sessions)))  # - set([15])
 for session_idx in session_idxs:
     assert os.environ.get("DANDI_API_KEY"), "Set your DANDI_API_KEY!"
     try:
         session_id = sessions[session_idx]
         # assert f"{session_id}/{session_id}.lfp" in all_content, "Skip session_idx {session_idx} - bad session!"
         if f"{session_id}/{session_id}.lfp" not in all_content:
-            print(
-                f"\nSkipping session_id {session_id} because there was no LFP (and hence likely a bad session). "
-            )
+            print(f"\nSkipping session_id {session_id} because there was no LFP (and hence likely a bad session). ")
             continue
         if any([x in session_id for x in dandi_session_datetimes]):
-            print(
-                f"\nSkipping session_id {session_id} because it is already on DANDI."
-            )
+            print(f"\nSkipping session_id {session_id} because it is already on DANDI.")
             continue
-        
+
         content_to_attempt_transfer = [
             f"{session_id}/{session_id}.xml",
             f"{session_id}/{session_id}.dat",
@@ -146,7 +144,9 @@ for session_idx in session_idxs:
         aux_file_path = session_path / "auxiliary.dat"
         rhd_file_path = session_path / "info.rhd"
         sleep_mat_file_path = session_path / f"{session_id}.SleepState.states.mat"
-        ripple_mat_file_paths = [x for x in session_path.iterdir() for suffix in x.suffixes if "ripples" in suffix.lower()]
+        ripple_mat_file_paths = [
+            x for x in session_path.iterdir() for suffix in x.suffixes if "ripples" in suffix.lower()
+        ]
 
         ecephys_start_time = get_session_datetime(session_id=session_id)
         ecephys_stop_time = ecephys_start_time + timedelta(
@@ -189,7 +189,9 @@ for session_idx in session_idxs:
         converter = TingleyMetabolicConverter(source_data=source_data)
         metadata = converter.get_metadata()
         metadata = dict_deep_update(metadata, global_metadata)
-        session_description = "Consult Supplementary Table 1 from the publication for more information about this session."
+        session_description = (
+            "Consult Supplementary Table 1 from the publication for more information about this session."
+        )
         metadata["NWBFile"].update(
             # session_description=subject_info_table.get(
             #     metadata["Subject"]["subject_id"],
@@ -234,7 +236,9 @@ for session_idx in session_idxs:
         if sleep_mat_file_path.is_file():
             conversion_options.update(SleepStates=dict(ecephys_start_time=ecephys_start_time_increment))
         if any(ripple_mat_file_paths):
-            conversion_options.update(Ripples=dict(stub_test=stub_test, ecephys_start_time=ecephys_start_time_increment))
+            conversion_options.update(
+                Ripples=dict(stub_test=stub_test, ecephys_start_time=ecephys_start_time_increment)
+            )
 
         converter.run_conversion(
             nwbfile_path=str(nwbfile_path),
@@ -264,5 +268,7 @@ for session_idx in session_idxs:
             a = 1
         y_n = ""
         while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(f"Could not convert session {session_id} due to {type(ex)}: {str(ex)}\n{traceback.format_exc()}\nWould you like to continue? (y/n): ")
+            y_n = input(
+                f"Could not convert session {session_id} due to {type(ex)}: {str(ex)}\n{traceback.format_exc()}\nWould you like to continue? (y/n): "
+            )
         assert y_n.lower() == "y"
