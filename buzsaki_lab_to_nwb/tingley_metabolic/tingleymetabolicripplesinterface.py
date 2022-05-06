@@ -27,7 +27,7 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
                 mat_file_is_scipy_readable = True
             except NotImplementedError:
                 mat_file_is_scipy_readable = False
-                print(f"RippleInterface is unable to convert {self.source_data['mat_file_path']} due to HDF5 version!")
+                print(f"RippleInterface is unable to convert {mat_file_path} due to HDF5 version!")
 
             if mat_file_is_scipy_readable:
                 mat_data = mat_file["ripples"]
