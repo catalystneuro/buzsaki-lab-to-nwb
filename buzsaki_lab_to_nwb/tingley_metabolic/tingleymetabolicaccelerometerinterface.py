@@ -23,33 +23,44 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
               20kHz by duplicating the data value at every 4th index. I can only assume this was done for easier
               side-by-side analysis of the raw data (which was acquired at 20kHz).
         """
-        rhd_info = read_rhd(filename=rhd_file_path)
-        first_aux_entry = next(
-            header_info_entry for header_info_entry in rhd_info[1] if "AUX1" in header_info_entry["native_channel_name"]
-        )
-        first_aux_sub_entry = next(
-            header_info_entry for header_info_entry in rhd_info[2] if "AUX1" in header_info_entry[0]
-        )
+        try:
+            rhd_info = read_rhd(filename=rhd_file_path)
+            self.readable = True
+        except:  # strange error with pyintan
+            self.readable = False
 
-        # Manually confirmed that all aux channels have same properties
-        self.conversion = first_aux_entry["gain"]  # offset confirmed to be 0, units confirmed to be Volts
-        self.sampling_frequency = first_aux_entry["sampling_rate"]
-        dtype = first_aux_sub_entry[1]
-        numchan = sum("AUX" in header_info_entry["native_channel_name"] for header_info_entry in rhd_info[1])
+        if self.readable:
+            first_aux_entry = next(
+                header_info_entry
+                for header_info_entry in rhd_info[1]
+                if "AUX1" in header_info_entry["native_channel_name"]
+            )
+            first_aux_sub_entry = next(
+                header_info_entry for header_info_entry in rhd_info[2] if "AUX1" in header_info_entry[0]
+            )
 
-        # Manually confirmed result is still memmap after slicing
-        self.memmap = read_binary(file=dat_file_path, numchan=numchan, dtype=dtype)[:3, ::4]
+            # Manually confirmed that all aux channels have same properties
+            self.conversion = first_aux_entry["gain"]  # offset confirmed to be 0, units confirmed to be Volts
+            self.sampling_frequency = first_aux_entry["sampling_rate"]
+            dtype = first_aux_sub_entry[1]
+            numchan = sum("AUX" in header_info_entry["native_channel_name"] for header_info_entry in rhd_info[1])
+
+            # Manually confirmed result is still memmap after slicing
+            self.memmap = read_binary(file=dat_file_path, numchan=numchan, dtype=dtype)[:3, ::4]
 
     def run_conversion(self, nwbfile, metadata, stub_test: bool = False, ecephys_start_time: float = 0.0):
-        stub_frames = 200 if stub_test else None
-        nwbfile.add_acquisition(
-            TimeSeries(
-                name="Accelerometer",
-                description="Raw data from accelerometer sensors.",
-                unit="Volts",
-                data=H5DataIO(self.memmap.T[:stub_frames, :], compression="gzip"),  # should not need iterative write
-                conversion=self.conversion,
-                rate=self.sampling_frequency,
-                starting_time=ecephys_start_time,
-            ),
-        )
+        if self.readable:
+            stub_frames = 200 if stub_test else None
+            nwbfile.add_acquisition(
+                TimeSeries(
+                    name="Accelerometer",
+                    description="Raw data from accelerometer sensors.",
+                    unit="Volts",
+                    data=H5DataIO(
+                        self.memmap.T[:stub_frames, :], compression="gzip"
+                    ),  # should not need iterative write
+                    conversion=self.conversion,
+                    rate=self.sampling_frequency,
+                    starting_time=ecephys_start_time,
+                ),
+            )
