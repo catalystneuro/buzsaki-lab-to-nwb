@@ -45,11 +45,7 @@ dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values
 dandi_session_datetimes = [
     "_".join(x.split("/")[1].split("_")[1].split("-")[-2:]) for x in dandi_content
 ]  # probably a better way to do this, just brute forcing for now
-sessions = natsorted(
-    list(
-        set([Path(x).parent.name for x in all_content])
-    )
-)
+sessions = natsorted(list(set([Path(x).parent.name for x in all_content])))
 
 
 session_idxs = set(range(len(sessions)))
