@@ -37,25 +37,22 @@ home_path = Path("/home/jovyan/")
 
 
 base_buzsaki_path = Path("/TingleyD/Tingley2021_ripple_glucose_paper/")
-subject_id = "CGM37"
+subject_id = "CGM36"
 all_content = get_globus_dataset_content_sizes(
     globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject_id).as_posix()
 )
 dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
 dandi_session_datetimes = [
-    "_".join(x.split("/")[1].split("_")[1].split("-")[-2:]) for x in dandi_content
+    "_".join(x.split("/")[1].split("_")[3:5]) for x in dandi_content
 ]  # probably a better way to do this, just brute forcing for now
-sessions = natsorted(
-    list(
-        set([Path(x).parent.name for x in all_content])
-    )
-)
+sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
+unconverted_sessions = natsorted(
+    [session_id for session_id in sessions if "_".join(session_id.split("_")[-2:]) not in dandi_session_datetimes]
+)  # natsorted for consistency on each run
 
-session_idxs = set(range(len(sessions)))  # - set([15])
-for session_idx in session_idxs:
+for session_id in unconverted_sessions:
     assert os.environ.get("DANDI_API_KEY"), "Set your DANDI_API_KEY!"
     try:
-        session_id = sessions[session_idx]
         # assert f"{session_id}/{session_id}.lfp" in all_content, "Skip session_idx {session_idx} - bad session!"
         if f"{session_id}/{session_id}.lfp" not in all_content:
             print(f"\nSkipping session_id {session_id} because there was no LFP (and hence likely a bad session). ")
