@@ -51,7 +51,8 @@ sessions = natsorted(
     )
 )
 
-session_idxs = set(range(len(sessions)))  # - set([15])
+
+session_idxs = set(range(len(sessions)))
 for session_idx in session_idxs:
     assert os.environ.get("DANDI_API_KEY"), "Set your DANDI_API_KEY!"
     try:
@@ -87,15 +88,9 @@ for session_idx in session_idxs:
         content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
 
         content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
-        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=5.0)
-        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6)
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(
-                f"\nConverting session {session_id} will cost an estimated ${total_cost} and take {total_time/3600} hours. "
-                "Continue? (y/n): "
-            )
-        assert y_n.lower() == "y"
+        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
+        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
+        print(f"Total cost of {session_id}: ${total_cost}, total time: {total_time / 3600} hr")
 
         metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
         subject_info_path = Path(__file__).parent / "tingley_metabolic_subject_info.yml"
@@ -238,12 +233,6 @@ for session_idx in session_idxs:
         except OSError:
             if len(list(session_path.iterdir())) > 0:
                 print(f"shutil.rmtree failed to clean directory for session {session_id}")
-        dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_output_path)
-
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input("\nContinue with dataset conversion? (y/n): ")
-        assert y_n.lower() == "y"
     except Exception as ex:
         # Clean up data files in event of any error
         try:
@@ -252,9 +241,4 @@ for session_idx in session_idxs:
             rmtree(nwb_output_path.parent / dandiset_id, ignore_errors=True)
         except Exception:
             a = 1
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(
-                f"Could not convert session {session_id} due to {type(ex)}: {str(ex)}\n{traceback.format_exc()}\nWould you like to continue? (y/n): "
-            )
-        assert y_n.lower() == "y"
+    assert False, "Ending session."
