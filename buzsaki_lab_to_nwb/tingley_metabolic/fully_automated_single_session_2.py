@@ -108,7 +108,7 @@ for session_id in unconverted_sessions:
             destination_endpoint_id=hub_globus_endpoint_id,
             destination_folder=session_path,
             progress_update_rate=total_time / 20,  # every 5% or so
-            progress_update_timeout=max(total_time * 2, 5*60),
+            progress_update_timeout=max(total_time * 2, 5 * 60),
         )
 
         global_metadata = load_dict_from_file(metadata_path)
