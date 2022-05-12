@@ -4,6 +4,7 @@ import traceback
 from pathlib import Path
 from datetime import timedelta
 from warnings import simplefilter
+from time import sleep
 
 from shutil import rmtree
 from natsort import natsorted
@@ -27,8 +28,9 @@ hub_globus_endpoint_id = "2b9b4d14-82a8-11ec-9f34-ed182a728dff"
 dandiset_id = "000233"
 
 stub_test = False
-conversion_factor = 0.195  # Intany
-buffer_gb = 50
+conversion_factor = 0.195  # Intan
+buffer_gb = 3
+data_size_threshold = 5 * 1e9  # 5 GB
 
 data_path = Path("/shared/catalystneuro/TingleyD/")
 home_path = Path("/home/jovyan/")
@@ -37,13 +39,14 @@ home_path = Path("/home/jovyan/")
 
 
 base_buzsaki_path = Path("/TingleyD/Tingley2021_ripple_glucose_paper/")
-subject_id = "CGM36"
+subject_id = "CGM2"
+sleep(5)
 all_content = get_globus_dataset_content_sizes(
     globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject_id).as_posix()
 )
 dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
 dandi_session_datetimes = [
-    "_".join(x.split("/")[1].split("_")[3:5]) for x in dandi_content
+    "_".join(x.split("/")[1].split("_")[-3:-1]) for x in dandi_content
 ]  # probably a better way to do this, just brute forcing for now
 sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
 unconverted_sessions = natsorted(
@@ -81,15 +84,11 @@ for session_id in unconverted_sessions:
         content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
 
         content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
-        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=5.0)
-        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6)
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(
-                f"\nConverting session {session_id} will cost an estimated ${total_cost} and take {total_time/3600} hours. "
-                "Continue? (y/n): "
-            )
-        assert y_n.lower() == "y"
+        if content_to_transfer_size > data_size_threshold:
+            continue
+        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
+        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
+        print(f"Total cost of {session_id}: ${total_cost}, total time: {total_time / 3600} hr")
 
         metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
         subject_info_path = Path(__file__).parent / "tingley_metabolic_subject_info.yml"
@@ -108,8 +107,8 @@ for session_id in unconverted_sessions:
             ],
             destination_endpoint_id=hub_globus_endpoint_id,
             destination_folder=session_path,
-            progress_update_rate=30.0,
-            progress_update_timeout=total_time * 10,
+            progress_update_rate=total_time / 20,  # every 5% or so
+            progress_update_timeout=max(total_time * 2, 5*60),
         )
 
         global_metadata = load_dict_from_file(metadata_path)
@@ -232,12 +231,7 @@ for session_id in unconverted_sessions:
         except OSError:
             if len(list(session_path.iterdir())) > 0:
                 print(f"shutil.rmtree failed to clean directory for session {session_id}")
-        dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_output_path)
-
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input("\nContinue with dataset conversion? (y/n): ")
-        assert y_n.lower() == "y"
+        dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_output_path, cleanup=True)
     except Exception as ex:
         # Clean up data files in event of any error
         try:
@@ -246,9 +240,4 @@ for session_id in unconverted_sessions:
             rmtree(nwb_output_path.parent / dandiset_id, ignore_errors=True)
         except Exception:
             a = 1
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(
-                f"Could not convert session {session_id} due to {type(ex)}: {str(ex)}\n{traceback.format_exc()}\nWould you like to continue? (y/n): "
-            )
-        assert y_n.lower() == "y"
+    assert False, "Ending session."
