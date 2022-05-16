@@ -1,16 +1,18 @@
 """Run entire conversion."""
 import os
-import traceback
+import json
 from pathlib import Path
 from datetime import timedelta
 from warnings import simplefilter
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
 
 from shutil import rmtree
 from natsort import natsorted
 from nwbinspector.tools import get_s3_urls_and_dandi_paths
 
 from nwb_conversion_tools.tools.data_transfers import (
-    dandi_upload,
+    automatic_dandi_upload,
     estimate_total_conversion_runtime,
     estimate_s3_conversion_cost,
     get_globus_dataset_content_sizes,
@@ -21,43 +23,55 @@ from spikeextractors import NeuroscopeRecordingExtractor
 
 from buzsaki_lab_to_nwb.tingley_metabolic import TingleyMetabolicConverter, get_session_datetime
 
+assert os.environ.get("DANDI_API_KEY"), "Set your DANDI_API_KEY!"
+
 buzsaki_globus_endpoint_id = "188a6110-96db-11eb-b7a9-f57b2d55370d"
 hub_globus_endpoint_id = "2b9b4d14-82a8-11ec-9f34-ed182a728dff"
-# hub_globus_endpoint_id = "3d82aa0a-bc1d-11ec-8f83-e31722b18688"
 dandiset_id = "000233"
 
 stub_test = False
-conversion_factor = 0.195  # Intany
-buffer_gb = 50
+conversion_factor = 0.195  # Intan
+buffer_gb = 3
+n_jobs = 3
+data_size_threshold = 5 * 1e9  # GB
 
 data_path = Path("/shared/catalystneuro/TingleyD/")
 home_path = Path("/home/jovyan/")
 
-# data_path = Path("C:/Users/Raven/Documents/TingleyD/")
-
 
 base_buzsaki_path = Path("/TingleyD/Tingley2021_ripple_glucose_paper/")
-subject_id = "CGM36"
-all_content = get_globus_dataset_content_sizes(
-    globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject_id).as_posix()
-)
-dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
-dandi_session_datetimes = [
-    "_".join(x.split("/")[1].split("_")[3:5]) for x in dandi_content
-]  # probably a better way to do this, just brute forcing for now
-sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
-unconverted_sessions = natsorted(
-    [session_id for session_id in sessions if "_".join(session_id.split("_")[-2:]) not in dandi_session_datetimes]
-)  # natsorted for consistency on each run
+subject_ids = iter(
+    ["CGM58", "CGM60", "A63", "Bruce", "DT12", "dt15", "flex1", "ros", "Vanessa"]
+)  # 47 and 50 have malformed csv?
 
-for session_id in unconverted_sessions:
-    assert os.environ.get("DANDI_API_KEY"), "Set your DANDI_API_KEY!"
+
+def _transfer_and_convert(subject_id):
     try:
-        # assert f"{session_id}/{session_id}.lfp" in all_content, "Skip session_idx {session_idx} - bad session!"
-        if f"{session_id}/{session_id}.lfp" not in all_content:
-            print(f"\nSkipping session_id {session_id} because there was no LFP (and hence likely a bad session). ")
-            continue
+        content_cache_file_path = Path(f"/shared/catalystneuro/TingleyD/cache/cache_content_{subject_id}")
+        if not content_cache_file_path.exists():
+            all_content = get_globus_dataset_content_sizes(
+                globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject_id).as_posix()
+            )
+            with open(content_cache_file_path, mode="w") as fp:
+                json.dump(all_content, fp)
+        else:
+            with open(content_cache_file_path, mode="r") as fp:
+                all_content = json.load(fp)
+        dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
+        dandi_session_datetimes = [
+            "_".join(x.split("/")[1].split("_")[-3:-1]) for x in dandi_content
+        ]  # probably a better way to do this, just brute forcing for now
+        sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
+        unconverted_sessions = natsorted(
+            [
+                session_id
+                for session_id in sessions
+                if "_".join(session_id.split("_")[-2:]) not in dandi_session_datetimes
+            ]
+        )  # natsorted for consistency on each run
 
+        gen = iter(unconverted_sessions)
+        session_id = next(gen)
         content_to_attempt_transfer = [
             f"{session_id}/{session_id}.xml",
             f"{session_id}/{session_id}.dat",
@@ -81,15 +95,73 @@ for session_id in unconverted_sessions:
         content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
 
         content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
-        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=5.0)
-        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6)
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(
-                f"\nConverting session {session_id} will cost an estimated ${total_cost} and take {total_time/3600} hours. "
-                "Continue? (y/n): "
-            )
-        assert y_n.lower() == "y"
+        j = 0
+        stop = False
+        while (
+            f"{session_id}/{session_id}.lfp" not in all_content or content_to_transfer_size > data_size_threshold
+        ) and j <= len(unconverted_sessions):
+            j += 1
+            try:
+                session_id = next(gen)
+                content_to_attempt_transfer = [
+                    f"{session_id}/{session_id}.xml",
+                    f"{session_id}/{session_id}.dat",
+                    f"{session_id}/{session_id}.lfp",
+                    f"{session_id}/auxiliary.dat",
+                    f"{session_id}/info.rhd",
+                    f"{session_id}/{session_id}.SleepState.states.mat",
+                    f"{session_id}/",
+                ]
+                content_to_attempt_transfer.extend([x for x in all_content if Path(x).suffix == ".csv"])
+                # Ripple files are a little trickier, can have multiple text forms
+                content_to_attempt_transfer.extend(
+                    [
+                        x
+                        for x in all_content
+                        if Path(x).parent.name == session_id
+                        for suffix in Path(x).suffixes
+                        if "ripples" in suffix.lower()
+                    ]
+                )
+                content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
+
+                content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
+            except StopIteration:
+                try:
+                    subject_id = next(subject_ids)
+                    content_cache_file_path = Path(f"/shared/catalystneuro/TingleyD/cache/cache_content_{subject_id}")
+                    if not content_cache_file_path.exists():
+                        all_content = get_globus_dataset_content_sizes(
+                            globus_endpoint_id=buzsaki_globus_endpoint_id,
+                            path=(base_buzsaki_path / subject_id).as_posix(),
+                        )
+                        with open(content_cache_file_path, mode="w") as fp:
+                            json.dump(all_content, fp)
+                    else:
+                        with open(content_cache_file_path, mode="r") as fp:
+                            all_content = json.load(fp)
+                    dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
+                    dandi_session_datetimes = [
+                        "_".join(x.split("/")[1].split("_")[-3:-1]) for x in dandi_content
+                    ]  # probably a better way to do this, just brute forcing for now
+                    sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
+                    unconverted_sessions = natsorted(
+                        [
+                            session_id
+                            for session_id in sessions
+                            if "_".join(session_id.split("_")[-2:]) not in dandi_session_datetimes
+                        ]
+                    )  # natsorted for consistency on each run
+                    j = 0
+                except StopIteration:
+                    stop = True
+                    print("\nAll remaining sessions missing LFP or too large.")
+        if j == len(unconverted_sessions) or stop:
+            assert False
+
+        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
+        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
+        print(f"Total cost of {session_id}: ${total_cost}, total time: {total_time / 3600} hr")
 
         metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
         subject_info_path = Path(__file__).parent / "tingley_metabolic_subject_info.yml"
@@ -108,8 +180,8 @@ for session_id in unconverted_sessions:
             ],
             destination_endpoint_id=hub_globus_endpoint_id,
             destination_folder=session_path,
-            progress_update_rate=30.0,
-            progress_update_timeout=total_time * 10,
+            progress_update_rate=total_time / 20,  # every 5% or so
+            progress_update_timeout=max(total_time * 2, 5 * 60),
         )
 
         global_metadata = load_dict_from_file(metadata_path)
@@ -227,28 +299,34 @@ for session_id in unconverted_sessions:
             conversion_options=conversion_options,
             overwrite=True,
         )
-        try:
-            rmtree(session_path)
-        except OSError:
-            if len(list(session_path.iterdir())) > 0:
-                print(f"shutil.rmtree failed to clean directory for session {session_id}")
-        dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_output_path)
+        return True, session_path, nwb_output_path
+    except Exception:
+        return False, False, False
 
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input("\nContinue with dataset conversion? (y/n): ")
-        assert y_n.lower() == "y"
-    except Exception as ex:
-        # Clean up data files in event of any error
-        try:
-            rmtree(session_path, ignore_errors=True)
-            rmtree(nwb_output_path, ignore_errors=True)
-            rmtree(nwb_output_path.parent / dandiset_id, ignore_errors=True)
-        except Exception:
-            a = 1
-        y_n = ""
-        while not (y_n.lower() == "y" or y_n.lower() == "n"):
-            y_n = input(
-                f"Could not convert session {session_id} due to {type(ex)}: {str(ex)}\n{traceback.format_exc()}\nWould you like to continue? (y/n): "
-            )
-        assert y_n.lower() == "y"
+
+def _transfer_convert_and_upload(subject_id):
+    try:
+        with ProcessPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_transfer_and_convert, subject_id=subject_id)
+        success, session_path, nwb_folder_path = future.result()
+        if success:
+            try:
+                rmtree(session_path, ignore_errors=True)
+                automatic_dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_folder_path)
+            finally:
+                rmtree(nwb_folder_path, ignore_errors=True)
+                rmtree(nwb_folder_path.parent / dandiset_id, ignore_errors=True)
+    finally:  # try to cleanup again
+        rmtree(session_path, ignore_errors=True)
+        rmtree(nwb_folder_path, ignore_errors=True)
+        rmtree(nwb_folder_path.parent / dandiset_id, ignore_errors=True)
+
+
+futures = []
+n_jobs = None if n_jobs == -1 else n_jobs  # concurrents uses None instead of -1 for 'auto' mode
+with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+    for subject_id in subject_ids:
+        futures.append(executor.submit(_transfer_convert_and_upload, subject_id=subject_id))
+nwbfiles_iterable = tqdm(as_completed(futures), desc="Converting subjects...")
+for future in nwbfiles_iterable:
+    _ = future.result()
