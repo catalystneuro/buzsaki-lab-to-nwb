@@ -1,5 +1,6 @@
 """Authors: Cody Baker."""
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
+from nwb_conversion_tools.tools.hdmf import SliceableDataChunkIterator
 from nwb_conversion_tools.utils import FilePathType
 from pynwb import TimeSeries, H5DataIO
 from spikeextractors.extraction_tools import read_binary
@@ -57,7 +58,7 @@ class TingleyMetabolicAccelerometerInterface(BaseDataInterface):
                     description="Raw data from accelerometer sensors.",
                     unit="Volts",
                     data=H5DataIO(
-                        self.memmap.T[:stub_frames, :], compression="gzip"
+                        SliceableDataChunkIterator(data=self.memmap.T[:stub_frames, :]), compression="gzip"
                     ),  # should not need iterative write
                     conversion=self.conversion,
                     rate=self.sampling_frequency,

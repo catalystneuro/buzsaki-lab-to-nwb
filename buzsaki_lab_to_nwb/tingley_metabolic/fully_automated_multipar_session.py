@@ -1,14 +1,17 @@
 """Run entire conversion."""
 import os
 import json
+import traceback
 from pathlib import Path
 from datetime import timedelta
 from warnings import simplefilter
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from tqdm import tqdm
+from collections import defaultdict
+from time import sleep
 
 from shutil import rmtree
 from natsort import natsorted
+from tqdm import tqdm
 from nwbinspector.tools import get_s3_urls_and_dandi_paths
 
 from nwb_conversion_tools.tools.data_transfers import (
@@ -33,35 +36,43 @@ stub_test = False
 conversion_factor = 0.195  # Intan
 buffer_gb = 3
 n_jobs = 3
-data_size_threshold = 5 * 1e9  # GB
+data_size_threshold = 45 * 1e9  # GB
 
-data_path = Path("/shared/catalystneuro/TingleyD/")
-home_path = Path("/home/jovyan/")
+cache_path = Path("/shared/catalystneuro/TingleyD/cache")
+cache_path.mkdir(exist_ok=True)
 
 
 base_buzsaki_path = Path("/TingleyD/Tingley2021_ripple_glucose_paper/")
-subject_ids = iter(
-    ["CGM58", "CGM60", "A63", "Bruce", "DT12", "dt15", "flex1", "ros", "Vanessa"]
-)  # 47 and 50 have malformed csv?
+subject_ids = ["bruce", "dt15", "flex1", "ros", "Vanessa"]
+subject_ids.extend(
+    [f"CGM{x}" for x in [1, 2, 3, 4, 30, 31, 32, 36, 37, 39, 40, 41, 46, 48, 49, 51, 52, 55, 57, 58, 60]]
+)  # 47 and 50 have malformed csv? Something is also up with A63 and DT12
+
+content_cache_file_path = cache_path / "cache_full_manifest.json"
+if not content_cache_file_path.exists():
+    print("No cache found! Fetching manifset from Globus.")
+    all_content = get_globus_dataset_content_sizes(
+        globus_endpoint_id=buzsaki_globus_endpoint_id, path=base_buzsaki_path.as_posix()
+    )
+    contents_per_subject = defaultdict(dict)
+    for file, size in all_content.items():
+        subject_id = file.split("/")[0]
+        contents_per_subject[subject_id].update({file: size})
+    with open(content_cache_file_path, mode="w") as fp:
+        json.dump(contents_per_subject, fp)
+else:
+    print("Cache found! Loading manifest.")
+    with open(content_cache_file_path, mode="r") as fp:
+        contents_per_subject = json.load(fp)
 
 
-def _transfer_and_convert(subject_id):
+def _transfer_and_convert(subject_id, subject_contents):
     try:
-        content_cache_file_path = Path(f"/shared/catalystneuro/TingleyD/cache/cache_content_{subject_id}")
-        if not content_cache_file_path.exists():
-            all_content = get_globus_dataset_content_sizes(
-                globus_endpoint_id=buzsaki_globus_endpoint_id, path=(base_buzsaki_path / subject_id).as_posix()
-            )
-            with open(content_cache_file_path, mode="w") as fp:
-                json.dump(all_content, fp)
-        else:
-            with open(content_cache_file_path, mode="r") as fp:
-                all_content = json.load(fp)
         dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
         dandi_session_datetimes = [
             "_".join(x.split("/")[1].split("_")[-3:-1]) for x in dandi_content
         ]  # probably a better way to do this, just brute forcing for now
-        sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
+        sessions = set([Path(x).parent.name for x in subject_contents]) - set([subject_id])  # subject_id for .csv
         unconverted_sessions = natsorted(
             [
                 session_id
@@ -70,122 +81,81 @@ def _transfer_and_convert(subject_id):
             ]
         )  # natsorted for consistency on each run
 
-        gen = iter(unconverted_sessions)
-        session_id = next(gen)
-        content_to_attempt_transfer = [
-            f"{session_id}/{session_id}.xml",
-            f"{session_id}/{session_id}.dat",
-            f"{session_id}/{session_id}.lfp",
-            f"{session_id}/auxiliary.dat",
-            f"{session_id}/info.rhd",
-            f"{session_id}/{session_id}.SleepState.states.mat",
-            f"{session_id}/",
-        ]
-        content_to_attempt_transfer.extend([x for x in all_content if Path(x).suffix == ".csv"])
-        # Ripple files are a little trickier, can have multiple text forms
-        content_to_attempt_transfer.extend(
-            [
-                x
-                for x in all_content
-                if Path(x).parent.name == session_id
-                for suffix in Path(x).suffixes
-                if "ripples" in suffix.lower()
+        j = 1
+        for j, session_id in enumerate(unconverted_sessions, start=1):
+            if f"{subject_id}/{session_id}/{session_id}.lfp" not in subject_contents:
+                print(f"Session {session_id} has no LFP! Skipping.", flush=True)
+                continue
+            if subject_id not in session_id:
+                print(f"Session {session_id} is likely an analysis folder!", flush=True)
+                continue
+
+            content_to_attempt_transfer = [
+                f"{subject_id}/{session_id}/{session_id}.xml",
+                f"{subject_id}/{session_id}/{session_id}.dat",
+                f"{subject_id}/{session_id}/{session_id}.lfp",
+                f"{subject_id}/{session_id}/auxiliary.dat",
+                f"{subject_id}/{session_id}/info.rhd",
+                f"{subject_id}/{session_id}/{session_id}.SleepState.states.mat",
             ]
-        )
-        content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
-
-        content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
-        j = 0
-        stop = False
-        while (
-            f"{session_id}/{session_id}.lfp" not in all_content or content_to_transfer_size > data_size_threshold
-        ) and j <= len(unconverted_sessions):
-            j += 1
-            try:
-                session_id = next(gen)
-                content_to_attempt_transfer = [
-                    f"{session_id}/{session_id}.xml",
-                    f"{session_id}/{session_id}.dat",
-                    f"{session_id}/{session_id}.lfp",
-                    f"{session_id}/auxiliary.dat",
-                    f"{session_id}/info.rhd",
-                    f"{session_id}/{session_id}.SleepState.states.mat",
-                    f"{session_id}/",
+            content_to_attempt_transfer.extend([x for x in subject_contents if Path(x).suffix == ".csv"])
+            # Ripple files are a little trickier, can have multiple text forms
+            content_to_attempt_transfer.extend(
+                [
+                    x
+                    for x in subject_contents
+                    if Path(x).parent.name == session_id
+                    for suffix in Path(x).suffixes
+                    if "ripples" in suffix.lower()
                 ]
-                content_to_attempt_transfer.extend([x for x in all_content if Path(x).suffix == ".csv"])
-                # Ripple files are a little trickier, can have multiple text forms
-                content_to_attempt_transfer.extend(
-                    [
-                        x
-                        for x in all_content
-                        if Path(x).parent.name == session_id
-                        for suffix in Path(x).suffixes
-                        if "ripples" in suffix.lower()
-                    ]
+            )
+            content_to_transfer = [x for x in content_to_attempt_transfer if x in subject_contents]
+
+            content_to_transfer_size = sum([subject_contents[x] for x in content_to_transfer])
+            if content_to_transfer_size > data_size_threshold:
+                print(
+                    f"Session {session_id} with size ({content_to_transfer_size / 1e9} GB) is larger than specified "
+                    f"threshold ({data_size_threshold / 1e9} GB)! Skipping",
+                    flush=True,
                 )
-                content_to_transfer = [x for x in content_to_attempt_transfer if x in all_content]
+                continue
+            break  # Good session or end of all unconverted sessions
+        if j >= len(unconverted_sessions):
+            assert False, f"End of valid sessions for subject {subject_id}."
 
-                content_to_transfer_size = sum([all_content[x] for x in content_to_transfer])
-            except StopIteration:
-                try:
-                    subject_id = next(subject_ids)
-                    content_cache_file_path = Path(f"/shared/catalystneuro/TingleyD/cache/cache_content_{subject_id}")
-                    if not content_cache_file_path.exists():
-                        all_content = get_globus_dataset_content_sizes(
-                            globus_endpoint_id=buzsaki_globus_endpoint_id,
-                            path=(base_buzsaki_path / subject_id).as_posix(),
-                        )
-                        with open(content_cache_file_path, mode="w") as fp:
-                            json.dump(all_content, fp)
-                    else:
-                        with open(content_cache_file_path, mode="r") as fp:
-                            all_content = json.load(fp)
-                    dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
-                    dandi_session_datetimes = [
-                        "_".join(x.split("/")[1].split("_")[-3:-1]) for x in dandi_content
-                    ]  # probably a better way to do this, just brute forcing for now
-                    sessions = set([Path(x).parent.name for x in all_content]) - set([""])  # "" for .csv
-                    unconverted_sessions = natsorted(
-                        [
-                            session_id
-                            for session_id in sessions
-                            if "_".join(session_id.split("_")[-2:]) not in dandi_session_datetimes
-                        ]
-                    )  # natsorted for consistency on each run
-                    j = 0
-                except StopIteration:
-                    stop = True
-                    print("\nAll remaining sessions missing LFP or too large.")
-        if j == len(unconverted_sessions) or stop:
-            assert False
-
-        total_time = estimate_total_conversion_runtime(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
-        total_cost = estimate_s3_conversion_cost(total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0)
-        print(f"Total cost of {session_id}: ${total_cost}, total time: {total_time / 3600} hr")
+        total_time = estimate_total_conversion_runtime(
+            total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0, upload_rate_mb=150
+        )
+        total_cost = estimate_s3_conversion_cost(
+            total_mb=content_to_transfer_size / 1e6, transfer_rate_mb=3.0, upload_rate_mb=150
+        )
+        print(
+            f"\nTotal cost of {session_id} with size {content_to_transfer_size / 1e9} GB: "
+            f"${total_cost}, total time: {total_time / 3600} hr",
+            flush=True,
+        )
 
         metadata_path = Path(__file__).parent / "tingley_metabolic_metadata.yml"
-        subject_info_path = Path(__file__).parent / "tingley_metabolic_subject_info.yml"
 
-        nwb_output_path = data_path / f"nwb_{session_id}"
+        nwb_output_path = cache_path / f"nwb_{session_id}"
         nwb_output_path.mkdir(exist_ok=True)
         nwbfile_path = nwb_output_path / f"{session_id}.nwb"
-        session_path = data_path / f"{session_id}"
+        session_path = cache_path / f"{session_id}"
         session_path.mkdir(exist_ok=True)
 
         transfer_globus_content(
             source_endpoint_id=buzsaki_globus_endpoint_id,
             source_files=[
-                [base_buzsaki_path / subject_id / x for x in content_to_transfer if ".csv" in x],
-                [base_buzsaki_path / subject_id / x for x in content_to_transfer if ".csv" not in x],
+                [base_buzsaki_path / subject_id / x.split("/")[-1] for x in content_to_transfer if ".csv" in x],
+                [base_buzsaki_path / x for x in content_to_transfer if ".csv" not in x],
             ],
             destination_endpoint_id=hub_globus_endpoint_id,
             destination_folder=session_path,
-            progress_update_rate=total_time / 20,  # every 5% or so
+            progress_update_rate=min(total_time / 20, 120),  # every 5% or every 2 minutes
             progress_update_timeout=max(total_time * 2, 5 * 60),
         )
 
         global_metadata = load_dict_from_file(metadata_path)
-        subject_info_table = load_dict_from_file(subject_info_path)
 
         simplefilter("ignore")
         conversion_options = dict()
@@ -246,15 +216,6 @@ def _transfer_and_convert(subject_id):
             "Consult Supplementary Table 1 from the publication for more information about this session."
         )
         metadata["NWBFile"].update(
-            # session_description=subject_info_table.get(
-            #     metadata["Subject"]["subject_id"],
-            #     "Consult Supplementary Table 1 from the publication for more information about this session.",
-            # ),
-            # experiment_description=subject_info_table.get(
-            #    metadata["Subject"]["subject_id"],
-            #    "Consult Supplementary Table 1 from the publication for more information about this session.",
-            # ),
-            # Since no mapping of subject_ids to ST1, just leave this for all.
             session_description=session_description,
             experiment_description=session_description,
         )
@@ -300,33 +261,45 @@ def _transfer_and_convert(subject_id):
             overwrite=True,
         )
         return True, session_path, nwb_output_path
-    except Exception:
-        return False, False, False
+    except Exception as ex:
+        return False, f"{type(ex)}: - {str(ex)}\n\n{traceback.format_exc()}", False
 
 
-def _transfer_convert_and_upload(subject_id):
+def _transfer_convert_and_upload(subject_id, subject_contents):
     try:
         with ProcessPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_transfer_and_convert, subject_id=subject_id)
+            future = executor.submit(_transfer_and_convert, subject_id=subject_id, subject_contents=subject_contents)
         success, session_path, nwb_folder_path = future.result()
         if success:
             try:
                 rmtree(session_path, ignore_errors=True)
+            finally:
+                rmtree(session_path, ignore_errors=True)
+            try:
                 automatic_dandi_upload(dandiset_id=dandiset_id, nwb_folder_path=nwb_folder_path)
             finally:
                 rmtree(nwb_folder_path, ignore_errors=True)
                 rmtree(nwb_folder_path.parent / dandiset_id, ignore_errors=True)
+        else:
+            print(session_path)
+            return session_path
     finally:  # try to cleanup again
         rmtree(session_path, ignore_errors=True)
         rmtree(nwb_folder_path, ignore_errors=True)
-        rmtree(nwb_folder_path.parent / dandiset_id, ignore_errors=True)
 
 
 futures = []
 n_jobs = None if n_jobs == -1 else n_jobs  # concurrents uses None instead of -1 for 'auto' mode
 with ProcessPoolExecutor(max_workers=n_jobs) as executor:
     for subject_id in subject_ids:
-        futures.append(executor.submit(_transfer_convert_and_upload, subject_id=subject_id))
+        futures.append(
+            executor.submit(
+                _transfer_convert_and_upload, subject_id=subject_id, subject_contents=contents_per_subject[subject_id]
+            )
+        )
 nwbfiles_iterable = tqdm(as_completed(futures), desc="Converting subjects...")
 for future in nwbfiles_iterable:
-    _ = future.result()
+    sleep(10)
+    error = future.result()
+    if error is not None:
+        print(error)
