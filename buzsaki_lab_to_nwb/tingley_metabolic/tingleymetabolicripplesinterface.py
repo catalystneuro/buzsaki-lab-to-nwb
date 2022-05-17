@@ -57,9 +57,13 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
                         amplitude="Amplitude of each point on the ripple.",
                     )
 
-                    table = TimeIntervals(name=table_name, description=f"Identified {table_name} events and their metrics.")
+                    table = TimeIntervals(
+                        name=table_name, description=f"Identified {table_name} events and their metrics."
+                    )
                     for start_time, stop_time in start_and_stop_times:
-                        table.add_row(start_time=ecephys_start_time + start_time, stop_time=ecephys_start_time + stop_time)
+                        table.add_row(
+                            start_time=ecephys_start_time + start_time, stop_time=ecephys_start_time + stop_time
+                        )
                     for column_name, column_data in zip(
                         list(descriptions), [durations, peaks, peak_normed_powers, peak_frequencies, peak_amplitudes]
                     ):
