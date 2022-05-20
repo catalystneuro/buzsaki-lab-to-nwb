@@ -34,9 +34,10 @@ dandiset_id = "000233"
 
 stub_test = False
 conversion_factor = 0.195  # Intan
-buffer_gb = 3
-n_jobs = 3
-data_size_threshold = 45 * 1e9  # GB
+buffer_gb = 1
+n_jobs = 1
+data_size_threshold = 120 * 1e9  # GB
+data_size_lb = 45 * 1e9
 
 cache_path = Path("/shared/catalystneuro/TingleyD/cache")
 cache_path.mkdir(exist_ok=True)
@@ -82,7 +83,7 @@ def _transfer_and_convert(subject_id, subject_contents):
         )  # natsorted for consistency on each run
 
         j = 1
-        for j, session_id in enumerate(unconverted_sessions, start=1):
+        for j, session_id in ["dt15_5264um_2002210_193406"]:  # enumerate(unconverted_sessions, start=1):
             if f"{subject_id}/{session_id}/{session_id}.lfp" not in subject_contents:
                 print(f"Session {session_id} has no LFP! Skipping.", flush=True)
                 continue
@@ -112,13 +113,20 @@ def _transfer_and_convert(subject_id, subject_contents):
             content_to_transfer = [x for x in content_to_attempt_transfer if x in subject_contents]
 
             content_to_transfer_size = sum([subject_contents[x] for x in content_to_transfer])
-            if content_to_transfer_size > data_size_threshold:
-                print(
-                    f"Session {session_id} with size ({content_to_transfer_size / 1e9} GB) is larger than specified "
-                    f"threshold ({data_size_threshold / 1e9} GB)! Skipping",
-                    flush=True,
-                )
-                continue
+            # if content_to_transfer_size > data_size_threshold:
+            #     print(
+            #         f"Session {session_id} with size ({content_to_transfer_size / 1e9} GB) is larger than specified "
+            #         f"threshold ({data_size_threshold / 1e9} GB)! Skipping",
+            #         flush=True,
+            #     )
+            #     continue
+            # if content_to_transfer_size < data_size_lb:
+            #     print(
+            #         f"Session {session_id} with size ({content_to_transfer_size / 1e9} GB) is smaller than specified "
+            #         f"threshold ({data_size_lb / 1e9} GB)! Skipping",
+            #         flush=True,
+            #     )
+            #     continue
             break  # Good session or end of all unconverted sessions
         if j >= len(unconverted_sessions):
             assert False, f"End of valid sessions for subject {subject_id}."
