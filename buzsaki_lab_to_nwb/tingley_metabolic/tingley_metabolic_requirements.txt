@@ -3,4 +3,4 @@ mat73==0.52
 hdf5storage>=0.1.18
 pyintan>=0.3.0
 pandas>=1.4.2
-nwb-conversion-tools @ git+https://github.com/catalystneuro/nwb-conversion-tools@5e39ca55266b8f7be48380c67471100a98413277
+nwb-conversion-tools @ git+https://github.com/catalystneuro/nwb-conversion-tools@run_on_aws
