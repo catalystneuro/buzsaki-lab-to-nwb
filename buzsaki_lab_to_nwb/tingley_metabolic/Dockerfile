@@ -3,10 +3,12 @@ FROM python:3.9
 WORKDIR /usr/src/
 
 # Standard AWS interactive setup
-RUN stty intr \^k
-RUN wget https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh
-RUN bash Anaconda3-2020.07-Linux-x86_64.sh
-RUN conda install git
+RUN stty intr \^k  # re-assign commands for copy for use during manual login
+
+# Does conda come with python:3.9? Does git come with conda?
+#RUN wget https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh
+#RUN bash Anaconda3-2020.07-Linux-x86_64.sh
+#RUN conda install git
 RUN git clone https://github.com/catalystneuro/buzsaki-lab-to-nwb
 RUN cd buzsaki-lab-to-nwb
 RUN git checkout run_on_aws
@@ -17,7 +19,6 @@ RUN cd ..
 RUN git clone https://github.com/catalystneuro/nwb-conversion-tools
 RUN cd nwb-conversion-tools
 RUN pip install -e .
-
 
 RUN sudo yum install tk tcllib
 RUN wget https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz
