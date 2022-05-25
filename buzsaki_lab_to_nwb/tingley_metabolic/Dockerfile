@@ -5,7 +5,8 @@ RUN git clone https://github.com/catalystneuro/buzsaki-lab-to-nwb
 FROM python:3.9
 WORKDIR /usr/src/buzsaki-lab-to-nwb
 RUN git checkout run_on_aws \
-  && pip install -r tingley_metabolic_requirements.txt
+  && pip install -e .
+  && pip install -r buzsaki_lab_to_nwb/tingley_metabolic/tingley_metabolic_requirements.txt
 
 FROM python:3.9
 WORKDIR /usr/src/
