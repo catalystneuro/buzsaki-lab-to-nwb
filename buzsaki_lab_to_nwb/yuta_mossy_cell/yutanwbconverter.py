@@ -21,7 +21,10 @@ from ..utils.neuroscope import get_clusters_single_shank, read_spike_clustering
 def get_UnitFeatureCell_features(fpath_base, session_id, session_path, nshanks):
     """Load features from matlab file. Handle occasional mismatches."""
     cols_to_get = ("fineCellType", "region", "unitID", "unitIDshank", "shank")
-    matin = loadmat(str(fpath_base / "DGProject/DG_all_6__UnitFeatureSummary_add.mat"), struct_as_record=False,)[
+    matin = loadmat(
+        str(fpath_base / "DGProject/DG_all_6__UnitFeatureSummary_add.mat"),
+        struct_as_record=False,
+    )[
         "UnitFeatureCell"
     ][0][0]
 
