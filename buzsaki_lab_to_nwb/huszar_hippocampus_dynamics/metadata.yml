@@ -1,0 +1,28 @@
+NWBFile:
+  experiment_description:
+    Preconfigured dynamics in the hippocampus are guided by embryonic birthdate and rate of neurogenesis
+  institution: Princeton
+  lab: Buzsaki
+  experimenter:
+    - Huszár, Roman 
+    - Zhang, Yunchang
+    - Blockus, Heike 
+    - Buzsáki, György 
+  keywords:
+    - Development of the nervous system
+    - Hippocampus
+    - Neural circuits
+  related_publications:
+    - https://doi.org/10.1038/s41593-022-01138-x
+  session_description:
+    The incorporation of new information into the hippocampal network is likely to be constrained by its
+    innate architecture and internally generated activity patterns. However, the origin, organization and 
+    consequences of such patterns remain poorly understood. In the present study we show that hippocampal 
+    network dynamics are affected by sequential neurogenesis. We birthdated CA1 pyramidal neurons with in utero 
+    electroporation over 4 embryonic days, encompassing the peak of hippocampal neurogenesis,
+    and compared their functional features in freely moving adult mice. 
+    Neurons of the same birthdate displayed distinct connectivity, coactivity across brain states and assembly dynamics. 
+    Same-birthdate neurons exhibited overlapping spatial representations, which were maintained across different environments.
+    Overall, the wiring and functional features of CA1 pyramidal neurons reflected a combination of birthdate and the 
+    rate of neurogenesis. These observations demonstrate that sequential neurogenesis during embryonic development 
+    shapes the preconfigured forms of adult network dynamics.
