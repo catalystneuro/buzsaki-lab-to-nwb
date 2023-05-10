@@ -3,7 +3,7 @@
 
 ## Todo
 * In the paper the birthdates are marked as: E13.5, E14.5, E15.5, and E16.5
-This means embrionic age (E) apparently. How does it track with the recent changes on age representation on nwb
+This means embrionic age (E) apparently. How does it track with the recent changes on age representation on nwb. Here, maybe use gestational age.
 * The matlab files do not seem to contain a `sessionInfo` which is a requirement for using `CellExplorerSortingExtractor` from spikeinterface. Maybe they change the way that they do it, maybe it is lost. Probably better to ask them. In case they don't, it should be straighforward to roll a new
 sorting extractor for this dataset.
 
