@@ -19,6 +19,7 @@ from neuroconv.datainterfaces.ecephys.basesortingextractorinterface import BaseS
 from neuroconv.tools import get_package
 from neuroconv.utils import FilePathType
 
+
 class CellExplorerSortingInterface(BaseSortingExtractorInterface):
     """Primary data interface class for converting Cell Explorer spiking data."""
 
@@ -39,7 +40,7 @@ class CellExplorerSortingInterface(BaseSortingExtractorInterface):
         session_id = session_path.stem
         spikes_matfile_path = Path(file_path)
 
-        # First load the 
+        # First load the
         try:
             spikes_mat = scipy.io.loadmat(file_name=str(spikes_matfile_path))
             self.read_spikes_info_with_scipy = True
@@ -48,13 +49,11 @@ class CellExplorerSortingInterface(BaseSortingExtractorInterface):
             self.read_spikes_info_with_scipy = False
         cell_info = spikes_mat.get("spikes", np.empty(0))
         self.cell_info_fields = cell_info.dtype.names
-        if sampling_frequency is None and "sr" in self.cell_info_fields :
+        if sampling_frequency is None and "sr" in self.cell_info_fields:
             sampling_frequency = float(cell_info["sr"][0][0][0][0])
 
         super().__init__(spikes_matfile_path=file_path, verbose=verbose, sampling_frequency=sampling_frequency)
         self.source_data = dict(file_path=file_path, sampling_frequency=sampling_frequency)
-
-
 
         assert (
             spikes_matfile_path.is_file()
@@ -159,28 +158,22 @@ class HuzsarNWBConverter(NWBConverter):
     data_interface_classes = dict(
         Behavior=HuzsarBehaviorInterface,
         Sorting=CellExplorerSortingInterface,
-        
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
         super().__init__(source_data=source_data, verbose=verbose)
 
-
     def get_metadata(self):
-
         # metadata = super().get_metadata()
         # metadata["NWBFile"].update(session_start_time=session_start, session_id=session_id)
         # metadata.update(Subject=dict(subject_id=subject_id))
-        
+
         metadata = super().get_metadata()
         import datetime as dt
+
         # Get today date
         date = dt.date.today()
         # Transform date to string
         date = date.strftime("%Y-%m-%d")
         metadata["NWBFile"]["session_start_time"] = date
         return metadata
-    
-    
-
-

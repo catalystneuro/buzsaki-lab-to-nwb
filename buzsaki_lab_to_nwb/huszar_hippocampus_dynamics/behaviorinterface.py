@@ -10,6 +10,7 @@ from neuroconv.tools.nwb_helpers import get_module
 
 from scipy.io import loadmat as loadmat_scipy
 
+
 class HuzsarBehaviorInterface(BaseDataInterface):
     """Behavior interface"""
 
@@ -49,7 +50,7 @@ class HuzsarBehaviorInterface(BaseDataInterface):
                     )
             [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
             processing_module.add(table)
-            
+
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
         Replace all timestamps for this interface with those aligned to the common session start time.
@@ -64,7 +65,7 @@ class HuzsarBehaviorInterface(BaseDataInterface):
         raise NotImplementedError(
             "The protocol for synchronizing the timestamps of this interface has not been specified!"
         )
-        
+
     def get_timestamps(self) -> np.ndarray:
         """
         Retrieve the timestamps for the data in this interface.
@@ -77,7 +78,7 @@ class HuzsarBehaviorInterface(BaseDataInterface):
         raise NotImplementedError(
             "Unable to retrieve timestamps for this interface! Define the `get_timestamps` method for this interface."
         )
-        
+
     def get_original_timestamps(self) -> np.ndarray:
         """
         Retrieve the original unaltered timestamps for the data in this interface.

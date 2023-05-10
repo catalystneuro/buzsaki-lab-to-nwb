@@ -26,19 +26,17 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
 
     source_data = dict()
     # Add sorter
-    file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat" 
+    file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
-    
-    
+
     # Add behavior data
     source_data.update(Behavior=dict(folder_path=str(session_dir_path)))
-    
+
     # Build the converter
     converter = HuzsarNWBConverter(source_data=source_data, verbose=verbose)
 
     # Session start time (missing time, only the date part)
     metadata = converter.get_metadata()
-
 
     # Update default metadata with the one in the editable yaml file in this directory
     editable_metadata_path = Path(__file__).parent / "metadata.yml"
@@ -61,6 +59,6 @@ if __name__ == "__main__":
     # Parameters for conversion
     stub_test = False  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
-    output_dir_path = Path.home() / "conversion_nwb" 
+    output_dir_path = Path.home() / "conversion_nwb"
     session_dir_path = Path("/home/heberto/buzaki/e13_16f1_210302/")
     session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
