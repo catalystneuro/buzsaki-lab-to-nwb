@@ -25,6 +25,12 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     nwbfile_path = output_dir_path / f"{session_id}.nwb"
 
     source_data = dict()
+    # Add sorter
+    file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat" 
+    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
+    
+    
+    # Add behavior data
     source_data.update(Behavior=dict(folder_path=str(session_dir_path)))
     
     # Build the converter
