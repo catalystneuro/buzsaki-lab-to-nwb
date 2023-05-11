@@ -24,7 +24,7 @@ class HuzsarBehaviorInterface(BaseDataInterface):
 
         self.add_8_maze_behavior_data(nwbfile)
         self.add_sleep_states(nwbfile)
-    
+
     def add_8_maze_behavior_data(self, nwbfile: NWBFile):
         module_name = "Figure - 8 maze"
         module_description = "Figure 8 - maze"
