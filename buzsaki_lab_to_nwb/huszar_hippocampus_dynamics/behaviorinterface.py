@@ -1,8 +1,9 @@
 from pathlib import Path
 
 import numpy as np
-from pynwb.file import NWBFile, TimeIntervals
-
+from pynwb.file import NWBFile, TimeIntervals, TimeSeries
+from pynwb.behavior import SpatialSeries, Position, CompassDirection
+from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 from neuroconv.utils.json_schema import FolderPathType
 from neuroconv.basedatainterface import BaseDataInterface
@@ -18,38 +19,81 @@ class HuzsarBehaviorInterface(BaseDataInterface):
         super().__init__(folder_path=folder_path)
 
     def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
-        session_path = Path(self.source_data["folder_path"])
-        session_id = session_path.stem
+        self.session_path = Path(self.source_data["folder_path"])
+        self.session_id = self.session_path.stem
 
+        self.add_8_maze_behavior_data(nwbfile)
+        self.add_sleep_states(nwbfile)
+    
+    def add_8_maze_behavior_data(self, nwbfile: NWBFile):
+        module_name = "Figure - 8 maze"
+        module_description = "Figure 8 - maze"
+        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+
+        file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+        mat_file = loadmat_scipy(file_path, simplify_cells=True)
+
+        timestamps = mat_file["behavior"]["timestamps"]
+        position = mat_file["behavior"]["position"]
+        lin = position["lin"]
+        x = position["x"]
+        y = position["y"]
+        data = np.column_stack((x, y))
+
+        unit = "cm"
+        conversion = 100.0  # cm to m TODO: Double check if this is the meaning.
+        reference_frame = "TBD"
+        description = mat_file["behavior"]["description"]
+        pos_obj = Position(name=description)
+        spatial_series_object = SpatialSeries(
+            name="position",
+            description="(x,y) coordinates tracking subject movement.",
+            data=H5DataIO(data, compression="gzip"),
+            reference_frame=reference_frame,
+            unit=unit,
+            conversion=conversion,
+            timestamps=timestamps,
+            resolution=np.nan,
+        )
+        pos_obj.add_spatial_series(spatial_series_object)
+        processing_module.add_data_interface(pos_obj)
+
+        time_series = TimeSeries(
+            name="linearized_position", data=lin, unit=unit, timestamps=timestamps, resolution=np.nan
+        )
+        processing_module.add_data_interface(time_series)
+
+    def add_sleep_states(self, nwbfile: NWBFile):
         module_name = "Neural states"
         module_description = "Contains behavioral data concerning classified states."
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-
         # Sleep states
-        sleep_states_file_path = session_path / f"{session_id}.SleepState.states.mat"
-        if Path(sleep_states_file_path).exists():
-            mat_file = loadmat_scipy(sleep_states_file_path, simplify_cells=True)
+        sleep_states_file_path = self.session_path / f"{self.session_id}.SleepState.states.mat"
 
-            state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
-            sleep_state_dic = mat_file["SleepState"]["ints"]
-            table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
-            table.add_column(name="label", description="Sleep state.")
+        assert sleep_states_file_path.exists(), f"Sleep states file not found: {sleep_states_file_path}"
 
-            data = []
-            for sleep_state in state_label_names:
-                values = sleep_state_dic[sleep_state]
-                if len(values) != 0 and isinstance(values[0], int):
-                    values = [values]
-                for start_time, stop_time in values:
-                    data.append(
-                        dict(
-                            start_time=float(start_time),
-                            stop_time=float(stop_time),
-                            label=state_label_names[sleep_state],
-                        )
+        mat_file = loadmat_scipy(sleep_states_file_path, simplify_cells=True)
+
+        state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
+        sleep_state_dic = mat_file["SleepState"]["ints"]
+        table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
+        table.add_column(name="label", description="Sleep state.")
+
+        data = []
+        for sleep_state in state_label_names:
+            values = sleep_state_dic[sleep_state]
+            if len(values) != 0 and isinstance(values[0], int):
+                values = [values]
+            for start_time, stop_time in values:
+                data.append(
+                    dict(
+                        start_time=float(start_time),
+                        stop_time=float(stop_time),
+                        label=state_label_names[sleep_state],
                     )
-            [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
-            processing_module.add(table)
+                )
+        [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+        processing_module.add(table)
 
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
