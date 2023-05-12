@@ -7,7 +7,10 @@ from scipy.io import loadmat as loadmat_scipy
 
 from neuroconv import NWBConverter
 
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import HuzsarBehaviorSleepInterface, HuszarBehavior8MazeInterface
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import (
+    HuzsarBehaviorSleepInterface,
+    HuszarBehavior8MazeInterface,
+)
 from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.sortinginterface import CellExplorerSortingInterface
 
 

@@ -13,7 +13,6 @@ from scipy.io import loadmat as loadmat_scipy
 
 
 class HuzsarBehaviorSleepInterface(BaseDataInterface):
-    
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
@@ -96,7 +95,7 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
             "Define the `get_original_timestamps` method for this interface."
         )
 
-        
+
 class HuszarBehavior8MazeInterface(BaseDataInterface):
     """Behavior interface"""
 
@@ -143,7 +142,6 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
             name="linearized_position", data=lin, unit=unit, timestamps=timestamps, resolution=np.nan
         )
         processing_module.add_data_interface(time_series)
-
 
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
