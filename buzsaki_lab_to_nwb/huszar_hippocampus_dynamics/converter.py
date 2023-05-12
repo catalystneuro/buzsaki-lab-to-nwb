@@ -7,7 +7,7 @@ from scipy.io import loadmat as loadmat_scipy
 
 from neuroconv import NWBConverter
 
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import HuzsarBehaviorInterface
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import HuzsarBehaviorSleepInterface, HuszarBehavior8MazeInterface
 from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.sortinginterface import CellExplorerSortingInterface
 
 
@@ -15,14 +15,15 @@ class HuzsarNWBConverter(NWBConverter):
     """Primary conversion class for the Huzsar hippocampus data set."""
 
     data_interface_classes = dict(
-        Behavior=HuzsarBehaviorInterface,
         Sorting=CellExplorerSortingInterface,
+        Behavior8Maze=HuszarBehavior8MazeInterface,
+        BehaviorSleep=HuzsarBehaviorSleepInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
         super().__init__(source_data=source_data, verbose=verbose)
 
-        self.session_folder_path = Path(self.data_interface_objects["Behavior"].source_data["folder_path"])
+        self.session_folder_path = Path(self.data_interface_objects["Behavior8Maze"].source_data["folder_path"])
         self.session_id = self.session_folder_path.stem
 
     def get_metadata(self):

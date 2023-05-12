@@ -1,12 +1,4 @@
 from pathlib import Path
-
-import numpy as np
-
-
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import HuzsarBehaviorInterface
-
-
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
