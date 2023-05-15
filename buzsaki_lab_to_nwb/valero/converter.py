@@ -8,6 +8,7 @@ from scipy.io import loadmat as loadmat_scipy
 from neuroconv import NWBConverter
 from neuroconv.datainterfaces import NeuroScopeRecordingInterface, NeuroScopeLFPInterface
 
+from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
 
 class ValeroNWBConverter(NWBConverter):
     """Primary conversion class for the Valero 2022 experiment."""
@@ -15,6 +16,7 @@ class ValeroNWBConverter(NWBConverter):
     data_interface_classes = dict(
         Recording=NeuroScopeRecordingInterface,
         LFP=NeuroScopeLFPInterface,
+        Sorting=CellExplorerSortingInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):

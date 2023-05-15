@@ -23,9 +23,6 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     nwbfile_path = output_dir_path / f"{session_id}.nwb"
 
     source_data = dict()
-    # # Add sorter
-    # file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
-    # source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Add Recording
     file_path = session_dir_path / f"{session_id}.dat"
@@ -36,6 +33,10 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     file_path = session_dir_path / f"{session_id}.lfp"
     assert file_path.is_file()
     source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+
+    # Add sorter
+    file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
+    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Build the converter
     converter = ValeroNWBConverter(source_data=source_data, verbose=verbose)
