@@ -36,10 +36,9 @@ class ValeroNWBConverter(NWBConverter):
         # Conver date str to date object
         date = datetime.strptime(date, "%Y-%m-%d")
         # Build a datetime object and add the timezone from NY
-        date = datetime.combine(date, datetime.min.time())
-        tzinfo = ZoneInfo("America/New_York")  # This is the standard library
-        date = date.replace(tzinfo=tzinfo)
+        tzinfo = ZoneInfo("America/New_York")  # This is the library from the standard library
+        session_start_time = datetime.combine(date, datetime.min.time(), tzinfo=tzinfo)
 
         # Get today date
-        metadata["NWBFile"]["session_start_time"] = date
+        metadata["NWBFile"]["session_start_time"] = session_start_time
         return metadata
