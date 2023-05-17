@@ -18,3 +18,8 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[tool.isort]
+profile = "black"
+reverse_relative = true
+known_first_party = ["buzsaki_lab_to_nwb"]
