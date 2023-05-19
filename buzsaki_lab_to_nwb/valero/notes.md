@@ -1,8 +1,11 @@
 
-Random notes
+# Notes
+The following notes are taken from the paper and the supplementary material.
+They are intended to clarify some of the decisions of the conversions and should work as a reference for the conversion and discussion and the authors.
 
 
 ## Important information in the paper
+
 
 ### Electrodes and recording devices
 
@@ -24,6 +27,16 @@ Juding by the description in the paper, they were using the chronic variety:
 > Probes were mounted on microdrives that were advanced to CA1 pyramidal layer in small increments over 5 to 8 days,
 while depth distribution of LFPs (SPW-R events and theta oscillations) and unit firing were used
 to identify CA1 pyramidal layer. After implantation, all animals were housed individually
+
+### LFP
+> . Electrophysiological data were acquired using an Intan
+RHD2000 system (Intan Technologies LLC) digitized with 30 kHz rate. The wide-band signal
+was downsampled to 1.25 kHz and used as the LFP signa
+
+The LFP sampling rate should be 1.25 KhZ
+
+### Optogenetics
+> we recorded and probed large numbers of CA1 pyramidal neurons simultaneously in freely moving calcium/calmodulin–dependent protein kinase II alpha (CamKIIα) -Cre::Ai32 mice
 
 ### Intracellular recording
 
@@ -58,7 +71,7 @@ with a Basler camera (acA1300-60 gmNIR, Graftek Imaging) sampling at 30Hz to det
 Position was synchronized with neural data with TTLs signaling shutter position. Animals were handled daily and accommodated to the experimenter, recording room
 and cables for 1 week before the start of the experiments. 
 
-So, there is a TTL and there is a camera.
+So, there is a TTL and there is a camera. After some digging, I found that there is an `.avi` file located inside another directory and a corresponding `.mat` file.
 
 > Water access was restricted and was
 only available as reward on a linear track, ad libitum for 30 minutes at the end of each
@@ -75,3 +88,50 @@ Information about behavioral task
 This figure S7D is useful for understanding the epochs:
 
 ![Figure S7D](./images/figure_S7D.png)
+
+# Questions
+* Why is there two Tracking.Behaviors, the file is repeated in the folder that contains the video and in the top level.
+* Why does this conversion combines data from the old and new format? We have both `sessionInfo.mat` and `session.mat`. I am puzzled by this.
+* There is both kilosort and CellExplorer data. I think kilosort probably represents the final info to be added to the units table but probably should confirm this with the authors.
+* They have a folder `revision_cell_metrics` that contains cell_metric data ordered by data. Same question as above.
+* Are there 4 mice for interacellular recordings and 4 mice for extracellular recordings? I think so but I am not sure.
+* The organization of the folder structure in globus is cofusing. We have some sessions that are named `fCamk{number}` and I think they make sense. They refero to the optogenic protein / cell line. But I can't find the meaning of the following folder names and ctrl + f in the paper and the supplementy materials is not yielding any matches:
+    * `fCr{number}`
+    * `fld2Dlx{number}`
+    * `Cck{number}`
+    * `fNKx{number}`
+    * `fPv{number}`
+    * `fSst{number}`
+    * `fVip{number}`
+    * Plus a folder with `unindexed subjects`.
+
+* Is this a typo one the figure 1: 
+    > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink). 
+    
+    I could not find mention of intracellular recordings in rats in the material and methods. Ah no, here it is:
+
+    Quote from methods:
+    > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink). 
+
+    So they do use another dataset for this from another paper.
+* There are two tracking behaviors one on the top folder and another in the sub-folder. Do they indicate different experiments.
+
+
+## Synchornization and times
+
+For session `fCamk1_200827_sess9`
+* The video is 30 minutes long.
+* The auxiliary.dat files in the sub-folder with the movies are between 1 and 3 minutes. Not clear yet what they represent.
+* LFP signal:
+* Raw signal: 5 hours of recording. This matches wit the 300 minutes of recording in the paper. 
+* Spiketimes:
+* Timestamps for tracking behavior:
+* Epochs: 
+    We shoud have something like this according to the paper:
+    * Pre-baseline: 60 minutes
+    * Pre-stim: 60 minutes
+    * Linear Maze: 60 minutes
+    * Post-stim: 60 minutes
+    * Post-baseline: 60 minutes
+
+    It is strange that the movie is only 30 minutes. Maybe they only turn it on at specific points, could have halved the frequency. Need to ask.
