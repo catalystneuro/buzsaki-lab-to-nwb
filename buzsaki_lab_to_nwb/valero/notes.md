@@ -3,6 +3,25 @@
 The following notes are taken from the paper and the supplementary material.
 They are intended to clarify some of the decisions of the conversions and should work as a reference for the conversion and discussion and the authors.
 
+## References
+The article text can be found in the following links:
+*  [Free access](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9632609/)
+* [Supplementary Materials](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9632609/bin/NIHMS1804419-supplement-Supplementary_Material.pdf)
+* [In science](https://www.science.org/doi/10.1126/science.abm1891)
+
+Peter Petersen, one of the members of the Buzsaki lab, has shared with us the following documents that contain the structure of the cell explorer format:
+
+* [new format](https://cellexplorer.org/data-structure/)
+* [old format](https://github.com/buzsakilab/buzcode/wiki/Data-Formatting-Standards)
+
+The data in Globus is in the following link:
+* [valero data in globus](https://app.globus.org/file-manager?origin_id=188a6110-96db-11eb-b7a9-f57b2d55370d&origin_path=%2FValeroM%2F)
+
+Relevant links in github:
+* [main issue](https://github.com/catalystneuro/buzsaki-lab-to-nwb/issues/54)
+
+
+
 
 ## Important information in the paper
 
@@ -90,11 +109,11 @@ This figure S7D is useful for understanding the epochs:
 ![Figure S7D](./images/figure_S7D.png)
 
 # Questions
-* Why is there two Tracking.Behaviors, the file is repeated in the folder that contains the video and in the top level.
+* Why are there two Tracking.Behaviors, the file is repeated in the folder that contains the video and in the top level.
 * Why does this conversion combines data from the old and new format? We have both `sessionInfo.mat` and `session.mat`. I am puzzled by this.
 * There is both kilosort and CellExplorer data. I think kilosort probably represents the final info to be added to the units table but probably should confirm this with the authors.
 * They have a folder `revision_cell_metrics` that contains cell_metric data ordered by data. Same question as above.
-* Are there 4 mice for interacellular recordings and 4 mice for extracellular recordings? I think so but I am not sure.
+* Are there 4 mice for interacellular recordings and 4 mice for extracellular recordings? I think so but I am not sure. Does this means that some sesions should be intracellular only? Can we identify those sessions by name?
 * The organization of the folder structure in globus is cofusing. We have some sessions that are named `fCamk{number}` and I think they make sense. They refero to the optogenic protein / cell line. But I can't find the meaning of the following folder names and ctrl + f in the paper and the supplementy materials is not yielding any matches:
     * `fCr{number}`
     * `fld2Dlx{number}`
@@ -104,6 +123,7 @@ This figure S7D is useful for understanding the epochs:
     * `fSst{number}`
     * `fVip{number}`
     * Plus a folder with `unindexed subjects`.
+    In the `session.mat` the subject name apperas as `fCamk` so I could check if that's the case for the sessions with non-standard name.
 
 * Is this a typo one the figure 1: 
     > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink). 
@@ -114,15 +134,22 @@ This figure S7D is useful for understanding the epochs:
     > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink). 
 
     So they do use another dataset for this from another paper.
-* There are two tracking behaviors one on the top folder and another in the sub-folder. Do they indicate different experiments.
+* There are two tracking behaviors one on the top folder and another in the sub-folder. Do they indicate different experiments. So far, they seem to contain the same data.
+*  in `session.mat` surgery there is actually a start time that matches 9 to 1pm. Four hours of surgery. I thought that that might be the whole session but that was 5 hours. So, I am not sure what the surgery time is.
+* What is `ws_temp` ?
+* What is HSE?
+* What is UDStates
+* What is ACG?
+* What does DigitalIn represents?
+* What is pullTime?
+* What is `ws_temp`?
 
-
-## Synchornization and times
+## Synchronization and times
 
 For session `fCamk1_200827_sess9`
-* The video is 30 minutes long.
+* The video is 30 minutes long. And the corresponding mat file marks 53143 frames. This means that the video is sampled at 29.7 Hz.
 * The auxiliary.dat files in the sub-folder with the movies are between 1 and 3 minutes. Not clear yet what they represent.
-* LFP signal:
+* LFP signal: It is 5 hours long using a sampling rate of 1.2 Khz. 
 * Raw signal: 5 hours of recording. This matches wit the 300 minutes of recording in the paper. 
 * Spiketimes:
 * Timestamps for tracking behavior:
@@ -135,3 +162,136 @@ For session `fCamk1_200827_sess9`
     * Post-baseline: 60 minutes
 
     It is strange that the movie is only 30 minutes. Maybe they only turn it on at specific points, could have halved the frequency. Need to ask.
+    The `session.mat` file has an epochs field describing the epochs. This indicates the the sub-folder for the Maze is named as the epoch.
+
+
+| name                 |   startTime |   stopTime | behavioralParadigm   | environment   | manipulation     |   duration_hours |   duration_seconds |
+|:---------------------|------------:|-----------:|:---------------------|:--------------|:-----------------|-----------------:|-------------------:|
+| fCamk1_200827_084028 |        0    |    5194.88 | BaselinePre          | Home cage     | None             |         1.44302  |            5194.88 |
+| fCamk1_200827_101538 |     5194.88 |    8284.64 | PreStim              | Home cage     | uLED random stim |         0.858267 |            3089.76 |
+| fCamk1_200827_110712 |     8284.64 |   10081.4  | Maze                 | Linear maze   | uLED random stim |         0.499102 |            1796.77 |
+| fCamk1_200827_113839 |    10081.4  |   11803.6  | PostStim             | Home cage     | uLED random stim |         0.478382 |            1722.18 |
+| fCamk1_200827_125535 |    11803.6  |   17920.1  | BaselinePost         | Home cage     | None             |         1.69904  |            6116.54 |
+
+
+From the table we can answer the question of how long is the behavioral epoch. Stop Time - StarTime = 10081.40 - 8284.64 = 1796.77 seconds = 29.94 minutes. This matches the length of the video. Moreover, we can see that the durations of the epoch is not as Fig S7D indicates. For this session: 
+* The baseline is 1.44 hours, 
+* The pre-stim is 0.85 hours 
+* The maze is 0.49 hours 
+* The post-stim is 0.47 hours and 
+* The post-baseline is 1.69 hours. 
+
+
+# Behavior data, intervals, events and epochs
+
+The discussion here is for session `fCamk1_200827_sess9`
+
+The `StartTime` on behavior trials is the trials intervals (start_time, stop_time)
+
+For some reason the sessions ar 
+
+The tracking behavior mat file on the subfolder wit the camera has the dimensions for normalizing the position:
+
+```
+    "avFrame": {
+      "r": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(1024, 204)"
+      },
+      "xSize": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(2,)",
+        "value": "[ 0.     23.4396]"
+      },
+      "ySize": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(2,)",
+        "value": "[  0.     117.6576]"
+      }
+    },
+```
+
+The tracking behavior in the top level `Tracking.Behavior.mat` has the following events:
+
+```
+    "events": {
+      "subSessions": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(2,)",
+        "value": "[ 8284.64       10081.40796667]"
+      },
+      "subSessionsMask": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(53143,)"
+      }
+    }
+```
+
+I think this is related to the two stimulus sessions in Fig S7D. OK, that's incorrect, I just compared and it is just the start and end of the behavioral epoch.
+
+
+It seems that the trials cover all the behavioral epoch.
+However, we also know that there is no stimulation on all of those trials. I wonder where I can get the times for the behavioral epoch of which there should be 5. Baseline - stim 1 - baseline - stim 2 - baseline.
+
+
+There are 189 pulses. They cover the three central epochs:
+
+Here is the figure
+![Pulses](./images/pulses.png)
+
+In principle, we could get which trials have pulse from here.
+
+#### Maps
+I think that the maps just map the local timestamps to the lgobal ones
+
+```mat_file["behavior"]["maps"]```
+
+This also applies for `noStimulatedMaps` and `stimulatedMaps` so no luck for getting the trials that are stimulated and unstimulated here.
+
+
+
+# Pulses
+
+I am confused about smoething. For the session above the number of pulses is 
+
+```
+pulses["timestamps"].shape
+(42092, 2)
+```
+
+Which I can not square with the paper following claim:
+
+> Stimulation protocol was delivered continuously during all
+stimulation blocks: pre-track stimulation, post-tract stimulation and the two track running
+stimulation blocks. ~20.000 pulses/site were delivered per session
+
+This seems like the double. Does this means there are two sites, which ones?
+
+The brain areas in the `session.mat` are:
+
+```
+    "brainRegions": {
+      "CA1sp": {
+        "channels": {
+          "type": "<class 'numpy.ndarray'>",
+          "shape": "(29,)"
+        }
+      },
+      "CA1so": {
+        "channels": {
+          "type": "<class 'numpy.ndarray'>",
+          "shape": "(5,)",
+          "value": "[25 21 12  8  5]"
+        }
+      }
+```
+
+OK, so this matches. If I run:
+
+```
+first_group_of_channels = [25, 21, 12, 8, 5]
+channel = pulses["analogChannel"]
+np.isin(channel, first_group_of_channels).sum()
+output: 20609
+```
+So, it is talking about brain area.
