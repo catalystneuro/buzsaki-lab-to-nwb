@@ -55,7 +55,7 @@ class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
         module_description = "rewards in the linear track"
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
-        processing_module.ada(events)
+        processing_module.add(events)
 
 
 class ValeroBehaviorLinearTrackInterface(BaseDataInterface):

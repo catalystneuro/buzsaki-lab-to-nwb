@@ -38,6 +38,11 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
+    # Add videos
+    file_paths = list(session_dir_path.rglob("*.avi"))
+    assert len(file_paths) == 1, f"There should be one and only one video file {file_paths}"
+    source_data.update(Video=dict(file_paths=file_paths))
+
     # Add epochs
     folder_path = session_dir_path
     source_data.update(Epochs=dict(folder_path=str(folder_path)))
@@ -58,10 +63,9 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     folder_path = session_dir_path
     source_data.update(BehaviorLinearTrackRewards=dict(folder_path=str(folder_path)))
 
-    # Add videos
-    file_paths = list(session_dir_path.rglob("*.avi"))
-    assert len(file_paths) == 1, f"There should be one and only one video file {file_paths}"
-    source_data.update(Video=dict(file_paths=file_paths))
+    # Add laser pulses
+    folder_path = session_dir_path
+    source_data.update(LaserPulses=dict(folder_path=str(folder_path)))
 
     # Build the converter
     converter = ValeroNWBConverter(source_data=source_data, verbose=verbose)
