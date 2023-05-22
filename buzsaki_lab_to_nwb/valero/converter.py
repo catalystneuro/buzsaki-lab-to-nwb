@@ -7,6 +7,7 @@ from neuroconv import NWBConverter
 from neuroconv.datainterfaces import (
     NeuroScopeLFPInterface,
     NeuroScopeRecordingInterface,
+    VideoInterface,
 )
 from scipy.io import loadmat as loadmat_scipy
 
@@ -30,6 +31,7 @@ class ValeroNWBConverter(NWBConverter):
         BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
         Trials=ValeroTrialInterface,
         Epochs=ValeroEpochsInterface,
+        Video=VideoInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):

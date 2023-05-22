@@ -72,7 +72,7 @@ diameter borosilicate glass (A-M Systems) on a Flaming-Brown puller (Sutter Inst
 filled with 1.5 M potassium acetate and 2% Neurobiotin (wt/vol, Vector Labs). In vivo pipette
 impedances varied from 40-90 MΩ. Intracellular recording were performed blindly, and the
 micropipette was driven by a robotic manipulator (Sutter MP-285). Signals were acquired with
-an intracellular amplifier (Axoclamp 900A) at 100× gain. 
+an intracellular amplifier (Axoclamp 900A) at 100× gain.
 
 ### Behavior
 
@@ -81,14 +81,14 @@ Paper description:
 started 1-2 hr after the onset of the dark phase. We recorded from the mice while they slept or
 walked around freely in the home cage. Electrophysiological data were acquired using an Intan
 RHD2000 system (Intan Technologies LLC) digitized with 30 kHz rate. The wide-band signal
-was downsampled to 1.25 kHz and used as the LFP signal. 
+was downsampled to 1.25 kHz and used as the LFP signal.
 
 I wonder if they have sleep vs awake as epochs of if they are different sessions.
 
 > The animal’s position was monitored
-with a Basler camera (acA1300-60 gmNIR, Graftek Imaging) sampling at 30Hz to detect a headmounted red LEDs. 
+with a Basler camera (acA1300-60 gmNIR, Graftek Imaging) sampling at 30Hz to detect a headmounted red LEDs.
 Position was synchronized with neural data with TTLs signaling shutter position. Animals were handled daily and accommodated to the experimenter, recording room
-and cables for 1 week before the start of the experiments. 
+and cables for 1 week before the start of the experiments.
 
 So, there is a TTL and there is a camera. After some digging, I found that there is an `.avi` file located inside another directory and a corresponding `.mat` file.
 
@@ -97,7 +97,7 @@ only available as reward on a linear track, ad libitum for 30 minutes at the end
 experimental day and ad libitum for one full non-experimental day per week. Mice were trained
 to run laps in a PVC linear track (110 cm long, 6.35 cm wide) to retrieve water reward (5-10µL)
 at each end. Water delivery and optogenetic stimuli during track were controlled by a custommade, Arduino-based circuit (circuits and software are available in
-https://github.com/valegarman). 
+https://github.com/valegarman).
 
 Information about behavioral task
 
@@ -125,13 +125,13 @@ This figure S7D is useful for understanding the epochs:
     * Plus a folder with `unindexed subjects`.
     In the `session.mat` the subject name apperas as `fCamk` so I could check if that's the case for the sessions with non-standard name.
 
-* Is this a typo one the figure 1: 
-    > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink). 
-    
+* Is this a typo one the figure 1:
+    > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink).
+
     I could not find mention of intracellular recordings in rats in the material and methods. Ah no, here it is:
 
     Quote from methods:
-    > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink). 
+    > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink).
 
     So they do use another dataset for this from another paper.
 * There are two tracking behaviors one on the top folder and another in the sub-folder. Do they indicate different experiments. So far, they seem to contain the same data.
@@ -163,11 +163,11 @@ I am wondering what is the `ThDt`.
 For session `fCamk1_200827_sess9`
 * The video is 30 minutes long. And the corresponding mat file marks 53143 frames. This means that the video is sampled at 29.7 Hz.
 * The auxiliary.dat files in the sub-folder with the movies are between 1 and 3 minutes. Not clear yet what they represent.
-* LFP signal: It is 5 hours long using a sampling rate of 1.2 Khz. 
-* Raw signal: 5 hours of recording. This matches wit the 300 minutes of recording in the paper. 
+* LFP signal: It is 5 hours long using a sampling rate of 1.2 Khz.
+* Raw signal: 5 hours of recording. This matches wit the 300 minutes of recording in the paper.
 * Spiketimes:
 * Timestamps for tracking behavior:
-* Epochs: 
+* Epochs:
     We shoud have something like this according to the paper:
     * Pre-baseline: 60 minutes
     * Pre-stim: 60 minutes
@@ -188,12 +188,12 @@ For session `fCamk1_200827_sess9`
 | fCamk1_200827_125535 |    11803.6  |   17920.1  | BaselinePost         | Home cage     | None             |         1.69904  |            6116.54 |
 
 
-From the table we can answer the question of how long is the behavioral epoch. Stop Time - StarTime = 10081.40 - 8284.64 = 1796.77 seconds = 29.94 minutes. This matches the length of the video. Moreover, we can see that the durations of the epoch is not as Fig S7D indicates. For this session: 
-* The baseline is 1.44 hours, 
-* The pre-stim is 0.85 hours 
-* The maze is 0.49 hours 
-* The post-stim is 0.47 hours and 
-* The post-baseline is 1.69 hours. 
+From the table we can answer the question of how long is the behavioral epoch. Stop Time - StarTime = 10081.40 - 8284.64 = 1796.77 seconds = 29.94 minutes. This matches the length of the video. Moreover, we can see that the durations of the epoch is not as Fig S7D indicates. For this session:
+* The baseline is 1.44 hours,
+* The pre-stim is 0.85 hours
+* The maze is 0.49 hours
+* The post-stim is 0.47 hours and
+* The post-baseline is 1.69 hours.
 
 
 # Behavior data, intervals, events and epochs
@@ -202,7 +202,7 @@ The discussion here is for session `fCamk1_200827_sess9`
 
 The `StartTime` on behavior trials is the trials intervals (start_time, stop_time)
 
-For some reason the sessions ar 
+For some reason the sessions ar
 
 The tracking behavior mat file on the subfolder wit the camera has the dimensions for normalizing the position:
 
@@ -266,7 +266,7 @@ This also applies for `noStimulatedMaps` and `stimulatedMaps` so no luck for get
 
 # Pulses
 
-I am confused about smoething. For the session above the number of pulses is 
+I am confused about smoething. For the session above the number of pulses is
 
 ```
 pulses["timestamps"].shape
@@ -309,3 +309,12 @@ np.isin(channel, first_group_of_channels).sum()
 output: 20609
 ```
 So, it is talking about brain area.
+
+##
+There was EMG but it seems that it was extracted from the LFP. There is a matlab file with it, should we add this?
+
+Paper supplement Brain State Scoring section:
+> EMG was extracted from
+the intracranially recorded signals by detecting the zero time-lag correlation coefficients (r)
+between 300-600 Hz filtered signals (using a Butterworth filter at 300 – 600 Hz with filter
+shoulders spanning to 275 – 625 Hz) recorded at all sites (49).
