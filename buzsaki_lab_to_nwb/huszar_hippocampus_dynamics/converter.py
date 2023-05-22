@@ -7,11 +7,12 @@ from scipy.io import loadmat as loadmat_scipy
 
 from neuroconv import NWBConverter
 
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import (
+from behaviorinterface import (
     HuzsarBehaviorSleepInterface,
     HuszarBehavior8MazeInterface,
 )
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.sortinginterface import CellExplorerSortingInterface
+
+from sortinginterface import CellExplorerSortingInterface
 
 
 class HuzsarNWBConverter(NWBConverter):
@@ -45,4 +46,26 @@ class HuzsarNWBConverter(NWBConverter):
 
         # Get today date
         metadata["NWBFile"]["session_start_time"] = date
+
+        # Add additional NWBFile metadata
+        # NOTE: experimenters is specifid in the metadata.yml file
+        # experimenters = session_mat["session"]['general']['experimenters']
+        # metadata["NWBFile"]["experimenter"] = experimenters if isinstance(experimenters, list) else [ experimenters ]
+        metadata["NWBFile"]["notes"] = session_mat["session"]['general']['notes']
+
+        # Add Subject metadata
+        animal_metadata = session_mat["session"]['animal']
+        metadata["Subject"]["subject_id"] = animal_metadata['name']
+        
+        def ensureProperSexValue(sex):
+           if (sex == 'Female'): return 'F'
+           if (sex == 'Male'): return 'M'
+            
+           return sex
+
+        metadata["Subject"]["sex"] = ensureProperSexValue(animal_metadata['sex'])
+        # metadata["Subject"]["species"] = animal_metadata['species'] # NOTE: Appropriate value added to metadata.yml file
+        metadata["Subject"]["strain"] = animal_metadata['strain']
+        metadata["Subject"]["genotype"] = animal_metadata['geneticLine']
+
         return metadata

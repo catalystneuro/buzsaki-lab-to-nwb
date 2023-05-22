@@ -1,11 +1,7 @@
 """Primary script to run to convert an entire session of data using the NWBConverter."""
-import datetime
-from zoneinfo import ZoneInfo
-import warnings
-
 from neuroconv.utils import load_dict_from_file, dict_deep_update
 
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics import HuzsarNWBConverter
+from converter import HuzsarNWBConverter
 from pathlib import Path
 
 
@@ -58,8 +54,11 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     output_dir_path = Path.home() / "conversion_nwb"
-    session_dir_path = Path("/home/heberto/buzaki/e13_16f1_210302/")
+    # session_dir_path = Path("/Volumes/neurodata/buzaki/HuszarR/optotagCA1/e13/e13_16f1/e13_16f1_210302")
+    session_dir_path = Path("/Volumes/neurodata/buzaki/HuszarR/optotagCA1/e13/e13_26m1/e13_26m1_211019/e13_26m1_211019")
+    # session_dir_path = Path("/home/heberto/buzaki/e13_16f1_210302/")
+
     session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)

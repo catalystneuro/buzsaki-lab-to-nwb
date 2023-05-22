@@ -51,6 +51,31 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
         [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
         processing_module.add(table)
 
+        # Add trial table from the behavior file
+        behavior_file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+        behavior_mat = loadmat_scipy(behavior_file_path, simplify_cells=True)
+
+        trial_info = behavior_mat["behavior"]["trials"]
+        trial_interval_list = trial_info['trial_ints']
+
+        data = []
+
+        for start_time, stop_time in trial_interval_list:
+            data.append(
+                dict(
+                    start_time=float(start_time),
+                    stop_time=float(stop_time),
+                )
+            )
+        [nwbfile.add_trial(**row) for row in sorted(data, key=lambda x: x["start_time"])]
+
+        nwbfile.add_trial_column(name="choice", description="choice of the trial", data=trial_info['choice'])
+        nwbfile.add_trial_column(name="visited_arm", description="visited arm of the trial", data=trial_info['visitedArm'])
+        nwbfile.add_trial_column(name="expected_arm", description="expected arm of the trial", data=trial_info['expectedArm'])
+        nwbfile.add_trial_column(name="recordings", description="recordings of the trial", data=trial_info['recordings'])
+        # nwbfile.add_trial_column(name="start_point", description="start point of the trial", data=trial_info['startPoint'])
+        # nwbfile.add_trial_column(name="end_delay", description="end delay of the trial", data=trial_info['endDelay'])
+
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
         Replace all timestamps for this interface with those aligned to the common session start time.
@@ -124,6 +149,10 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         conversion = 100.0  # cm to m TODO: Double check if this is the meaning.
         reference_frame = "TBD"
         description = mat_file["behavior"]["description"]
+
+        if isinstance(description, np.ndarray):
+            description = description[0] # NOTE: Not sure this is the appropriate way to handle this, but this case shows up in e13_26m1_211019
+        
         pos_obj = Position(name=description)
         spatial_series_object = SpatialSeries(
             name="position",
