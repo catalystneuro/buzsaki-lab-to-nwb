@@ -2,12 +2,60 @@ from pathlib import Path
 
 import numpy as np
 from hdmf.backends.hdf5.h5_utils import H5DataIO
+from ndx_events import LabeledEvents
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
 from neuroconv.utils.json_schema import FolderPathType
 from pymatreader import read_mat
 from pynwb.behavior import Position, SpatialSeries
 from pynwb.file import NWBFile, TimeIntervals, TimeSeries
+
+
+class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
+    def __init__(self, folder_path: FolderPathType):
+        super().__init__(folder_path=folder_path)
+
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        self.session_path = Path(self.source_data["folder_path"])
+        self.session_id = self.session_path.stem
+
+        file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+        mat_file = read_mat(file_path)
+
+        events_data = mat_file["behavior"]["events"]
+
+        # Extract timestamps and create labels for rewards
+        reward_r_timestamps = events_data["rReward"]
+        reward_l_timestamps = events_data["lReward"]
+        label_reward_r = np.ones(reward_r_timestamps.shape[0], dtype=int)
+        label_reward_l = np.zeros(reward_l_timestamps.shape[0], dtype=int)
+
+        # Create a structure to concatenate timestamps and sort by them
+        reward_r = np.vstack((reward_r_timestamps, label_reward_r))
+        reward_l = np.vstack((reward_l_timestamps, label_reward_l))
+        rewards = np.concatenate((reward_r, reward_l), axis=1)
+
+        timestamps_both_rewards = rewards[0, :]
+        rewards = rewards[:, timestamps_both_rewards.argsort()]
+
+        timestamps = rewards[0, :]
+        data = rewards[1, :].astype("int8")
+
+        assert np.all(np.diff(timestamps) > 0)
+
+        events = LabeledEvents(
+            name="rewards",
+            description="rewards in the linear track",
+            timestamps=timestamps,
+            data=data,
+            labels=["right_reward", "left_reward"],
+        )
+
+        module_name = "rewards_in_linear_track"
+        module_description = "rewards in the linear track"
+        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+
+        processing_module.ada(events)
 
 
 class ValeroBehaviorLinearTrackInterface(BaseDataInterface):

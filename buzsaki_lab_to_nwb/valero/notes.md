@@ -248,11 +248,6 @@ It seems that the trials cover all the behavioral epoch.
 However, we also know that there is no stimulation on all of those trials. I wonder where I can get the times for the behavioral epoch of which there should be 5. Baseline - stim 1 - baseline - stim 2 - baseline.
 
 
-There are 189 pulses. They cover the three central epochs:
-
-Here is the figure
-![Pulses](./images/pulses.png)
-
 In principle, we could get which trials have pulse from here.
 
 #### Maps
@@ -266,7 +261,14 @@ This also applies for `noStimulatedMaps` and `stimulatedMaps` so no luck for get
 
 # Pulses
 
-I am confused about smoething. For the session above the number of pulses is
+
+There are 189 pulses. They cover the three central epochs:
+
+Here is the figure
+![Pulses](./images/pulses.png)
+
+
+I am confused about something. For the session above the number of pulses is
 
 ```
 pulses["timestamps"].shape
@@ -310,8 +312,8 @@ output: 20609
 ```
 So, it is talking about brain area.
 
-##
-There was EMG but it seems that it was extracted from the LFP. There is a matlab file with it, should we add this?
+## EMG
+There was EMG (Electromyography) but it seems that it was extracted from the LFP. There is a matlab file with it, should we add this?
 
 Paper supplement Brain State Scoring section:
 > EMG was extracted from

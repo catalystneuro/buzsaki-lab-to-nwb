@@ -13,6 +13,7 @@ from scipy.io import loadmat as loadmat_scipy
 
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
+    ValeroBehaviorLinearTrackRewardsInterface,
     ValeroBehaviorSleepStatesInterface,
 )
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
@@ -27,11 +28,12 @@ class ValeroNWBConverter(NWBConverter):
         Recording=NeuroScopeRecordingInterface,
         LFP=NeuroScopeLFPInterface,
         Sorting=CellExplorerSortingInterface,
-        BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
-        BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
+        Video=VideoInterface,
         Trials=ValeroTrialInterface,
         Epochs=ValeroEpochsInterface,
-        Video=VideoInterface,
+        BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
+        BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
+        BehaviorLinearTrackRewards=ValeroBehaviorLinearTrackRewardsInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):

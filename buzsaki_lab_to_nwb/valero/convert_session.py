@@ -54,6 +54,10 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     folder_path = session_dir_path
     source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
 
+    # Add reward events in linear track
+    folder_path = session_dir_path
+    source_data.update(BehaviorLinearTrackRewards=dict(folder_path=str(folder_path)))
+
     # Add videos
     file_paths = list(session_dir_path.rglob("*.avi"))
     assert len(file_paths) == 1, f"There should be one and only one video file {file_paths}"
