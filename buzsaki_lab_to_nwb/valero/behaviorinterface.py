@@ -1,15 +1,13 @@
 from pathlib import Path
 
 import numpy as np
-from pynwb.file import NWBFile, TimeIntervals, TimeSeries
-from pynwb.behavior import SpatialSeries, Position, CompassDirection
 from hdmf.backends.hdf5.h5_utils import H5DataIO
-
-from neuroconv.utils.json_schema import FolderPathType
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
-
+from neuroconv.utils.json_schema import FolderPathType
 from pymatreader import read_mat
+from pynwb.behavior import Position, SpatialSeries
+from pynwb.file import NWBFile, TimeIntervals, TimeSeries
 
 
 class ValeroBehaviorLinearTrackInterface(BaseDataInterface):

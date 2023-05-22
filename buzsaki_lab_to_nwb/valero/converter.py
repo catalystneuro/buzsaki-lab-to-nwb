@@ -1,18 +1,21 @@
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import numpy as np
+from neuroconv import NWBConverter
+from neuroconv.datainterfaces import (
+    NeuroScopeLFPInterface,
+    NeuroScopeRecordingInterface,
+)
 from scipy.io import loadmat as loadmat_scipy
 
-from neuroconv import NWBConverter
-from neuroconv.datainterfaces import NeuroScopeRecordingInterface, NeuroScopeLFPInterface
-
-from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
     ValeroBehaviorSleepStatesInterface,
 )
+from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
+from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
 
 class ValeroNWBConverter(NWBConverter):
@@ -24,6 +27,7 @@ class ValeroNWBConverter(NWBConverter):
         Sorting=CellExplorerSortingInterface,
         BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
         BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
+        Trials=ValeroTrialInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
