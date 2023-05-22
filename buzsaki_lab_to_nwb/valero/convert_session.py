@@ -38,6 +38,10 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
+    # Add epochs
+    folder_path = session_dir_path
+    source_data.update(Epochs=dict(folder_path=str(folder_path)))
+
     # Add trials
     folder_path = session_dir_path
     source_data.update(Trials=dict(folder_path=str(folder_path)))

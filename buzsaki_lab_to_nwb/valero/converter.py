@@ -14,6 +14,7 @@ from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
     ValeroBehaviorSleepStatesInterface,
 )
+from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
@@ -28,6 +29,7 @@ class ValeroNWBConverter(NWBConverter):
         BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
         BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
         Trials=ValeroTrialInterface,
+        Epochs=ValeroEpochsInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
