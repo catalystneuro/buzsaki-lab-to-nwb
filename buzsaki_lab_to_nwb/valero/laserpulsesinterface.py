@@ -16,7 +16,8 @@ class ValeroLaserPulsesInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         pulses_data_path = self.session_path / f"{self.session_id}.pulses.events.mat"
-        assert pulses_data_path.is_file(), pulses_data_path
+        assert pulses_data_path.is_file(), f"{pulses_data_path} not found"
+
         mat_file = read_mat(pulses_data_path)
         pulses_data = mat_file["pulses"]
 

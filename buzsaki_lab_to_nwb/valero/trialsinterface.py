@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from neuroconv.basedatainterface import BaseDataInterface
-from neuroconv.tools.nwb_helpers import get_module
 from neuroconv.utils.json_schema import FolderPathType
 from pymatreader import read_mat
 from pynwb.file import NWBFile
@@ -17,7 +16,9 @@ class ValeroTrialInterface(BaseDataInterface):
 
         # We use the behavioral cellinfo file to get the trial intervals
         behavioral_cellinfo_path = self.session_path / f"{self.session_id}.behavior.cellinfo.mat"
-        assert behavioral_cellinfo_path.exists(), f"Sleep states file not found: {behavioral_cellinfo_path}"
+        assert (
+            behavioral_cellinfo_path.exists()
+        ), f"Behaviioral cell info file path not found: {behavioral_cellinfo_path}"
 
         mat_file = read_mat(behavioral_cellinfo_path)
         trial_data = mat_file["behavior"]["trials"]

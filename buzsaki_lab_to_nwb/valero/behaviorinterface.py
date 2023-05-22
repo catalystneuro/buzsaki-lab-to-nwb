@@ -69,12 +69,13 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+        assert file_path.is_file(), f"Behavior file not found: {file_path}"
+
         mat_file = read_mat(file_path)
         behavior_data = mat_file["behavior"]
         module_name = behavior_data["description"]
-        description = "PVC linear track (110 cm long, 6.35 cm wide)"
 
-        module_description = description
+        module_description = "PVC linear track (110 cm long, 6.35 cm wide)"
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
         timestamps = behavior_data["timestamps"]

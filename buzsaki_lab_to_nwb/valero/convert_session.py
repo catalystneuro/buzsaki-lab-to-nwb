@@ -51,21 +51,25 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     folder_path = session_dir_path
     source_data.update(Trials=dict(folder_path=str(folder_path)))
 
+    # Add laser pulses
+    folder_path = session_dir_path
+    source_data.update(LaserPulses=dict(folder_path=str(folder_path)))
+
     # Add linear track behavior
     folder_path = session_dir_path
     source_data.update(BehaviorLinearTrack=dict(folder_path=str(folder_path)))
-
-    # Add sleep states
-    folder_path = session_dir_path
-    source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
 
     # Add reward events in linear track
     folder_path = session_dir_path
     source_data.update(BehaviorLinearTrackRewards=dict(folder_path=str(folder_path)))
 
-    # Add laser pulses
+    # Add ripple events
     folder_path = session_dir_path
-    source_data.update(LaserPulses=dict(folder_path=str(folder_path)))
+    source_data.update(RippleEvents=dict(folder_path=str(folder_path)))
+
+    # Add sleep states
+    folder_path = session_dir_path
+    source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
 
     # Build the converter
     converter = ValeroNWBConverter(source_data=source_data, verbose=verbose)

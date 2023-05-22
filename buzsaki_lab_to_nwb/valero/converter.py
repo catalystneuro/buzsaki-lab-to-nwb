@@ -18,6 +18,9 @@ from buzsaki_lab_to_nwb.valero.behaviorinterface import (
 )
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
 from buzsaki_lab_to_nwb.valero.laserpulsesinterface import ValeroLaserPulsesInterface
+from buzsaki_lab_to_nwb.valero.ripplesinterface import (
+    ValeroProcessingRipplesEventsInterface,
+)
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
@@ -33,6 +36,7 @@ class ValeroNWBConverter(NWBConverter):
         Trials=ValeroTrialInterface,
         Epochs=ValeroEpochsInterface,
         LaserPulses=ValeroLaserPulsesInterface,
+        RippleEvents=ValeroProcessingRipplesEventsInterface,
         BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
         BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
         BehaviorLinearTrackRewards=ValeroBehaviorLinearTrackRewardsInterface,
