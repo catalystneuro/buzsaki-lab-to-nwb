@@ -56,7 +56,6 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
 
         position_container.add_spatial_series(spatial_series_xy)
 
-
         spatial_series_linear = SpatialSeries(
             name="linearized_position",
             data=H5DataIO(data=lin, compression="gzip"),
@@ -71,7 +70,6 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         processing_module.add_data_interface(position_container)
 
 
-
 class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
@@ -83,7 +81,7 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
         module_name = "sleep_states"
         module_description = "Contains classified states for sleep."
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-        
+
         # Sleep states
         sleep_states_file_path = self.session_path / f"{self.session_id}.SleepState.states.mat"
 
@@ -93,7 +91,7 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
 
         sleep_intervals = mat_file["SleepState"]["ints"]
         available_states = [str(key) for key in sleep_intervals.keys()]
-        
+
         table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
         table.add_column(name="label", description="Sleep state.")
 
@@ -102,6 +100,6 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
             for start_time, stop_time in state_intervals:
                 row_as_dict = dict(start_time=float(start_time), stop_time=float(stop_time), label=state_name)
                 table_rows.append(row_as_dict)
-        
+
         [table.add_row(**row_as_dict) for row_as_dict in sorted(table_rows, key=lambda x: x["start_time"])]
         processing_module.add(table)
