@@ -42,6 +42,10 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     folder_path = session_dir_path
     source_data.update(BehaviorLinearTrack=dict(folder_path=str(folder_path)))
     
+    # Add sleep states
+    folder_path = session_dir_path
+    source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
+    
     # Build the converter
     converter = ValeroNWBConverter(source_data=source_data, verbose=verbose)
 

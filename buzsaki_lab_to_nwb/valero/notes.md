@@ -142,7 +142,21 @@ This figure S7D is useful for understanding the epochs:
 * What is ACG?
 * What does DigitalIn represents?
 * What is pullTime?
-* What is `ws_temp`?
+* For the sleep states, a decription of some of the theta waves would be useful:
+```pyton
+['WAKEstate',
+ 'NREMstate',
+ 'REMstate',
+ 'WAKEtheta',
+ 'WAKEnontheta',
+ 'WAKEtheta_ThDt',
+ 'REMtheta_ThDt',
+ 'QWake_ThDt',
+ 'QWake_noRipples_ThDt',
+ 'NREM_ThDt',
+ 'NREM_noRipples_ThDt']
+ ```
+I am wondering what is the `ThDt`.
 
 ## Synchronization and times
 
@@ -242,7 +256,7 @@ Here is the figure
 In principle, we could get which trials have pulse from here.
 
 #### Maps
-I think that the maps just map the local timestamps to the lgobal ones
+I think that the maps just map the local timestamps to the gobal ones
 
 ```mat_file["behavior"]["maps"]```
 

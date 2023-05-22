@@ -9,7 +9,11 @@ from neuroconv import NWBConverter
 from neuroconv.datainterfaces import NeuroScopeRecordingInterface, NeuroScopeLFPInterface
 
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
-from buzsaki_lab_to_nwb.valero.behaviorinterface import ValeroBehaviorLinearTrackInterface
+from buzsaki_lab_to_nwb.valero.behaviorinterface import (
+    ValeroBehaviorLinearTrackInterface,
+    ValeroBehaviorSleepStatesInterface,
+)
+
 
 class ValeroNWBConverter(NWBConverter):
     """Primary conversion class for the Valero 2022 experiment."""
@@ -19,6 +23,7 @@ class ValeroNWBConverter(NWBConverter):
         LFP=NeuroScopeLFPInterface,
         Sorting=CellExplorerSortingInterface,
         BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
+        BehaviorSleepStates=ValeroBehaviorSleepStatesInterface
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
