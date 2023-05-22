@@ -11,6 +11,7 @@ from neuroconv.tools.nwb_helpers import get_module
 
 from pymatreader import read_mat
 
+
 class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
     """Behavior interface"""
 
@@ -30,7 +31,6 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         module_description = description
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
-
         timestamps = behavior_data["timestamps"]
         position = behavior_data["position"]
         lin = position["lin"]
@@ -39,10 +39,10 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         data = np.column_stack((x, y))
 
         unit = "cm"
-        conversion = 100.0  # cm to m 
+        conversion = 100.0  # cm to m
         reference_frame = "Arbitrary, camera"
         position_container = Position(name="position_tracking")
-        
+
         spatial_series_xy = SpatialSeries(
             name="spatial_position",
             description="(x,y) coordinates tracking subject movement from above with camera",
@@ -53,10 +53,9 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
             timestamps=timestamps,
             resolution=np.nan,
         )
-        
+
         position_container.add_spatial_series(spatial_series_xy)
 
-        
         spatial_series_linear = SpatialSeries(
             name="linearized_position",
             data=H5DataIO(data=lin, compression="gzip"),
@@ -69,7 +68,6 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
 
         position_container.add_spatial_series(spatial_series_linear)
         processing_module.add_data_interface(position_container)
-
 
 
 # class HuzsarBehaviorSleepInterface(BaseDataInterface):
@@ -110,5 +108,3 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
 #                 )
 #         [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
 #         processing_module.add(table)
-
-

@@ -11,6 +11,7 @@ from neuroconv.datainterfaces import NeuroScopeRecordingInterface, NeuroScopeLFP
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
 from buzsaki_lab_to_nwb.valero.behaviorinterface import ValeroBehaviorLinearTrackInterface
 
+
 class ValeroNWBConverter(NWBConverter):
     """Primary conversion class for the Valero 2022 experiment."""
 
