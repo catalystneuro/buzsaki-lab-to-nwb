@@ -4,10 +4,10 @@ NWBFile:
   institution: Princeton
   lab: Buzsaki
   experimenter:
-    - Valero, Manuel 
+    - Valero, Manuel
     - Zutshi, Ipshita
     - Yoon, Euisik
-    - Buzsáki, György 
+    - Buzsáki, György
   keywords:
     - Development of the nervous system
     - Hippocampus
@@ -15,12 +15,15 @@ NWBFile:
   related_publications:
     - https://doi.org/10.1126/science.abm1891
   session_description:
-    Understanding how excitatory (E) and inhibitory (I) inputs are integrated by neurons requires monitoring their subthreshold behavior. 
-    We probed the subthreshold dynamics using optogenetic depolarizing pulses in hippocampal neuronal assemblies in freely moving mice. 
-    Excitability decreased during sharp-wave ripples coupled with increased I. 
-    In contrast to this “negative gain,” optogenetic probing showed increased within-field excitability in place cells by weakening I 
-    and unmasked stable place fields in initially non–place cells. Neuronal assemblies active during sharp-wave ripples in the home 
-    cage predicted spatial overlap and sequences of place fields of both place cells and unmasked preexisting place fields of 
-    non–place cells during track running. 
-    Thus, indirect probing of subthreshold dynamics in neuronal populations permits 
+    Understanding how excitatory (E) and inhibitory (I) inputs are integrated by neurons requires monitoring their subthreshold behavior.
+    We probed the subthreshold dynamics using optogenetic depolarizing pulses in hippocampal neuronal assemblies in freely moving mice.
+    Excitability decreased during sharp-wave ripples coupled with increased I.
+    In contrast to this “negative gain,” optogenetic probing showed increased within-field excitability in place cells by weakening I
+    and unmasked stable place fields in initially non–place cells. Neuronal assemblies active during sharp-wave ripples in the home
+    cage predicted spatial overlap and sequences of place fields of both place cells and unmasked preexisting place fields of
+    non–place cells during track running.
+    Thus, indirect probing of subthreshold dynamics in neuronal populations permits
     the disclosing of preexisting assemblies and modes of neuronal operations.
+Subject:
+  species: Mus musculus
+  age: 30-50 weeks

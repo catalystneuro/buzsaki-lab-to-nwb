@@ -136,12 +136,12 @@ This figure S7D is useful for understanding the epochs:
     So they do use another dataset for this from another paper.
 * There are two tracking behaviors one on the top folder and another in the sub-folder. Do they indicate different experiments. So far, they seem to contain the same data.
 *  in `session.mat` surgery there is actually a start time that matches 9 to 1pm. Four hours of surgery. I thought that that might be the whole session but that was 5 hours. So, I am not sure what the surgery time is.
-* What is `ws_temp` ?
-* What is HSE?
-* What is UDStates
-* What is ACG?
+* What is HSE? (Probably means high synchrony event)
+* What is UDStates (Up and down states)
+* What is ACG? (I think this is a correlogram)
 * What does DigitalIn represents?
 * What is pullTime?
+* What is `ws_temp` ?
 * For the sleep states, a decription of some of the theta waves would be useful:
 ```pyton
 ['WAKEstate',

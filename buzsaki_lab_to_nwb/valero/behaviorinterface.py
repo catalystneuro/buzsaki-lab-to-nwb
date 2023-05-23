@@ -44,16 +44,14 @@ class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
         assert np.all(np.diff(timestamps) > 0)
 
         events = LabeledEvents(
-            name="rewards",
+            name="RewardEventsLinearTrack",
             description="rewards in the linear track",
             timestamps=timestamps,
             data=data,
             labels=["right_reward", "left_reward"],
         )
 
-        module_name = "rewards_in_linear_track"
-        module_description = "rewards in the linear track"
-        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         processing_module.add(events)
 
@@ -73,10 +71,8 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
 
         mat_file = read_mat(file_path)
         behavior_data = mat_file["behavior"]
-        module_name = behavior_data["description"]
 
-        module_description = "PVC linear track (110 cm long, 6.35 cm wide)"
-        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         timestamps = behavior_data["timestamps"]
         position = behavior_data["position"]
@@ -88,15 +84,14 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         unit = "cm"
         conversion = 100.0  # cm to m
         reference_frame = "Arbitrary, camera"
-        position_container = Position(name="position_tracking")
+        position_container = Position(name="LinearMazePositionTracking")
 
         spatial_series_xy = SpatialSeries(
-            name="spatial_position",
-            description="(x,y) coordinates tracking subject movement from above with camera",
+            name="SpatialSeriesRaw",
+            description="(x,y) coordinates tracking subject movement from above with camera on a PVC linear track (110 cm long, 6.35 cm wide)",
             data=H5DataIO(data=data, compression="gzip"),
             reference_frame=reference_frame,
             unit=unit,
-            conversion=conversion,
             timestamps=timestamps,
             resolution=np.nan,
         )
@@ -104,7 +99,7 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         position_container.add_spatial_series(spatial_series_xy)
 
         spatial_series_linear = SpatialSeries(
-            name="linearized_position",
+            name="SpatiaLSeriesLinearized",
             data=H5DataIO(data=lin, compression="gzip"),
             unit=unit,
             timestamps=timestamps,
@@ -125,9 +120,7 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
-        module_name = "sleep_states"
-        module_description = "Contains classified states for sleep."
-        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         # Sleep states
         sleep_states_file_path = self.session_path / f"{self.session_id}.SleepState.states.mat"
@@ -139,7 +132,7 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
         sleep_intervals = mat_file["SleepState"]["ints"]
         available_states = [str(key) for key in sleep_intervals.keys()]
 
-        table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
+        table = TimeIntervals(name="SleepStates", description="Sleep state of the subject.")
         table.add_column(name="label", description="Sleep state.")
 
         table_rows = []

@@ -9,7 +9,7 @@ from neuroconv.datainterfaces import (
     NeuroScopeRecordingInterface,
     VideoInterface,
 )
-from scipy.io import loadmat as loadmat_scipy
+from pymatreader import read_mat
 
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
@@ -53,14 +53,35 @@ class ValeroNWBConverter(NWBConverter):
         session_file = self.session_folder_path / f"{self.session_id}.session.mat"
         assert session_file.is_file(), f"Session file not found: {session_file}"
 
-        session_mat = loadmat_scipy(session_file, simplify_cells=True)
-        date = session_mat["session"]["general"]["date"]  # This does not contain the time
-        # Conver date str to date object
-        date = datetime.strptime(date, "%Y-%m-%d")
-        # Build a datetime object and add the timezone from NY
-        tzinfo = ZoneInfo("America/New_York")  # This is the library from the standard library
-        session_start_time = datetime.combine(date, datetime.min.time(), tzinfo=tzinfo)
+        session_mat = read_mat(session_file)
+        session_data = session_mat["session"]
 
-        # Get today date
+        # Add session start time
+        date = session_data["general"]["date"]  # This does not contain the time
+        date = datetime.strptime(date, "%Y-%m-%d")  # Conver date str to date object
+
+        tzinfo = ZoneInfo("America/New_York")
+        session_start_time = datetime.combine(date, datetime.min.time(), tzinfo=tzinfo)
         metadata["NWBFile"]["session_start_time"] = session_start_time
+
+        session_name = session_data["general"]["sessionName"]
+        metadata["NWBFile"]["session_id"] = session_name
+
+        # Add subject metadata
+        subject_data = session_data["animal"]
+        subject_id = subject_data["name"]
+        sex = subject_data["sex"]
+        strain = subject_data["strain"]
+        genotype = subject_data["geneticLine"]
+
+        metadata["Subject"]["subject_id"] = subject_id
+        metadata["Subject"]["sex"] = sex[0]  # This is Male or Female so first letter is M or F
+        metadata["Subject"]["strain"] = strain
+        metadata["Subject"]["genotype"] = genotype
+
+        surgeries_data = subject_data["surgeries"]
+        weight_in_grams = surgeries_data["weight"]
+
+        metadata["Subject"]["weight"] = f"{weight_in_grams / 1000:2.3f} kg"  # Convert to kg
+
         return metadata
