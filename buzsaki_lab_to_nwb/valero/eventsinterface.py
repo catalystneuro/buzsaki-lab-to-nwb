@@ -46,7 +46,7 @@ class ValeroHSUPDownEventsInterface(BaseDataInterface):
         combined_states = combined_states[sort_indices]
 
         # Create TimeIntervals
-        name = "UP_down_states"
+        name = "UpDownStatesTimeIntervals"
         description = "TBD"
         states_intervals = TimeIntervals(name=name, description=description)
 
@@ -90,7 +90,7 @@ class ValeroHSEventsInterface(BaseDataInterface):
             center=center,
         )
 
-        name = "HSE_events"
+        name = "HSETimeIntervals"
         description = "TBD"  # TODO: Ask author for description
         ripple_events_table = TimeIntervals(name=name, description=description)
 
@@ -143,7 +143,7 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
             peak_amplitudes="Peak amplitude of the ripple.",
         )
 
-        name = "ripples_events"
+        name = "RippleTimeIntervals"
         ripple_events_table = TimeIntervals(name=name, description="Ripples and their metrics")
 
         for start_time, stop_time in ripple_intervals:
