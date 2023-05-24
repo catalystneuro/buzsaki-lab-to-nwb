@@ -17,11 +17,13 @@ from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorSleepStatesInterface,
 )
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
-from buzsaki_lab_to_nwb.valero.laserpulsesinterface import ValeroLaserPulsesInterface
 from buzsaki_lab_to_nwb.valero.ripplesinterface import (
     ValeroProcessingRipplesEventsInterface,
 )
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
+from buzsaki_lab_to_nwb.valero.stimulilaserinterface import (
+    VeleroOptogeneticStimuliInterface,
+)
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
 
@@ -35,7 +37,7 @@ class ValeroNWBConverter(NWBConverter):
         Video=VideoInterface,
         Trials=ValeroTrialInterface,
         Epochs=ValeroEpochsInterface,
-        LaserPulses=ValeroLaserPulsesInterface,
+        OptogeneticStimuli=VeleroOptogeneticStimuliInterface,
         RippleEvents=ValeroProcessingRipplesEventsInterface,
         BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
         BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,

@@ -53,7 +53,7 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
 
     # Add laser pulses
     folder_path = session_dir_path
-    source_data.update(LaserPulses=dict(folder_path=str(folder_path)))
+    source_data.update(OptogeneticStimuli=dict(folder_path=str(folder_path)))
 
     # Add linear track behavior
     folder_path = session_dir_path

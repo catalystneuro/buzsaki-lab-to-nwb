@@ -9,6 +9,10 @@ The article text can be found in the following links:
 * [Supplementary Materials](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9632609/bin/NIHMS1804419-supplement-Supplementary_Material.pdf)
 * [In science](https://www.science.org/doi/10.1126/science.abm1891)
 
+Information about recording devices:
+* [probe](https://www.neurolighttech.com/product). By their description, they use the chronic variety.
+* [paper](https://doi.org/10.1016/j.neuron.2015.10.032)
+
 Peter Petersen, one of the members of the Buzsaki lab, has shared with us the following documents that contain the structure of the cell explorer format:
 
 * [new format](https://cellexplorer.org/data-structure/)
