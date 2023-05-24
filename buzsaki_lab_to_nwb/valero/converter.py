@@ -17,8 +17,9 @@ from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorSleepStatesInterface,
 )
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
-from buzsaki_lab_to_nwb.valero.ripplesinterface import (
-    ValeroProcessingRipplesEventsInterface,
+from buzsaki_lab_to_nwb.valero.eventsinterface import (
+    ValeroHSEventsInterface,
+    ValeroRipplesEventsInterface,
 )
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
 from buzsaki_lab_to_nwb.valero.stimulilaserinterface import (
@@ -38,10 +39,11 @@ class ValeroNWBConverter(NWBConverter):
         Trials=ValeroTrialInterface,
         Epochs=ValeroEpochsInterface,
         OptogeneticStimuli=VeleroOptogeneticStimuliInterface,
-        RippleEvents=ValeroProcessingRipplesEventsInterface,
         BehaviorLinearTrack=ValeroBehaviorLinearTrackInterface,
         BehaviorSleepStates=ValeroBehaviorSleepStatesInterface,
         BehaviorLinearTrackRewards=ValeroBehaviorLinearTrackRewardsInterface,
+        RippleEvents=ValeroRipplesEventsInterface,
+        HSEvents=ValeroHSEventsInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):

@@ -9,7 +9,55 @@ from pynwb.epoch import TimeIntervals
 from pynwb.file import NWBFile
 
 
-class ValeroProcessingRipplesEventsInterface(BaseDataInterface):
+class ValeroHSEventsInterface(BaseDataInterface):
+    def __init__(self, folder_path: FolderPathType):
+        super().__init__(folder_path=folder_path)
+
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        self.session_path = Path(self.source_data["folder_path"])
+        self.session_id = self.session_path.stem
+
+        # We use the behavioral cellinfo file to get the trial intervals
+        hse_data = self.session_path / f"{self.session_id}.HSE.mat"
+        assert hse_data.exists(), f"Ripples event file not found: {hse_data}"
+
+        mat_file = read_mat(hse_data)
+        hse_data = mat_file["HSE"]
+
+        hse_intervals = hse_data["timestamps"]
+        peaks = hse_data["peaks"]
+        center = hse_data["center"]
+
+        column_descriptions = dict(
+            peaks="TBD",
+            center="TBD",
+        )
+
+        column_data_dict = dict(
+            peaks=peaks,
+            center=center,
+        )
+
+        name = "HSE_events"
+        description = "TBD"  # TODO: Ask author for description
+        ripple_events_table = TimeIntervals(name=name, description=description)
+
+        for start_time, stop_time in hse_intervals:
+            ripple_events_table.add_row(start_time=start_time, stop_time=stop_time)
+
+        for column_name, column_data in column_data_dict.items():
+            ripple_events_table.add_column(
+                name=column_name,
+                description=column_descriptions[column_name],
+                data=H5DataIO(column_data, compression="gzip"),
+            )
+
+        processing_module = get_module(nwbfile=nwbfile, name="ecephys")
+
+        processing_module.add(ripple_events_table)
+
+
+class ValeroRipplesEventsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
