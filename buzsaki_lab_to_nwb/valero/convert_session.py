@@ -71,6 +71,10 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     folder_path = session_dir_path
     source_data.update(HSEvents=dict(folder_path=str(folder_path)))
 
+    # Add UP and Down events
+    folder_path = session_dir_path
+    source_data.update(UPDownEvents=dict(folder_path=str(folder_path)))
+
     # Add sleep states
     folder_path = session_dir_path
     source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
