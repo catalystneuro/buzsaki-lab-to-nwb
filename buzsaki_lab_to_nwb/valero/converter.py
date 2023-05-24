@@ -19,6 +19,7 @@ from buzsaki_lab_to_nwb.valero.behaviorinterface import (
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
 from buzsaki_lab_to_nwb.valero.eventsinterface import (
     ValeroHSEventsInterface,
+    ValeroHSUPDownEventsInterface,
     ValeroRipplesEventsInterface,
 )
 from buzsaki_lab_to_nwb.valero.sortinginterface import CellExplorerSortingInterface
@@ -44,6 +45,7 @@ class ValeroNWBConverter(NWBConverter):
         BehaviorLinearTrackRewards=ValeroBehaviorLinearTrackRewardsInterface,
         RippleEvents=ValeroRipplesEventsInterface,
         HSEvents=ValeroHSEventsInterface,
+        UPDownEvents=ValeroHSUPDownEventsInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):

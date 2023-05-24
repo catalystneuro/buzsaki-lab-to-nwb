@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
 from neuroconv.utils.json_schema import FolderPathType
@@ -7,6 +8,57 @@ from pymatreader import read_mat
 from pynwb import H5DataIO
 from pynwb.epoch import TimeIntervals
 from pynwb.file import NWBFile
+
+
+class ValeroHSUPDownEventsInterface(BaseDataInterface):
+    def __init__(self, folder_path: FolderPathType):
+        super().__init__(folder_path=folder_path)
+
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        self.session_path = Path(self.source_data["folder_path"])
+        self.session_id = self.session_path.stem
+
+        # We use the behavioral cellinfo file to get the trial intervals
+        up_down_states_file_path = self.session_path / f"{self.session_id}.UDStates.events.mat"
+        assert up_down_states_file_path.exists(), f"Up down states event file not found: {up_down_states_file_path}"
+
+        mat_file = read_mat(up_down_states_file_path, variable_names=["UDStates"])
+
+        up_and_down_states_data = mat_file["UDStates"]
+
+        intervals = up_and_down_states_data["ints"]
+        up_intervals = intervals["UP"]
+        up_start_time, up_stop_time = up_intervals[:, 0], up_intervals[:, 1]
+        down_intervals = intervals["DOWN"]
+        down_start_time, down_stop_time = down_intervals[:, 0], down_intervals[:, 1]
+
+        # Combine and sort UP and DOWN intervals
+        combined_start_times = np.concatenate((up_start_time, down_start_time))
+        combined_stop_times = np.concatenate((up_stop_time, down_stop_time))
+        combined_states = np.array(["UP"] * len(up_start_time) + ["DOWN"] * len(down_start_time))
+
+        # Create an array of indices that sorts the start times
+        sort_indices = np.argsort(combined_start_times)
+
+        # Sort all arrays using the sorting indices
+        combined_start_times = combined_start_times[sort_indices]
+        combined_stop_times = combined_stop_times[sort_indices]
+        combined_states = combined_states[sort_indices]
+
+        # Create TimeIntervals
+        name = "UP_down_states"
+        description = "TBD"
+        states_intervals = TimeIntervals(name=name, description=description)
+
+        # Add a new column for states
+        states_intervals.add_column(name="state", description="State (UP or DOWN)")
+
+        # Add intervals
+        for start_time, stop_time, state in zip(combined_start_times, combined_stop_times, combined_states):
+            states_intervals.add_interval(start_time=start_time, stop_time=stop_time, state=state)
+
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+        processing_module.add(states_intervals)
 
 
 class ValeroHSEventsInterface(BaseDataInterface):
@@ -18,10 +70,10 @@ class ValeroHSEventsInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         # We use the behavioral cellinfo file to get the trial intervals
-        hse_data = self.session_path / f"{self.session_id}.HSE.mat"
-        assert hse_data.exists(), f"Ripples event file not found: {hse_data}"
+        hse_data_path = self.session_path / f"{self.session_id}.HSE.mat"
+        assert hse_data_path.exists(), f"HSE event file not found: {hse_data_path}"
 
-        mat_file = read_mat(hse_data)
+        mat_file = read_mat(hse_data_path, variable_names=["HSE"])
         hse_data = mat_file["HSE"]
 
         hse_intervals = hse_data["timestamps"]
@@ -69,7 +121,7 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
         ripples_file_path = self.session_path / f"{self.session_id}.ripples.events.mat"
         assert ripples_file_path.exists(), f"Ripples event file not found: {ripples_file_path}"
 
-        mat_file = read_mat(ripples_file_path)
+        mat_file = read_mat(ripples_file_path, variable_names=["ripples"])
         ripples_data = mat_file["ripples"]
 
         ripple_intervals = ripples_data["timestamps"]
