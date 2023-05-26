@@ -61,7 +61,7 @@ class HuzsarNWBConverter(NWBConverter):
 
         for channel_id in chan_map["chanMap0ind"]:
             self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_locations(
-                locations=[xcoords[channel_id], ycoords[channel_id]], channel_ids=channel_id
+                locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
             )
             if "NeuroscopeRecording" in self.data_interface_objects:
                 self.data_interface_objects["NeuroscopeRecording"].recording_extractor.set_channel_locations(
