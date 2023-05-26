@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from pynwb.file import NWBFile, TimeIntervals, TimeSeries
-from pynwb.behavior import SpatialSeries, Position, CompassDirection
+from pynwb.behavior import SpatialSeries, Position
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 from neuroconv.utils.json_schema import FolderPathType
@@ -10,6 +10,54 @@ from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
 
 from scipy.io import loadmat as loadmat_scipy
+from pymatreader import read_mat
+
+from ndx_events import LabeledEvents
+
+class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
+    def __init__(self, folder_path: FolderPathType):
+        super().__init__(folder_path=folder_path)
+
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        self.session_path = Path(self.source_data["folder_path"])
+        self.session_id = self.session_path.stem
+
+        file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+        mat_file = read_mat(file_path)
+
+        events_data = mat_file["behavior"]["events"]
+
+        # Extract timestamps and create labels for rewards
+        reward_r_timestamps = events_data["rReward"]
+        reward_l_timestamps = events_data["lReward"]
+        label_reward_r = np.ones(reward_r_timestamps.shape[0], dtype=int)
+        label_reward_l = np.zeros(reward_l_timestamps.shape[0], dtype=int)
+
+        # Create a structure to concatenate timestamps and sort by them
+        reward_r = np.vstack((reward_r_timestamps, label_reward_r))
+        reward_l = np.vstack((reward_l_timestamps, label_reward_l))
+        rewards = np.concatenate((reward_r, reward_l), axis=1)
+
+        timestamps_both_rewards = rewards[0, :]
+        rewards = rewards[:, timestamps_both_rewards.argsort()]
+
+        timestamps = rewards[0, :]
+        data = rewards[1, :].astype("int8")
+
+        assert np.all(np.diff(timestamps) > 0)
+
+        events = LabeledEvents(
+            name="RewardEvents8MazeTrack",
+            description="rewards in a figure 8 maze",
+            timestamps=timestamps,
+            data=data,
+            labels=["right_reward", "left_reward"],
+        )
+
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+
+        processing_module.add(events)
+
 
 
 class HuzsarBehaviorSleepInterface(BaseDataInterface):
@@ -51,30 +99,6 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
         [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
         processing_module.add(table)
 
-        # Add trial table from the behavior file
-        behavior_file_path = self.session_path / f"{self.session_id}.Behavior.mat"
-        behavior_mat = loadmat_scipy(behavior_file_path, simplify_cells=True)
-
-        trial_info = behavior_mat["behavior"]["trials"]
-        trial_interval_list = trial_info['trial_ints']
-
-        data = []
-
-        for start_time, stop_time in trial_interval_list:
-            data.append(
-                dict(
-                    start_time=float(start_time),
-                    stop_time=float(stop_time),
-                )
-            )
-        [nwbfile.add_trial(**row) for row in sorted(data, key=lambda x: x["start_time"])]
-
-        nwbfile.add_trial_column(name="choice", description="choice of the trial", data=trial_info['choice'])
-        nwbfile.add_trial_column(name="visited_arm", description="visited arm of the trial", data=trial_info['visitedArm'])
-        nwbfile.add_trial_column(name="expected_arm", description="expected arm of the trial", data=trial_info['expectedArm'])
-        nwbfile.add_trial_column(name="recordings", description="recordings of the trial", data=trial_info['recordings'])
-        # nwbfile.add_trial_column(name="start_point", description="start point of the trial", data=trial_info['startPoint'])
-        # nwbfile.add_trial_column(name="end_delay", description="end delay of the trial", data=trial_info['endDelay'])
 
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
@@ -131,8 +155,8 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
-        module_name = "Figure - 8 maze"
-        module_description = "Figure 8 - maze"
+        module_name = "Figure 8 maze"
+        module_description = "A figure 8 maze"
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
@@ -147,12 +171,18 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
 
         unit = "cm"
         conversion = 100.0  # cm to m TODO: Double check if this is the meaning.
-        reference_frame = "TBD"
+        reference_frame = "Arbitrary, camera"
+
+
+        nest_depth = len(mat_file["behavior"]["trials"]["position_trcat"])
+
+        # Merge unique descriptions if there are nested entries inside the behavior file
         description = mat_file["behavior"]["description"]
 
-        if isinstance(description, np.ndarray):
-            description = description[0] # NOTE: Not sure this is the appropriate way to handle this, but this case shows up in e13_26m1_211019
-        
+        if (nest_depth > 1): 
+            description = ';'.join(np.unique(mat_file["behavior"]["description"])) # NOTE: Description is an array in this case
+
+
         pos_obj = Position(name=description)
         spatial_series_object = SpatialSeries(
             name="position",

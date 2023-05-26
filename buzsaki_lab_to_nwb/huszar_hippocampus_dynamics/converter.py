@@ -7,10 +7,26 @@ from scipy.io import loadmat as loadmat_scipy
 
 from neuroconv import NWBConverter
 
+from neuroconv.datainterfaces import (
+    NeuroScopeLFPInterface,
+    NeuroScopeRecordingInterface
+)
+
+# from laserpulsesinterface import ValeroLaserPulsesInterface
+from ripplesinterface import (
+    HuszarProcessingRipplesEventsInterface,
+)
+
+
 from behaviorinterface import (
     HuzsarBehaviorSleepInterface,
     HuszarBehavior8MazeInterface,
+    HuszarBehavior8MazeRewardsInterface
 )
+
+from epochsinterface import HuszarEpochsInterface
+from trialsinterface import HuszarTrialsInterface
+
 
 from sortinginterface import CellExplorerSortingInterface
 
@@ -19,9 +35,15 @@ class HuzsarNWBConverter(NWBConverter):
     """Primary conversion class for the Huzsar hippocampus data set."""
 
     data_interface_classes = dict(
+        Recording=NeuroScopeRecordingInterface,
+        LFP=NeuroScopeLFPInterface,
         Sorting=CellExplorerSortingInterface,
         Behavior8Maze=HuszarBehavior8MazeInterface,
         BehaviorSleep=HuzsarBehaviorSleepInterface,
+        BehaviorRewards=HuszarBehavior8MazeRewardsInterface,
+        Epochs=HuszarEpochsInterface,
+        Trials=HuszarTrialsInterface,
+        RippleEvents=HuszarProcessingRipplesEventsInterface
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
@@ -29,6 +51,23 @@ class HuzsarNWBConverter(NWBConverter):
 
         self.session_folder_path = Path(self.data_interface_objects["Behavior8Maze"].source_data["folder_path"])
         self.session_id = self.session_folder_path.stem
+
+        # Add electrode locations (modeled after yutavcnwbconverter)
+        electrode_chan_map_file_path = self.session_folder_path / "chanMap.mat"
+        chan_map = loadmat_scipy(electrode_chan_map_file_path)
+        xcoords = [x[0] for x in chan_map["xcoords"]]
+        ycoords = [y[0] for y in chan_map["ycoords"]]
+        kcoords = [y[0] for y in chan_map["kcoords"]]
+
+        for channel_id in chan_map["chanMap0ind"]:
+            self.data_interface_objects["NeuroscopeLFP"].recording_extractor.set_channel_locations(
+                locations=[xcoords[channel_id], ycoords[channel_id]], channel_ids=channel_id
+            )
+            if "NeuroscopeRecording" in self.data_interface_objects:
+                self.data_interface_objects["NeuroscopeRecording"].recording_extractor.set_channel_locations(
+                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
+                )
+
 
     def get_metadata(self):
         metadata = super().get_metadata()
@@ -49,23 +88,16 @@ class HuzsarNWBConverter(NWBConverter):
 
         # Add additional NWBFile metadata
         # NOTE: experimenters is specifid in the metadata.yml file
-        # experimenters = session_mat["session"]['general']['experimenters']
-        # metadata["NWBFile"]["experimenter"] = experimenters if isinstance(experimenters, list) else [ experimenters ]
+        metadata["NWBFile"]["session_id"] = session_mat["session"]['general']['name']
         metadata["NWBFile"]["notes"] = session_mat["session"]['general']['notes']
 
         # Add Subject metadata
-        animal_metadata = session_mat["session"]['animal']
-        metadata["Subject"]["subject_id"] = animal_metadata['name']
-        
-        def ensureProperSexValue(sex):
-           if (sex == 'Female'): return 'F'
-           if (sex == 'Male'): return 'M'
-            
-           return sex
+        subject_metadata = session_mat["session"]['animal']
+        metadata["Subject"]["subject_id"] = subject_metadata['name']
+        metadata["Subject"]["sex"] = subject_metadata['sex'][0]
+        metadata["Subject"]["strain"] = subject_metadata['strain']
+        metadata["Subject"]["genotype"] = subject_metadata['geneticLine']
 
-        metadata["Subject"]["sex"] = ensureProperSexValue(animal_metadata['sex'])
-        # metadata["Subject"]["species"] = animal_metadata['species'] # NOTE: Appropriate value added to metadata.yml file
-        metadata["Subject"]["strain"] = animal_metadata['strain']
-        metadata["Subject"]["genotype"] = animal_metadata['geneticLine']
+        # NOTE: No weight information because there isn't any surgery metadata
 
         return metadata
