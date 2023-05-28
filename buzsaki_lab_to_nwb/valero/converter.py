@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -9,6 +10,7 @@ from neuroconv.datainterfaces import (
     NeuroScopeRecordingInterface,
     VideoInterface,
 )
+from neuroconv.utils import FilePathType
 from pymatreader import read_mat
 
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
@@ -29,12 +31,27 @@ from buzsaki_lab_to_nwb.valero.stimulilaserinterface import (
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
 
+class ValeroLFPExtractor(NeuroScopeLFPInterface):
+    def __init__(
+        self,
+        file_path: FilePathType,
+        gain: Optional[float] = None,
+        xml_file_path: Optional[FilePathType] = None,
+    ):
+        super().__init__(file_path, gain, xml_file_path)
+        self.recording_extractor._sampling_frequency = 1250.0
+
+        # Update the sampling frequency of the segments
+        for segment in self.recording_extractor._recording_segments:
+            segment.sampling_frequency = 1250.0
+
+
 class ValeroNWBConverter(NWBConverter):
     """Primary conversion class for the Valero 2022 experiment."""
 
     data_interface_classes = dict(
         Recording=NeuroScopeRecordingInterface,
-        LFP=NeuroScopeLFPInterface,
+        LFP=ValeroLFPExtractor,
         Sorting=CellExplorerSortingInterface,
         Video=VideoInterface,
         Trials=ValeroTrialInterface,

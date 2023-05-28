@@ -45,11 +45,53 @@ https://www.neurolighttech.com/_files/ugd/63a305_28d96686c0ec4cc18b728b2c5c9b7d7
 
 In particular, we know they use an `Intan RHD2132 Amplifier Board`. This is a 32 channel amplifier.
 
+https://intantech.com/products_RHD2000.html
+
+I think this is what it is described as the recording headstage here:
+https://intantech.com/RHD_system.html
+
+But then over there there is also a controller. And they are using this one according to `session.mat`.
+Intan Technologies, RHD2000 USB interface board (256ch)
+
+https://intantech.com/RHD_USB_interface_board.html
+
 Juding by the description in the paper, they were using the chronic variety:
 
 > Probes were mounted on microdrives that were advanced to CA1 pyramidal layer in small increments over 5 to 8 days,
 while depth distribution of LFPs (SPW-R events and theta oscillations) and unit firing were used
 to identify CA1 pyramidal layer. After implantation, all animals were housed individually
+
+Now according to the fact sheet, the lasers are connected to an `18-pin polarized Omnetics (PZN-18-AA, bottom)`. And according to `session.mat` we have the following information:
+```
+   "analysisTags": {
+      "probesLayout": {
+        "type": "<class 'str'>",
+        "value": "poly2"
+      },
+      "probesVerticalSpacing": {
+        "type": "<class 'int'>",
+        "value": "10"
+      },
+      "digital_optogenetic_channels": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(6,)",
+        "value": "[11 12 13 14 15 16]"
+      },
+      "analog_optogenetic_channels": {
+        "type": "<class 'numpy.ndarray'>",
+        "shape": "(6,)",
+        "value": "[3 4 5 6 7 8]"
+      },
+      "bazler_ttl_channel": {
+        "type": "<class 'int'>",
+        "value": "1"
+```
+So I know which channels are but what is missing is the wiring with respecto the micro LEDs. This is probably in the arduino board described in the paper but I can't find the information here:
+https://github.com/valegarman
+
+The suplementary material claims that the arduion code should be there but it does not seem to exists:
+
+> Water delivery and optogenetic stimuli during track were controlled by a custommade, Arduino-based circuit (circuits and software are available in https://github.com/valegarman).
 
 ### LFP
 > . Electrophysiological data were acquired using an Intan
@@ -324,3 +366,6 @@ Paper supplement Brain State Scoring section:
 the intracranially recorded signals by detecting the zero time-lag correlation coefficients (r)
 between 300-600 Hz filtered signals (using a Butterworth filter at 300 – 600 Hz with filter
 shoulders spanning to 275 – 625 Hz) recorded at all sites (49).
+
+
+## Channels from INTAN header:
