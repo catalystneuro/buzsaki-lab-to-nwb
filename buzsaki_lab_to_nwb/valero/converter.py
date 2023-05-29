@@ -31,7 +31,7 @@ from buzsaki_lab_to_nwb.valero.stimulilaserinterface import (
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
 
-class ValeroLFPExtractor(NeuroScopeLFPInterface):
+class ValeroLFPInterface(NeuroScopeLFPInterface):
     def __init__(
         self,
         file_path: FilePathType,
@@ -51,7 +51,7 @@ class ValeroNWBConverter(NWBConverter):
 
     data_interface_classes = dict(
         Recording=NeuroScopeRecordingInterface,
-        LFP=ValeroLFPExtractor,
+        LFP=ValeroLFPInterface,
         Sorting=CellExplorerSortingInterface,
         Video=VideoInterface,
         Trials=ValeroTrialInterface,
@@ -71,12 +71,28 @@ class ValeroNWBConverter(NWBConverter):
         self.session_folder_path = Path(self.data_interface_objects["Recording"].source_data["file_path"]).parent
         self.session_id = self.session_folder_path.stem
 
+        session_file_path = self.session_folder_path / f"{self.session_id}.session.mat"
+        assert session_file_path.is_file(), session_file_path
+        mat_file = read_mat(session_file_path)
+
+        epoch_list = mat_file["session"]["epochs"]
+        linear_maze_epoch = epoch_list[2]
+        starting_time = float(linear_maze_epoch["startTime"])
+
+        # Set starting time for the video interface
+        video_interface = self.data_interface_objects["Video"]
+
+        # Hack, not sure how to integrate with temporal alignment yet
+        timestamps_list = video_interface.get_original_timestamps(stub_test=True)
+        corrected_timestamps = timestamps_list[0] + starting_time
+        video_interface._timestamps = [corrected_timestamps]
+
     def get_metadata(self):
         metadata = super().get_metadata()
-        session_file = self.session_folder_path / f"{self.session_id}.session.mat"
-        assert session_file.is_file(), f"Session file not found: {session_file}"
+        session_file_path = self.session_folder_path / f"{self.session_id}.session.mat"
+        assert session_file_path.is_file(), f"Session file not found: {session_file_path}"
 
-        session_mat = read_mat(session_file)
+        session_mat = read_mat(session_file_path)
         session_data = session_mat["session"]
 
         # Add session start time

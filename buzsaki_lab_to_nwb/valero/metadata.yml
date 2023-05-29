@@ -27,3 +27,8 @@ NWBFile:
 Subject:
   species: Mus musculus
   age: 30-50 weeks
+# Ecephys:
+#   Device:
+#     - name: Neurolight probe
+#     - description: N1-F21-O36/18 (Chronic)
+#     - manufacturer: Neurolight

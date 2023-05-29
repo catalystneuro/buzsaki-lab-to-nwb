@@ -6,7 +6,7 @@ from neuroconv.utils import dict_deep_update, load_dict_from_file
 from buzsaki_lab_to_nwb.valero.converter import ValeroNWBConverter
 
 
-def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=False):
+def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbose=False):
     if verbose:
         print("---------------------")
         print("conversion for:")
@@ -34,9 +34,9 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     assert file_path.is_file()
     source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
 
-    # Add sorter
-    file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
-    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
+    # # Add sorter
+    # file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
+    # source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Add videos
     file_paths = list(session_dir_path.rglob("*.avi"))
@@ -97,12 +97,14 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
         Video=dict(stub_test=stub_test),
     )
 
-    converter.run_conversion(
+    nwbfile = converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
         conversion_options=conversion_options,
         overwrite=True,
     )
+
+    return nwbfile
 
 
 if __name__ == "__main__":
@@ -112,4 +114,16 @@ if __name__ == "__main__":
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/home/heberto/buzaki")
     session_dir_path = project_root / "fCamk1_200827_sess9"
-    session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+    nwbfile = session_to_nwbfile(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+
+    dataframe = nwbfile.electrodes.to_dataframe()
+    import pandas as pd
+
+    # Show all the entries of the dataframe
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        print(dataframe)
+
+    # unique_channels = dataframe.channel_name.unique()
+    # print(f"Unique channels size: {len(unique_channels)}")
+    # print(unique_channels)
+    # print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])
