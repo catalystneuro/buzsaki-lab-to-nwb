@@ -65,11 +65,7 @@ class ValeroNWBConverter(NWBConverter):
 
         # Set starting time for the video interface
         video_interface = self.data_interface_objects["Video"]
-
-        # Hack, not sure how to integrate with temporal alignment yet
-        timestamps_list = video_interface.get_original_timestamps(stub_test=True)
-        corrected_timestamps = timestamps_list[0] + starting_time
-        video_interface._timestamps = [corrected_timestamps]
+        video_interface.align_segment_starting_times(segment_starting_times=[starting_time])
 
     def get_metadata(self):
         metadata = super().get_metadata()

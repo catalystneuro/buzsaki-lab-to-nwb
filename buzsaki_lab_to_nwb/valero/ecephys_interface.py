@@ -69,7 +69,7 @@ class ValeroLFPInterface(NeuroScopeLFPInterface):
         xml_file_path: Optional[FilePathType] = None,
         verbose: bool = True,
     ):
-        super().__init__(file_path, gain, xml_file_path)
+        super().__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path)
         self.recording_extractor._sampling_frequency = 1250.0
 
         # Update the sampling frequency of the segments
@@ -98,7 +98,7 @@ class ValeroRawInterface(NeuroScopeRecordingInterface):
         verbose: bool = True,
         es_key: str = "ElectricalSeries",
     ):
-        super().__init__(file_path, gain, xml_file_path, verbose, es_key)
+        super().__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path, verbose=verbose, es_key=es_key)
 
         # Add further properties
         add_extra_properties_to_recorder(self.recording_extractor, folder_path)

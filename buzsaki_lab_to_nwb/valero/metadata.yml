@@ -26,9 +26,5 @@ NWBFile:
     the disclosing of preexisting assemblies and modes of neuronal operations.
 Subject:
   species: Mus musculus
-  age: 30-50 weeks
-# Ecephys:
-#   Device:
-#     - name: Neurolight probe
-#     - description: N1-F21-O36/18 (Chronic)
-#     - manufacturer: Neurolight
+  age: P30W/P50W
+  description: Homozygous CaMKIIa-Cre line T29-1 transgenic mice (Jackson Laboratory 005359) were crossed with homozygous Ai32 mice (Jackson Laboratory 012569) to express channelrhodopsin2 (ChR2) in neurons expressing CaMKIIa in F1 hybrid mice

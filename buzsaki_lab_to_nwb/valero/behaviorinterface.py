@@ -100,6 +100,7 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
 
         spatial_series_linear = SpatialSeries(
             name="SpatiaLSeriesLinearized",
+            description="Linearized position of the subject on the track.",
             data=H5DataIO(data=lin, compression="gzip"),
             unit=unit,
             timestamps=timestamps,
@@ -141,5 +142,6 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
                 row_as_dict = dict(start_time=float(start_time), stop_time=float(stop_time), label=state_name)
                 table_rows.append(row_as_dict)
 
-        [table.add_row(**row_as_dict) for row_as_dict in sorted(table_rows, key=lambda x: x["start_time"])]
+        sorted_table = sorted(table_rows, key=lambda x: x["start_time"])
+        [table.add_row(**row_as_dict) for row_as_dict in sorted_table]
         processing_module.add(table)

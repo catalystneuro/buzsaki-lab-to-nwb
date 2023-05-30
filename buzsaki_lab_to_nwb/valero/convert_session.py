@@ -36,6 +36,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     )
     conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
 
+    # Add LFP
     file_path = session_dir_path / f"{session_id}.lfp"
     assert file_path.is_file()
     xml_file_path = session_dir_path / f"{session_id}.xml"
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     with pd.option_context("display.max_rows", None, "display.max_columns", None):
         print(dataframe)
 
-    # unique_channels = dataframe.channel_name.unique()
-    # print(f"Unique channels size: {len(unique_channels)}")
-    # print(unique_channels)
-    # print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])
+    unique_channels = dataframe.channel_name.unique()
+    print(f"Unique channels size: {len(unique_channels)}")
+    print(unique_channels)
+    print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])
