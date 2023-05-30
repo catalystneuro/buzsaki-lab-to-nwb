@@ -5,18 +5,17 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 from neuroconv import NWBConverter
-from neuroconv.datainterfaces import (
-    NeuroScopeLFPInterface,
-    NeuroScopeRecordingInterface,
-    VideoInterface,
-)
-from neuroconv.utils import FilePathType
+from neuroconv.datainterfaces import VideoInterface
 from pymatreader import read_mat
 
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
     ValeroBehaviorLinearTrackRewardsInterface,
     ValeroBehaviorSleepStatesInterface,
+)
+from buzsaki_lab_to_nwb.valero.ecephys_interface import (
+    ValeroLFPInterface,
+    ValeroRawInterface,
 )
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
 from buzsaki_lab_to_nwb.valero.eventsinterface import (
@@ -31,26 +30,11 @@ from buzsaki_lab_to_nwb.valero.stimulilaserinterface import (
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
 
 
-class ValeroLFPInterface(NeuroScopeLFPInterface):
-    def __init__(
-        self,
-        file_path: FilePathType,
-        gain: Optional[float] = None,
-        xml_file_path: Optional[FilePathType] = None,
-    ):
-        super().__init__(file_path, gain, xml_file_path)
-        self.recording_extractor._sampling_frequency = 1250.0
-
-        # Update the sampling frequency of the segments
-        for segment in self.recording_extractor._recording_segments:
-            segment.sampling_frequency = 1250.0
-
-
 class ValeroNWBConverter(NWBConverter):
     """Primary conversion class for the Valero 2022 experiment."""
 
     data_interface_classes = dict(
-        Recording=NeuroScopeRecordingInterface,
+        Recording=ValeroRawInterface,
         LFP=ValeroLFPInterface,
         Sorting=CellExplorerSortingInterface,
         Video=VideoInterface,

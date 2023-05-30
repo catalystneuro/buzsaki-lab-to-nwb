@@ -15,6 +15,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbo
     session_dir_path = Path(session_dir_path)
     assert session_dir_path.is_dir()
     output_dir_path = Path(output_dir_path)
+
     if stub_test:
         output_dir_path = output_dir_path / "nwb_stub"
     output_dir_path.mkdir(parents=True, exist_ok=True)
@@ -23,25 +24,36 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbo
     nwbfile_path = output_dir_path / f"{session_id}.nwb"
 
     source_data = dict()
+    conversion_options = dict()
 
     # Add Recording
     file_path = session_dir_path / f"{session_id}.dat"
     assert file_path.is_file()
     xml_file_path = session_dir_path / f"{session_id}.xml"
-    source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+    folder_path = session_dir_path
+    source_data.update(
+        Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
+    )
+    conversion_options.update(Recording=dict(stub_test=stub_test))
 
     file_path = session_dir_path / f"{session_id}.lfp"
     assert file_path.is_file()
-    source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+    xml_file_path = session_dir_path / f"{session_id}.xml"
+    folder_path = session_dir_path
+    source_data.update(
+        LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
+    )
+    conversion_options.update(LFP=dict(stub_test=stub_test))
 
-    # # Add sorter
-    # file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
-    # source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
+    # Add sorter
+    file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
+    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Add videos
     file_paths = list(session_dir_path.rglob("*.avi"))
     assert len(file_paths) == 1, f"There should be one and only one video file {file_paths}"
     source_data.update(Video=dict(file_paths=file_paths))
+    conversion_options.update(Video=dict(stub_test=stub_test))
 
     # Add epochs
     folder_path = session_dir_path
@@ -89,13 +101,6 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbo
     editable_metadata_path = Path(__file__).parent / "metadata.yml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
-
-    # Set conversion options and run conversion
-    conversion_options = dict(
-        Recording=dict(stub_test=stub_test),
-        LFP=dict(stub_test=stub_test),
-        Video=dict(stub_test=stub_test),
-    )
 
     nwbfile = converter.run_conversion(
         nwbfile_path=nwbfile_path,
