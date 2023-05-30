@@ -6,7 +6,7 @@ from neuroconv.utils import dict_deep_update, load_dict_from_file
 from buzsaki_lab_to_nwb.valero.converter import ValeroNWBConverter
 
 
-def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbose=False):
+def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
     if verbose:
         print("---------------------")
         print("conversion for:")
@@ -34,7 +34,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbo
     source_data.update(
         Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
     )
-    conversion_options.update(Recording=dict(stub_test=stub_test))
+    conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
 
     file_path = session_dir_path / f"{session_id}.lfp"
     assert file_path.is_file()
@@ -43,7 +43,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, verbo
     source_data.update(
         LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
     )
-    conversion_options.update(LFP=dict(stub_test=stub_test))
+    conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
 
     # Add sorter
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
@@ -116,10 +116,17 @@ if __name__ == "__main__":
     # Parameters for conversion
     stub_test = True  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
+    write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/home/heberto/buzaki")
     session_dir_path = project_root / "fCamk1_200827_sess9"
-    nwbfile = session_to_nwbfile(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+    nwbfile = session_to_nwbfile(
+        session_dir_path,
+        output_dir_path,
+        stub_test=stub_test,
+        write_electrical_series=write_electrical_series,
+        verbose=verbose,
+    )
 
     dataframe = nwbfile.electrodes.to_dataframe()
     import pandas as pd
