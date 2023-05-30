@@ -32,6 +32,34 @@ def add_extra_properties_to_recorder(recording_extractor, folder_path):
     recording_extractor.set_property(key="brain_area", values=["CA1"] * recording_extractor.get_num_channels())
 
 
+def generate_neurolight_device_metadata() -> dict:
+    # Create device
+    name = "N1-F21-O36 | 18"
+    manufacturer = "Neurolight Technologies"
+    description = (
+        "12 µLEDs, 10 x 15 µm each, 3 per shank\n"
+        "Emission Peak λ = 460 nm and FWHM = 40 nm\n"
+        "Typical irradiance of 33 mW/mm² (@ max operating current of 100 µA)\n"
+        "32 recording channels, 8 per shank\n"
+        "Electrode impedance of 1000 - 1500 kΩ at 1 kHz\n"
+    )
+
+    device_metadata = dict(name=name, description=description, manufacturer=manufacturer)
+
+    return device_metadata
+
+
+def correct_device_metadata(metadata):
+    neurolight_device_metadata = generate_neurolight_device_metadata()
+    metadata["Ecephys"]["Device"] = [neurolight_device_metadata]  # Needs to be a list because neuroconv convention
+    electrode_group_metadata_list = metadata["Ecephys"]["ElectrodeGroup"]
+    for electrode_group_metadata in electrode_group_metadata_list:
+        electrode_group_metadata["location"] = "CA1"
+        electrode_group_metadata["device"] = neurolight_device_metadata["name"]
+
+    return metadata
+
+
 class ValeroLFPInterface(NeuroScopeLFPInterface):
     def __init__(
         self,
@@ -51,6 +79,12 @@ class ValeroLFPInterface(NeuroScopeLFPInterface):
         # Add further properties
         add_extra_properties_to_recorder(self.recording_extractor, folder_path)
 
+    def get_metadata(self) -> dict:
+        metadata = super().get_metadata()
+        metadata = correct_device_metadata(metadata)
+
+        return metadata
+
 
 class ValeroRawInterface(NeuroScopeRecordingInterface):
     ExtractorName = "NeuroScopeRecordingExtractor"
@@ -68,3 +102,9 @@ class ValeroRawInterface(NeuroScopeRecordingInterface):
 
         # Add further properties
         add_extra_properties_to_recorder(self.recording_extractor, folder_path)
+
+    def get_metadata(self) -> dict:
+        metadata = super().get_metadata()
+        metadata = correct_device_metadata(metadata)
+
+        return metadata
