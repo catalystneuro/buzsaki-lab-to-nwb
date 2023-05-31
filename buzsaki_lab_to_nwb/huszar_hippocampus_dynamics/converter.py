@@ -60,13 +60,15 @@ class HuzsarNWBConverter(NWBConverter):
         kcoords = [y[0] for y in chan_map["kcoords"]]
 
         for channel_id in chan_map["chanMap0ind"]:
-            self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
-                locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
-            )
+            if (self.data_interface_objects.get("LFP")):
+                self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
+                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
+                )
 
-            self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
-                locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
-            )
+            if (self.data_interface_objects.get("Recording")):
+                self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
+                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
+                )
 
 
     def get_metadata(self):

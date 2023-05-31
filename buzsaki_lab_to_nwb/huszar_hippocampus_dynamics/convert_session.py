@@ -29,15 +29,15 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
 
-    # Add Recordings
-    file_path = session_dir_path / f"{session_id}.dat"
-    assert file_path.is_file()
-    xml_file_path = session_dir_path / f"{session_id}.xml"
-    source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+#     # Add Recordings
+#     file_path = session_dir_path / f"{session_id}.dat"
+#     assert file_path.is_file()
+#     xml_file_path = session_dir_path / f"{session_id}.xml"
+#     source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
 
-    file_path = session_dir_path / f"{session_id}.lfp"
-    assert file_path.is_file()
-    source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+#     file_path = session_dir_path / f"{session_id}.lfp"
+#     assert file_path.is_file()
+#     source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
 
     # Add epochs
     source_data.update(Epochs=dict(folder_path=str(session_dir_path)))
@@ -83,7 +83,8 @@ if __name__ == "__main__":
     verbose = True
     output_dir_path = Path.home() / "conversion_nwb"
     # session_dir_path = Path("/Volumes/neurodata/buzaki/HuszarR/optotagCA1/e13/e13_16f1/e13_16f1_210302")
-    session_dir_path = Path("/Volumes/neurodata/buzaki/HuszarR/optotagCA1/e13/e13_26m1/e13_26m1_211019/e13_26m1_211019")
+    # session_dir_path = Path("/Volumes/neurodata/buzaki/HuszarR/optotagCA1/e13/e13_26m1/e13_26m1_211019/e13_26m1_211019")
     # session_dir_path = Path("/home/heberto/buzaki/e13_16f1_210302/")
+    session_dir_path = Path("/shared/catalystneuro/HuszarR/optotagCA1/e13/e13_26m1/e13_26m1_211019")
 
     session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
