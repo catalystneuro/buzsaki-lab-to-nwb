@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 from neuroconv.basedatainterface import BaseDataInterface
@@ -16,26 +17,33 @@ class ValeroEpochsInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         session_file_path = self.session_path / f"{self.session_id}.session.mat"
-        assert session_file_path.is_file(), session_file_path
+
         mat_file = read_mat(session_file_path)
 
         epoch_list = mat_file["session"]["epochs"]
 
-        nwbfile.add_epoch_column(name="behavioral_paradigm", description="The behavioral paradigm of the epoch")
-        nwbfile.add_epoch_column(name="environment", description="The environment in the epoch")
-        nwbfile.add_epoch_column(name="manipulation", description="The stimulus in the epoch")
+        # Probe for field availability
+        first_epoch = epoch_list[0]
+        available_fields = list(first_epoch.keys())
+        available_fields.remove("startTime")
+        available_fields.remove("stopTime")
+
+        # Maps the name found in the mat file to the name and description in the NWB file
+        epoch_description = {
+            "name": dict(name="epoch_name", description="The name of the epoch"),
+            "behavioralParadigm": dict(name="behavioral_paradigm", description="The behavioral paradigm of the epoch"),
+            "environment": dict(name="environment", description="The environment in the epoch"),
+            "manipulation": dict(name="manipulation", description="The stimulus in the epoch"),
+        }
+        for field in available_fields:
+            name = epoch_description[field]["name"]
+            description = epoch_description[field]["description"]
+            nwbfile.add_epoch_column(name=name, description=description)
 
         for epoch in epoch_list:
             start_time = float(epoch["startTime"])
             stop_time = float(epoch["stopTime"])
-            behavioral_paradigm = epoch["behavioralParadigm"]
-            environment = epoch["environment"]
-            manipulation = epoch["manipulation"]
 
-            nwbfile.add_epoch(
-                start_time=start_time,
-                stop_time=stop_time,
-                behavioral_paradigm=behavioral_paradigm,
-                environment=environment,
-                manipulation=manipulation,
-            )
+            extra_kwargs = {epoch_description[field]["name"]: epoch[field] for field in available_fields}
+
+            nwbfile.add_epoch(start_time=start_time, stop_time=stop_time, **extra_kwargs)

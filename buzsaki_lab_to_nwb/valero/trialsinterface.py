@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 from neuroconv.basedatainterface import BaseDataInterface
@@ -16,9 +17,9 @@ class ValeroTrialInterface(BaseDataInterface):
 
         # We use the behavioral cellinfo file to get the trial intervals
         behavioral_cellinfo_path = self.session_path / f"{self.session_id}.behavior.cellinfo.mat"
-        assert (
-            behavioral_cellinfo_path.exists()
-        ), f"Behaviioral cell info file path not found: {behavioral_cellinfo_path}"
+        if not behavioral_cellinfo_path.exists():
+            warnings.warn(f"Behavioral cell info file not found: {behavioral_cellinfo_path}")
+            return nwbfile
 
         mat_file = read_mat(behavioral_cellinfo_path)
         trial_data = mat_file["behavior"]["trials"]

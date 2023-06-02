@@ -83,7 +83,7 @@ class ValeroNWBConverter(NWBConverter):
         session_start_time = datetime.combine(date, datetime.min.time(), tzinfo=tzinfo)
         metadata["NWBFile"]["session_start_time"] = session_start_time
 
-        session_name = session_data["general"]["sessionName"]
+        session_name = session_data["general"]["name"]
         metadata["NWBFile"]["session_id"] = session_name
 
         # Add subject metadata
@@ -98,9 +98,10 @@ class ValeroNWBConverter(NWBConverter):
         metadata["Subject"]["strain"] = strain
         metadata["Subject"]["genotype"] = genotype
 
-        surgeries_data = subject_data["surgeries"]
-        weight_in_grams = surgeries_data["weight"]
-
-        metadata["Subject"]["weight"] = f"{weight_in_grams / 1000:2.3f} kg"  # Convert to kg
+        # Add weight if available
+        if "surgeries" in subject_data:  # TODO: subjects are repeated, maybe the only added weight info in one of them
+            surgeries_data = subject_data["surgeries"]
+            weight_in_grams = surgeries_data["weight"]
+            metadata["Subject"]["weight"] = f"{weight_in_grams / 1000:2.3f} kg"  # Convert to kg
 
         return metadata

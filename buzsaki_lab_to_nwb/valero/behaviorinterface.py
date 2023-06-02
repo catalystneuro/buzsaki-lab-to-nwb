@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +21,10 @@ class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+        if not file_path.is_file():
+            warnings.warn(f"Behavior file not found: {file_path}. Skipping rewards interface.")
+            return nwbfile
+
         mat_file = read_mat(file_path)
 
         events_data = mat_file["behavior"]["events"]
@@ -67,16 +72,27 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
-        assert file_path.is_file(), f"Behavior file not found: {file_path}"
+        if file_path.is_file():
+            mat_file = read_mat(file_path)
+            behavior_data = mat_file["behavior"]
+            timestamps = behavior_data["timestamps"]
+            position = behavior_data["position"]
+        else:
+            warnings.warn(f"Behavior file not found: {file_path}. Trying `Tracking.Behavior.mat` file instead")
+            file_path = self.session_path / f"{self.session_id}.Tracking.Behavior.mat"
 
-        mat_file = read_mat(file_path)
-        behavior_data = mat_file["behavior"]
+            mat_file = read_mat(file_path)
+            tracking_data = mat_file["tracking"]
+            position = tracking_data["position"]
+            timestamps = tracking_data["timestamps"]
 
+            if not file_path.is_file():
+                warnings.warn(f"Tracking behavior file not found: {file_path}. Skipping behavior interface")
+                return nwbfile
+
+        # Create behavior module
         processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
-        timestamps = behavior_data["timestamps"]
-        position = behavior_data["position"]
-        lin = position["lin"]
         x = position["x"]
         y = position["y"]
         data = np.column_stack((x, y))
@@ -98,18 +114,20 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
 
         position_container.add_spatial_series(spatial_series_xy)
 
-        spatial_series_linear = SpatialSeries(
-            name="SpatiaLSeriesLinearized",
-            description="Linearized position of the subject on the track.",
-            data=H5DataIO(data=lin, compression="gzip"),
-            unit=unit,
-            timestamps=timestamps,
-            conversion=conversion,
-            resolution=np.nan,
-            reference_frame=reference_frame,
-        )
+        if "lin" in position:
+            lin = position["lin"]
+            spatial_series_linear = SpatialSeries(
+                name="SpatiaLSeriesLinearized",
+                description="Linearized position of the subject on the track.",
+                data=H5DataIO(data=lin, compression="gzip"),
+                unit=unit,
+                timestamps=timestamps,
+                conversion=conversion,
+                resolution=np.nan,
+                reference_frame=reference_frame,
+            )
+            position_container.add_spatial_series(spatial_series_linear)
 
-        position_container.add_spatial_series(spatial_series_linear)
         processing_module.add_data_interface(position_container)
 
 

@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -71,7 +72,9 @@ class ValeroHSEventsInterface(BaseDataInterface):
 
         # We use the behavioral cellinfo file to get the trial intervals
         hse_data_path = self.session_path / f"{self.session_id}.HSE.mat"
-        assert hse_data_path.exists(), f"HSE event file not found: {hse_data_path}"
+        if not hse_data_path.exists():
+            warnings.warn(f"HSE event file not found: {hse_data_path}. Skipping HSE events interface.")
+            return nwbfile
 
         mat_file = read_mat(hse_data_path, variable_names=["HSE"])
         hse_data = mat_file["HSE"]
@@ -125,23 +128,44 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
         ripples_data = mat_file["ripples"]
 
         ripple_intervals = ripples_data["timestamps"]
+        if ripple_intervals.size == 0:
+            warnings.warn(f"No ripples found for session: {self.session_id}. Skipping ripple events interface")
+            return nwbfile
 
-        peaks = ripples_data["peaks"]
-        peak_normed_power = ripples_data["peakNormedPower"]
+        # Name and descriptions
+        field_in_mat_file_to_nwb_column_info = dict()
+        if "peaks" in ripples_data and ripples_data["peaks"].size != 0:
+            field_in_mat_file_to_nwb_column_info["peaks"] = dict(
+                name="peaks", description="Peak of the ripple.", data=ripples_data["peaks"]
+            )
 
-        ripple_stats_data = ripples_data["rippleStats"]["data"]
+        if "peakNormedPower" in ripples_data and ripples_data["peakNormedPower"].size != 0:
+            field_in_mat_file_to_nwb_column_info["peakNormedPower"] = dict(
+                name="peak_normed_power",
+                description="Normed power of the peak.",
+                data=ripples_data["peakNormedPower"],
+            )
 
-        peak_frequencies = ripple_stats_data["peakFrequency"]
-        ripple_durations = ripple_stats_data["duration"]
-        peak_amplitudes = ripple_stats_data["peakAmplitude"]
-
-        descriptions = dict(
-            ripple_durations="Duration of the ripple event.",
-            peaks="Peak of the ripple.",
-            peak_normed_power="Normed power of the peak.",
-            peak_frequencies="Peak frequency of the ripple.",
-            peak_amplitudes="Peak amplitude of the ripple.",
-        )
+        if "rippleStats" in ripples_data:
+            ripple_stats = ripples_data["rippleStats"]
+            if "peakFrequency" in ripple_stats["data"] and ripple_stats["data"]["peakFrequency"].size != 0:
+                field_in_mat_file_to_nwb_column_info["peakFrequency"] = dict(
+                    name="peak_frequencies",
+                    description="Peak frequency of the ripple.",
+                    data=ripple_stats["data"]["peakFrequency"],
+                )
+            if "duration" in ripple_stats["data"] and ripple_stats["data"]["duration"].size != 0:
+                field_in_mat_file_to_nwb_column_info["duration"] = dict(
+                    name="ripple_durations",
+                    description="Duration of the ripple event.",
+                    data=ripple_stats["data"]["duration"],
+                )
+            if "peakAmplitude" in ripple_stats["data"] and ripple_stats["data"]["peakAmplitude"].size != 0:
+                field_in_mat_file_to_nwb_column_info["peakAmplitude"] = dict(
+                    name="peak_amplitudes",
+                    description="Peak amplitude of the ripple.",
+                    data=ripple_stats["data"]["peakAmplitude"],
+                )
 
         name = "RippleTimeIntervals"
         ripple_events_table = TimeIntervals(name=name, description="Ripples and their metrics")
@@ -149,40 +173,39 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
         for start_time, stop_time in ripple_intervals:
             ripple_events_table.add_row(start_time=start_time, stop_time=stop_time)
 
-        for column_name, column_data in zip(
-            list(descriptions), [ripple_durations, peaks, peak_normed_power, peak_frequencies, peak_amplitudes]
-        ):
+        for field_name, nwb_info in field_in_mat_file_to_nwb_column_info.items():
             ripple_events_table.add_column(
-                name=column_name,
-                description=descriptions[column_name],
-                data=H5DataIO(column_data, compression="gzip"),
+                name=nwb_info["name"],
+                description=nwb_info["description"],
+                data=H5DataIO(nwb_info["data"], compression="gzip"),
             )
 
         # Extract indexed data
-        ripple_stats_maps = ripples_data["rippleStats"]["maps"]
+        if "rippleStats" in ripples_data:
+            ripple_stats_maps = ripples_data["rippleStats"]["maps"]
 
-        ripple_raw = ripple_stats_maps["ripples_raw"]
-        ripple_frequencies = ripple_stats_maps["frequency"]
-        ripple_phases = ripple_stats_maps["phase"]
-        ripple_amplitudes = ripple_stats_maps["amplitude"]
+            ripple_raw = ripple_stats_maps["ripples_raw"]
+            ripple_frequencies = ripple_stats_maps["frequency"]
+            ripple_phases = ripple_stats_maps["phase"]
+            ripple_amplitudes = ripple_stats_maps["amplitude"]
 
-        indexed_descriptions = dict(
-            ripple_raw="Extracted ripple data.",
-            ripple_frequencies="Frequency of each point on the ripple.",
-            ripple_phases="Phase of each point on the ripple.",
-            ripple_amplitudes="Amplitude of each point on the ripple.",
-        )
-
-        for column_name, column_data in zip(
-            list(indexed_descriptions), [ripple_raw, ripple_frequencies, ripple_phases, ripple_amplitudes]
-        ):
-            ripple_events_table.add_column(
-                name=column_name,
-                description=indexed_descriptions[column_name],
-                index=list(range(column_data.shape[0])),
-                data=H5DataIO(column_data, compression="gzip"),
+            indexed_descriptions = dict(
+                ripple_raw="Extracted ripple data.",
+                ripple_frequencies="Frequency of each point on the ripple.",
+                ripple_phases="Phase of each point on the ripple.",
+                ripple_amplitudes="Amplitude of each point on the ripple.",
             )
 
-        processing_module = get_module(nwbfile=nwbfile, name="ecephys")
+            for column_name, column_data in zip(
+                list(indexed_descriptions), [ripple_raw, ripple_frequencies, ripple_phases, ripple_amplitudes]
+            ):
+                ripple_events_table.add_column(
+                    name=column_name,
+                    description=indexed_descriptions[column_name],
+                    index=list(range(column_data.shape[0])),
+                    data=H5DataIO(column_data, compression="gzip"),
+                )
 
+        # Add the events to the ecephys processing module
+        processing_module = get_module(nwbfile=nwbfile, name="ecephys")
         processing_module.add(ripple_events_table)
