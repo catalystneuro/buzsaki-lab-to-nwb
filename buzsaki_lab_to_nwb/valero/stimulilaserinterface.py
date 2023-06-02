@@ -58,20 +58,22 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
         for id in micro_led_ids:
             site_intervals = pulse_intervals[pulse_micro_led == id]
             site_amplitudes = pulse_amplitude[pulse_micro_led == id]
-            pulse_start_time, pulse_stop_time = site_intervals[:, 0], site_intervals[:, 1]
+
+            # Assume from the trapezoidal profile that the decay time is the same as the rise time
+            pulse_start_time = site_intervals[:, 0]
             amplitude_at_start = np.zeros_like(pulse_start_time)
-            amplitude_at_stop = site_amplitudes
 
             raise_time = 0.001  # 1 ms
             rise_to_max_time = pulse_start_time + raise_time
             amplitude_at_max = site_amplitudes
 
-            # Assume from the trapezoidal profile that the decay time is the same as the rise time
-            decay_time = pulse_stop_time + raise_time
-            amplitude_after_decay = np.zeros_like(decay_time)
+            pulse_stop_time = site_intervals[:, 1]
+            start_decaying_time = pulse_stop_time - raise_time
+            amplitude_start_decaying = site_amplitudes
+            ampltidue_stop_time = np.zeros_like(start_decaying_time)
 
-            timestamps = np.vstack((pulse_start_time, rise_to_max_time, pulse_stop_time, decay_time))
-            data = np.vstack((amplitude_at_start, amplitude_at_max, amplitude_at_stop, amplitude_after_decay))
+            timestamps = np.vstack((pulse_start_time, rise_to_max_time, start_decaying_time, pulse_stop_time))
+            data = np.vstack((amplitude_at_start, amplitude_at_max, amplitude_start_decaying, ampltidue_stop_time))
 
             site_timestamps = timestamps.T.flatten()
             site_data = data.T.flatten()

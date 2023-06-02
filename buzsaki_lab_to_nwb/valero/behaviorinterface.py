@@ -160,6 +160,6 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
                 row_as_dict = dict(start_time=float(start_time), stop_time=float(stop_time), label=state_name)
                 table_rows.append(row_as_dict)
 
-        sorted_table = sorted(table_rows, key=lambda x: x["start_time"])
+        sorted_table = sorted(table_rows, key=lambda x: (x["start_time"], x["stop_time"]))
         [table.add_row(**row_as_dict) for row_as_dict in sorted_table]
         processing_module.add(table)
