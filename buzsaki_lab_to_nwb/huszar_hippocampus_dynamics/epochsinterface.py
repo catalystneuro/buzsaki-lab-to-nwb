@@ -24,7 +24,4 @@ class HuszarEpochsInterface(BaseDataInterface):
             start_time = float(epoch["startTime"])
             stop_time = float(epoch["stopTime"])
 
-            nwbfile.add_epoch(
-                start_time=start_time,
-                stop_time=stop_time
-            )
+            nwbfile.add_epoch(start_time=start_time, stop_time=stop_time)

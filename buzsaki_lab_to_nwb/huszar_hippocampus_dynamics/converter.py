@@ -7,10 +7,7 @@ from scipy.io import loadmat as loadmat_scipy
 
 from neuroconv import NWBConverter
 
-from neuroconv.datainterfaces import (
-    NeuroScopeLFPInterface,
-    NeuroScopeRecordingInterface
-)
+from neuroconv.datainterfaces import NeuroScopeLFPInterface, NeuroScopeRecordingInterface
 
 # from laserpulsesinterface import ValeroLaserPulsesInterface
 from ripplesinterface import (
@@ -21,7 +18,7 @@ from ripplesinterface import (
 from behaviorinterface import (
     HuzsarBehaviorSleepInterface,
     HuszarBehavior8MazeInterface,
-    HuszarBehavior8MazeRewardsInterface
+    HuszarBehavior8MazeRewardsInterface,
 )
 
 from epochsinterface import HuszarEpochsInterface
@@ -43,7 +40,7 @@ class HuzsarNWBConverter(NWBConverter):
         BehaviorRewards=HuszarBehavior8MazeRewardsInterface,
         Epochs=HuszarEpochsInterface,
         Trials=HuszarTrialsInterface,
-        RippleEvents=HuszarProcessingRipplesEventsInterface
+        RippleEvents=HuszarProcessingRipplesEventsInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
@@ -60,16 +57,15 @@ class HuzsarNWBConverter(NWBConverter):
         kcoords = [y[0] for y in chan_map["kcoords"]]
 
         for channel_id in chan_map["chanMap0ind"]:
-            if (self.data_interface_objects.get("LFP")):
+            if self.data_interface_objects.get("LFP"):
                 self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
                     locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
                 )
 
-            if (self.data_interface_objects.get("Recording")):
+            if self.data_interface_objects.get("Recording"):
                 self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
                     locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
                 )
-
 
     def get_metadata(self):
         metadata = super().get_metadata()
@@ -90,15 +86,15 @@ class HuzsarNWBConverter(NWBConverter):
 
         # Add additional NWBFile metadata
         # NOTE: experimenters is specifid in the metadata.yml file
-        metadata["NWBFile"]["session_id"] = session_mat["session"]['general']['name']
-        metadata["NWBFile"]["notes"] = session_mat["session"]['general']['notes']
+        metadata["NWBFile"]["session_id"] = session_mat["session"]["general"]["name"]
+        metadata["NWBFile"]["notes"] = session_mat["session"]["general"]["notes"]
 
         # Add Subject metadata
-        subject_metadata = session_mat["session"]['animal']
-        metadata["Subject"]["subject_id"] = subject_metadata['name']
-        metadata["Subject"]["sex"] = subject_metadata['sex'][0]
-        metadata["Subject"]["strain"] = subject_metadata['strain']
-        metadata["Subject"]["genotype"] = subject_metadata['geneticLine']
+        subject_metadata = session_mat["session"]["animal"]
+        metadata["Subject"]["subject_id"] = subject_metadata["name"]
+        metadata["Subject"]["sex"] = subject_metadata["sex"][0]
+        metadata["Subject"]["strain"] = subject_metadata["strain"]
+        metadata["Subject"]["genotype"] = subject_metadata["geneticLine"]
 
         # NOTE: No weight information because there isn't any surgery metadata
 

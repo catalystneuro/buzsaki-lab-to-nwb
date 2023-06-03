@@ -29,7 +29,7 @@ class HuszarProcessingRipplesEventsInterface(BaseDataInterface):
         peaks = ripples_data["peaks"]
         peak_normed_power = ripples_data["peakNormedPower"]
 
-        ripple_stats_data = ripples_data["data"] # NOTE: Different from Valero Ripples Interface...
+        ripple_stats_data = ripples_data["data"]  # NOTE: Different from Valero Ripples Interface...
 
         peak_frequencies = ripple_stats_data["peakFrequency"]
         ripple_durations = ripple_stats_data["duration"]
@@ -61,7 +61,7 @@ class HuszarProcessingRipplesEventsInterface(BaseDataInterface):
         # Extract indexed data
         ripple_stats_maps = ripples_data["maps"]
 
-        ripple_raw = ripple_stats_maps["ripples"] # NOTE: Different from Valero Ripples Interface...
+        ripple_raw = ripple_stats_maps["ripples"]  # NOTE: Different from Valero Ripples Interface...
         ripple_frequencies = ripple_stats_maps["frequency"]
         ripple_phases = ripple_stats_maps["phase"]
         ripple_amplitudes = ripple_stats_maps["amplitude"]

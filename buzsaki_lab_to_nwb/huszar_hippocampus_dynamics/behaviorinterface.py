@@ -14,6 +14,7 @@ from pymatreader import read_mat
 
 from ndx_events import LabeledEvents
 
+
 class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
@@ -59,7 +60,6 @@ class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
         processing_module.add(events)
 
 
-
 class HuzsarBehaviorSleepInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
@@ -98,7 +98,6 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
                 )
         [table.add_row(**row) for row in sorted(data, key=lambda x: x["start_time"])]
         processing_module.add(table)
-
 
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
@@ -173,15 +172,15 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         conversion = 100.0  # cm to m TODO: Double check if this is the meaning.
         reference_frame = "Arbitrary, camera"
 
-
         nest_depth = len(mat_file["behavior"]["trials"]["position_trcat"])
 
         # Merge unique descriptions if there are nested entries inside the behavior file
         description = mat_file["behavior"]["description"]
 
-        if (nest_depth > 1): 
-            description = ';'.join(np.unique(mat_file["behavior"]["description"])) # NOTE: Description is an array in this case
-
+        if nest_depth > 1:
+            description = ";".join(
+                np.unique(mat_file["behavior"]["description"])
+            )  # NOTE: Description is an array in this case
 
         pos_obj = Position(name=description)
         spatial_series_object = SpatialSeries(

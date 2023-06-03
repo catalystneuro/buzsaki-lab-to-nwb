@@ -29,15 +29,15 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
 
-#     # Add Recordings
-#     file_path = session_dir_path / f"{session_id}.dat"
-#     assert file_path.is_file()
-#     xml_file_path = session_dir_path / f"{session_id}.xml"
-#     source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+    #     # Add Recordings
+    #     file_path = session_dir_path / f"{session_id}.dat"
+    #     assert file_path.is_file()
+    #     xml_file_path = session_dir_path / f"{session_id}.xml"
+    #     source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
 
-#     file_path = session_dir_path / f"{session_id}.lfp"
-#     assert file_path.is_file()
-#     source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+    #     file_path = session_dir_path / f"{session_id}.lfp"
+    #     assert file_path.is_file()
+    #     source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
 
     # Add epochs
     source_data.update(Epochs=dict(folder_path=str(session_dir_path)))
