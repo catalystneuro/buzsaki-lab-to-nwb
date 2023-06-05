@@ -73,7 +73,7 @@ class ValeroHSEventsInterface(BaseDataInterface):
         # We use the behavioral cellinfo file to get the trial intervals
         hse_data_path = self.session_path / f"{self.session_id}.HSE.mat"
         if not hse_data_path.exists():
-            warnings.warn(f"HSE event file not found: {hse_data_path}. Skipping HSE events interface.")
+            warnings.warn(f"HSE event file not found: {hse_data_path}. Skipping HSE events interface. \n")
             return nwbfile
 
         mat_file = read_mat(hse_data_path, variable_names=["HSE"])
@@ -83,28 +83,22 @@ class ValeroHSEventsInterface(BaseDataInterface):
         peaks = hse_data["peaks"]
         center = hse_data["center"]
 
-        column_descriptions = dict(
-            peaks="TBD",
-            center="TBD",
-        )
-
-        column_data_dict = dict(
-            peaks=peaks,
-            center=center,
-        )
+        mat_field_to_nwb_info = dict()
+        mat_field_to_nwb_info["peaks"] = dict(name="peak_time", description="The time of the peak", data=peaks)
+        mat_field_to_nwb_info["center"] = dict(name="center_time", description="The time of the center", data=center)
 
         name = "HSETimeIntervals"
-        description = "TBD"  # TODO: Ask author for description
+        description = "High synchrony events"  # TODO: Confirm author for description
         ripple_events_table = TimeIntervals(name=name, description=description)
 
         for start_time, stop_time in hse_intervals:
             ripple_events_table.add_row(start_time=start_time, stop_time=stop_time)
 
-        for column_name, column_data in column_data_dict.items():
+        for field_name, nwb_info in mat_field_to_nwb_info.items():
             ripple_events_table.add_column(
-                name=column_name,
-                description=column_descriptions[column_name],
-                data=H5DataIO(column_data, compression="gzip"),
+                name=nwb_info["name"],
+                description=nwb_info["description"],
+                data=H5DataIO(nwb_info["data"], compression="gzip"),
             )
 
         processing_module = get_module(nwbfile=nwbfile, name="ecephys")
@@ -129,18 +123,18 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
 
         ripple_intervals = ripples_data["timestamps"]
         if ripple_intervals.size == 0:
-            warnings.warn(f"No ripples found for session: {self.session_id}. Skipping ripple events interface")
+            warnings.warn(f"\n No ripples found for session: {self.session_id}. Skipping ripple events interface \n")
             return nwbfile
 
         # Name and descriptions
-        field_in_mat_file_to_nwb_column_info = dict()
+        mat_field_to_nwb_info = dict()
         if "peaks" in ripples_data and ripples_data["peaks"].size != 0:
-            field_in_mat_file_to_nwb_column_info["peaks"] = dict(
-                name="peaks", description="Peak of the ripple.", data=ripples_data["peaks"]
+            mat_field_to_nwb_info["peaks"] = dict(
+                name="peak_time", description="Time at which the ripple peaked.", data=ripples_data["peaks"]
             )
 
         if "peakNormedPower" in ripples_data and ripples_data["peakNormedPower"].size != 0:
-            field_in_mat_file_to_nwb_column_info["peakNormedPower"] = dict(
+            mat_field_to_nwb_info["peakNormedPower"] = dict(
                 name="peak_normed_power",
                 description="Normed power of the peak.",
                 data=ripples_data["peakNormedPower"],
@@ -149,19 +143,19 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
         if "rippleStats" in ripples_data:
             ripple_stats = ripples_data["rippleStats"]
             if "peakFrequency" in ripple_stats["data"] and ripple_stats["data"]["peakFrequency"].size != 0:
-                field_in_mat_file_to_nwb_column_info["peakFrequency"] = dict(
+                mat_field_to_nwb_info["peakFrequency"] = dict(
                     name="peak_frequencies",
                     description="Peak frequency of the ripple.",
                     data=ripple_stats["data"]["peakFrequency"],
                 )
             if "duration" in ripple_stats["data"] and ripple_stats["data"]["duration"].size != 0:
-                field_in_mat_file_to_nwb_column_info["duration"] = dict(
+                mat_field_to_nwb_info["duration"] = dict(
                     name="ripple_durations",
                     description="Duration of the ripple event.",
                     data=ripple_stats["data"]["duration"],
                 )
             if "peakAmplitude" in ripple_stats["data"] and ripple_stats["data"]["peakAmplitude"].size != 0:
-                field_in_mat_file_to_nwb_column_info["peakAmplitude"] = dict(
+                mat_field_to_nwb_info["peakAmplitude"] = dict(
                     name="peak_amplitudes",
                     description="Peak amplitude of the ripple.",
                     data=ripple_stats["data"]["peakAmplitude"],
@@ -173,7 +167,7 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
         for start_time, stop_time in ripple_intervals:
             ripple_events_table.add_row(start_time=start_time, stop_time=stop_time)
 
-        for field_name, nwb_info in field_in_mat_file_to_nwb_column_info.items():
+        for field_name, nwb_info in mat_field_to_nwb_info.items():
             ripple_events_table.add_column(
                 name=nwb_info["name"],
                 description=nwb_info["description"],

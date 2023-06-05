@@ -120,9 +120,9 @@ if __name__ == "__main__":
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/home/heberto/buzaki")
-    session_dir_path = project_root / "fCamk1_200827_sess9"
+    # session_dir_path = project_root / "fCamk1_200827_sess9"
     # session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
-    # session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
+    session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
 
     nwbfile = session_to_nwbfile(
         session_dir_path,
@@ -132,14 +132,13 @@ if __name__ == "__main__":
         verbose=verbose,
     )
 
-    dataframe = nwbfile.electrodes.to_dataframe()
-    import pandas as pd
+    # import pandas as pd
+    # dataframe = nwbfile.electrodes.to_dataframe()
+    # # Show all the entries of the dataframe
+    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
+    #     print(dataframe)
 
-    # Show all the entries of the dataframe
-    with pd.option_context("display.max_rows", None, "display.max_columns", None):
-        print(dataframe)
-
-    unique_channels = dataframe.channel_name.unique()
-    print(f"Unique channels size: {len(unique_channels)}")
-    print(unique_channels)
-    print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])
+    # unique_channels = dataframe.channel_name.unique()
+    # print(f"Unique channels size: {len(unique_channels)}")
+    # print(unique_channels)
+    # print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])

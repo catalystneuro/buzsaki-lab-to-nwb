@@ -37,7 +37,7 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
         else:
             neurolight_probe = nwbfile.devices[device_metadata["name"]]
         # Create the sites
-        site_description = "microscopic LED 10 x 15 µm each, 3 per shank. Each μLED has an emission area of 150 μm2"
+        site_description = f"Microled site in Neurolight probe. Microscopic LED 10 x 15 µm each, 3 per shank. Each μLED has an emission area of 150 μm2"
         location = "dorsal right hippocampus (antero-posterior 2.0 mm, mediolateral 1.5 mm, dorsoventral 0.6 mm)"
 
         micro_led_ids_to_site = dict()
@@ -45,7 +45,7 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
 
         for id in micro_led_ids:
             optogenetic_site = OptogeneticStimulusSite(
-                name=f"Microled site in Neurolight probe with id {id}",
+                name=f"OptogeneticStimulusSite{id}",
                 device=neurolight_probe,
                 description=site_description,
                 excitation_lambda=460.0,  # nm

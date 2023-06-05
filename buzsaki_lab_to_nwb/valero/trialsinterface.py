@@ -18,7 +18,9 @@ class ValeroTrialInterface(BaseDataInterface):
         # We use the behavioral cellinfo file to get the trial intervals
         behavioral_cellinfo_path = self.session_path / f"{self.session_id}.behavior.cellinfo.mat"
         if not behavioral_cellinfo_path.exists():
-            warnings.warn(f"Behavioral cell info file not found: {behavioral_cellinfo_path}")
+            warnings.warn(
+                f"\n Behaviorcell info file {behavioral_cellinfo_path} not found. Skipping trial interface. \n"
+            )
             return nwbfile
 
         mat_file = read_mat(behavioral_cellinfo_path)

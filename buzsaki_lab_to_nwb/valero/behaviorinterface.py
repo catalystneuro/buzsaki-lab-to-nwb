@@ -22,7 +22,7 @@ class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
         if not file_path.is_file():
-            warnings.warn(f"Behavior file not found: {file_path}. Skipping rewards interface.")
+            warnings.warn(f"Behavior file not found: {file_path}. Skipping rewards interface. \n")
             return nwbfile
 
         mat_file = read_mat(file_path)
@@ -78,7 +78,7 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
             timestamps = behavior_data["timestamps"]
             position = behavior_data["position"]
         else:
-            warnings.warn(f"Behavior file not found: {file_path}. Trying `Tracking.Behavior.mat` file instead")
+            warnings.warn(f"\n Behavior file {file_path} not found. Trying `Tracking.Behavior.mat` file instead \n")
             file_path = self.session_path / f"{self.session_id}.Tracking.Behavior.mat"
 
             mat_file = read_mat(file_path)
@@ -87,7 +87,7 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
             timestamps = tracking_data["timestamps"]
 
             if not file_path.is_file():
-                warnings.warn(f"Tracking behavior file not found: {file_path}. Skipping behavior interface")
+                warnings.warn(f" \n Tracking behavior file {file_path} not found. Skipping behavior interface \n")
                 return nwbfile
 
         # Create behavior module
