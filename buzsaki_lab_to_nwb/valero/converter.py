@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 from neuroconv import NWBConverter
-from neuroconv.datainterfaces import VideoInterface
 from pymatreader import read_mat
 
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
@@ -28,6 +27,7 @@ from buzsaki_lab_to_nwb.valero.stimulilaserinterface import (
     VeleroOptogeneticStimuliInterface,
 )
 from buzsaki_lab_to_nwb.valero.trialsinterface import ValeroTrialInterface
+from buzsaki_lab_to_nwb.valero.videointerface import ValeroVideoInterface
 
 
 class ValeroNWBConverter(NWBConverter):
@@ -37,7 +37,7 @@ class ValeroNWBConverter(NWBConverter):
         Recording=ValeroRawInterface,
         LFP=ValeroLFPInterface,
         Sorting=CellExplorerSortingInterface,
-        Video=VideoInterface,
+        Video=ValeroVideoInterface,
         Trials=ValeroTrialInterface,
         Epochs=ValeroEpochsInterface,
         OptogeneticStimuli=VeleroOptogeneticStimuliInterface,
@@ -54,18 +54,6 @@ class ValeroNWBConverter(NWBConverter):
 
         self.session_folder_path = Path(self.data_interface_objects["Recording"].source_data["file_path"]).parent
         self.session_id = self.session_folder_path.stem
-
-        session_file_path = self.session_folder_path / f"{self.session_id}.session.mat"
-        assert session_file_path.is_file(), session_file_path
-        mat_file = read_mat(session_file_path)
-
-        epoch_list = mat_file["session"]["epochs"]
-        linear_maze_epoch = epoch_list[2]
-        starting_time = float(linear_maze_epoch["startTime"])
-
-        # Set starting time for the video interface
-        video_interface = self.data_interface_objects["Video"]
-        video_interface.align_segment_starting_times(segment_starting_times=[starting_time])
 
     def get_metadata(self):
         metadata = super().get_metadata()

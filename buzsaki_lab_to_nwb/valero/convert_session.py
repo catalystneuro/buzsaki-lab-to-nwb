@@ -51,9 +51,8 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Add videos
-    file_paths = list(session_dir_path.rglob("*.avi"))
-    assert len(file_paths) == 1, f"There should be one and only one video file {file_paths}"
-    source_data.update(Video=dict(file_paths=file_paths))
+    folder_path = session_dir_path
+    source_data.update(Video=dict(folder_path=str(folder_path)))
     conversion_options.update(Video=dict(stub_test=stub_test))
 
     # Add epochs
@@ -121,9 +120,9 @@ if __name__ == "__main__":
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/home/heberto/buzaki")
     # session_dir_path = project_root / "fCamk1_200827_sess9"
-    # session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
+    session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
     session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
-
+    # session_dir_path = project_root / "fCamk3_201030_sess12"
     nwbfile = session_to_nwbfile(
         session_dir_path,
         output_dir_path,

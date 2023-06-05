@@ -368,4 +368,23 @@ between 300-600 Hz filtered signals (using a Butterworth filter at 300 – 600 H
 shoulders spanning to 275 – 625 Hz) recorded at all sites (49).
 
 
-## Channels from INTAN header:
+## Channels from INTAN header
+
+## Extra epochs in `fCamk3_201030_sess12`
+
+For this seession the epochs are:
+
+| name                 |   startTime |   stopTime | behavioralParadigm   | environment   | manipulation     | notes      |   duration_seconds |   duration_hours |
+|:---------------------|------------:|-----------:|:---------------------|:--------------|:-----------------|:-----------|-------------------:|-----------------:|
+| fCamk3_201030_075722 |        0    |    2982.08 | BaselinePre          | Home cage     | None             | nan        |            2982.08 |         0.828356 |
+| fCamk3_201030_084950 |     2982.08 |    5940.64 | PreStim              | Home cage     | uLED random stim | nan        |            2958.56 |         0.821822 |
+| fCamk3_201030_094008 |     5940.64 |    9112.1  | Maze                 | Linear maze   | uLED random stim | nan        |            3171.46 |         0.88096  |
+| fCamk3_201030_103347 |     9112.1  |   12209.4  | PostStim             | Home cage     | uLED random stim | nan        |            3097.28 |         0.860356 |
+| fCamk3_201030_112643 |    12209.4  |   15004.1  | BaselinePost         | Home cage     | None             | nan        |            2794.75 |         0.77632  |
+| fCamk3_201030_121712 |    15004.1  |   17747.8  | DMSOPre              | Home cage     | None             | 100ul DMSO |            2743.65 |         0.762124 |
+| fCamk3_201030_130635 |    17747.8  |   20515.9  | DMSOPreStim          | Home cage     | uLED random stim | nan        |            2768.1  |         0.768916 |
+| fCamk3_201030_135409 |    20515.9  |   24389.1  | DMSOMaze             | Linear maze   | uLED random stim | nan        |            3873.22 |         1.07589  |
+| fCamk3_201030_145940 |    24389.1  |   27855.4  | DMSOPostStim         | Home cage     | uLED random stim | nan        |            3466.3  |         0.962862 |
+| fCamk3_201030_155831 |    27855.4  |   35029.4  | DMSOPost             | Home cage     | None             | nan        |            7173.98 |         1.99277  |
+
+What is DMSO?
