@@ -121,7 +121,7 @@ if __name__ == "__main__":
     project_root = Path("/home/heberto/buzaki")
     # session_dir_path = project_root / "fCamk1_200827_sess9"
     session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
-    session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
+    # session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
     # session_dir_path = project_root / "fCamk3_201030_sess12"
     nwbfile = session_to_nwbfile(
         session_dir_path,
