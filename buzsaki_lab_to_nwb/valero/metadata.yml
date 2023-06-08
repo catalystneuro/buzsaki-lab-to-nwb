@@ -1,0 +1,30 @@
+NWBFile:
+  experiment_description:
+    Probing subthreshold dynamics of hippocampal neurons by pulsed optogenetics
+  institution: Princeton
+  lab: Buzsaki
+  experimenter:
+    - Valero, Manuel
+    - Zutshi, Ipshita
+    - Yoon, Euisik
+    - Buzsáki, György
+  keywords:
+    - Development of the nervous system
+    - Hippocampus
+    - Neural circuits
+  related_publications:
+    - https://doi.org/10.1126/science.abm1891
+  session_description:
+    Understanding how excitatory (E) and inhibitory (I) inputs are integrated by neurons requires monitoring their subthreshold behavior.
+    We probed the subthreshold dynamics using optogenetic depolarizing pulses in hippocampal neuronal assemblies in freely moving mice.
+    Excitability decreased during sharp-wave ripples coupled with increased I.
+    In contrast to this “negative gain,” optogenetic probing showed increased within-field excitability in place cells by weakening I
+    and unmasked stable place fields in initially non–place cells. Neuronal assemblies active during sharp-wave ripples in the home
+    cage predicted spatial overlap and sequences of place fields of both place cells and unmasked preexisting place fields of
+    non–place cells during track running.
+    Thus, indirect probing of subthreshold dynamics in neuronal populations permits
+    the disclosing of preexisting assemblies and modes of neuronal operations.
+Subject:
+  species: Mus musculus
+  age: P30W/P50W
+  description: Homozygous CaMKIIa-Cre line T29-1 transgenic mice (Jackson Laboratory 005359) were crossed with homozygous Ai32 mice (Jackson Laboratory 012569) to express channelrhodopsin2 (ChR2) in neurons expressing CaMKIIa in F1 hybrid mice
