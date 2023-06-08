@@ -81,69 +81,6 @@ class ValeroVideoInterface(VideoInterface):
         compression: Optional[str] = "gzip",
         compression_options: Optional[int] = None,
     ):
-        """
-        Convert the video data files to :py:class:`~pynwb.image.ImageSeries` and write them in the
-        :py:class:`~pynwb.file.NWBFile`. Data is written in the :py:class:`~pynwb.image.ImageSeries` container as
-        RGB. [times, x, y, 3-RGB].
-
-        Parameters
-        ----------
-        nwbfile_path : FilePathType, optional
-            Path for where to write or load (if overwrite=False) the NWB file.
-            If specified, this context will always write to this location.
-        nwbfile : NWBFile, optional
-            nwb file to which the recording information is to be added
-        metadata : dict, optional
-            Dictionary of metadata information such as names and description of each video.
-            Metadata should be passed for each video file passed in the file_paths.
-            If storing as 'external mode', then provide duplicate metadata for video files that go in the
-            same :py:class:`~pynwb.image.ImageSeries` container.
-            Should be organized as follows::
-
-                metadata = dict(
-                    Behavior=dict(
-                        Videos=[
-                            dict(name="Video1", description="This is the first video.."),
-                            dict(name="SecondVideo", description="Video #2 details..."),
-                            ...
-                        ]
-                    )
-                )
-            and may contain most keywords normally accepted by an ImageSeries
-            (https://pynwb.readthedocs.io/en/stable/pynwb.image.html#pynwb.image.ImageSeries).
-            The list for the 'Videos' key should correspond one to the video files in the file_paths list.
-            If multiple videos need to be in the same :py:class:`~pynwb.image.ImageSeries`, then supply the same value for "name" key.
-            Storing multiple videos in the same :py:class:`~pynwb.image.ImageSeries` is only supported if 'external_mode'=True.
-        overwrite : bool, default: False
-            Whether to overwrite the NWBFile if one exists at the nwbfile_path.
-        stub_test : bool, default: False
-            If ``True``, truncates the write operation for fast testing.
-        external_mode : bool, default: True
-            :py:class:`~pynwb.image.ImageSeries` may contain either video data or file paths to external video files.
-            If True, this utilizes the more efficient method of writing the relative path to the video files (recommended).
-        starting_frames : list, optional
-            List of start frames for each video written using external mode.
-            Required if more than one path is specified per ImageSeries in external mode.
-        chunk_data : bool, default: True
-            If True, uses a DataChunkIterator to read and write the video, reducing overhead RAM usage at the cost of
-            reduced conversion speed (compared to loading video entirely into RAM as an array). This will also force to
-            True, even if manually set to False, whenever the video file size exceeds available system RAM by a factor
-            of 70 (from compression experiments). Based on experiments for a ~30 FPS system of ~400 x ~600 color
-            frames, the equivalent uncompressed RAM usage is around 2GB per minute of video. The default is True.
-        module_name: str, optional
-            Name of the processing module to add the ImageSeries object to. Default behavior is to add as acquisition.
-        module_description: str, optional
-            If the processing module specified by module_name does not exist, it will be created with this description.
-            The default description is the same as used by the conversion_tools.get_module function.
-        compression: str, default: "gzip"
-            Compression strategy to use for :py:class:`hdmf.backends.hdf5.h5_utils.H5DataIO`. For full list of currently
-            supported filters, see
-            https://docs.h5py.org/en/latest/high/dataset.html#lossless-compression-filters
-        compression_options: int, optional
-            Parameter(s) for compression filter. Currently, only supports the compression level (integer from 0 to 9) of
-            compression="gzip".
-        """
-
         file_paths = self.source_data["file_paths"]
         if starting_frames is None:
             starting_frames = self._starting_frames

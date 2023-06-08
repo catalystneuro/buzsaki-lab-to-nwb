@@ -92,7 +92,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
 
     # Build the converter
-    converter = ValeroNWBConverter(source_data=source_data, verbose=verbose)
+    converter = ValeroNWBConverter(source_data=source_data, session_folder_path=str(session_dir_path), verbose=verbose)
 
     # Session start time (missing time, only the date part)
     metadata = converter.get_metadata()
@@ -114,15 +114,15 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/home/heberto/buzaki")
     # session_dir_path = project_root / "fCamk1_200827_sess9"
-    # session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
+    session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
     # session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
-    session_dir_path = project_root / "fCamk3_201030_sess12"
+    # session_dir_path = project_root / "fCamk3_201030_sess12"
     nwbfile = session_to_nwbfile(
         session_dir_path,
         output_dir_path,

@@ -49,10 +49,10 @@ class ValeroNWBConverter(NWBConverter):
         UPDownEvents=ValeroHSUPDownEventsInterface,
     )
 
-    def __init__(self, source_data: dict, verbose: bool = True):
+    def __init__(self, source_data: dict, session_folder_path: str, verbose: bool = True):
         super().__init__(source_data=source_data, verbose=verbose)
 
-        self.session_folder_path = Path(self.data_interface_objects["Recording"].source_data["file_path"]).parent
+        self.session_folder_path = Path(session_folder_path)
         self.session_id = self.session_folder_path.stem
 
     def get_metadata(self):

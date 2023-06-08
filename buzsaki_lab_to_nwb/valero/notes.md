@@ -171,6 +171,8 @@ This figure S7D is useful for understanding the epochs:
     * Plus a folder with `unindexed subjects`.
     In the `session.mat` the subject name apperas as `fCamk` so I could check if that's the case for the sessions with non-standard name.
 
+This should not matter because the author specified which sessions they want converted by email. Just pick those.
+
 * Is this a typo one the figure 1:
     > (M) Group results for five cells from five anesthetized rats (green) and five cells from four head-fixed mice (pink).
 
@@ -184,7 +186,7 @@ This figure S7D is useful for understanding the epochs:
 *  in `session.mat` surgery there is actually a start time that matches 9 to 1pm. Four hours of surgery. I thought that that might be the whole session but that was 5 hours. So, I am not sure what the surgery time is.
 * What is HSE? (Probably means high synchrony event)
 * What is UDStates (Up and down states)
-* What is ACG? (I think this is a correlogram)
+* What is ACG? (I think this is a autocorrelogram)
 * What does DigitalIn represents?
 * What is pullTime?
 * What is `ws_temp` ?
@@ -197,12 +199,17 @@ This figure S7D is useful for understanding the epochs:
  'WAKEnontheta',
  'WAKEtheta_ThDt',
  'REMtheta_ThDt',
- 'QWake_ThDt',
+ 'QWake_ThDt',  #
  'QWake_noRipples_ThDt',
  'NREM_ThDt',
  'NREM_noRipples_ThDt']
  ```
 I am wondering what is the `ThDt`.
+
+OK, the author replied about this:
+> 3) ThDT represents a slightly different classification of states based on the old standard and corrected by the theta/delta ratio (for theta state characterization, it uses a theta/delta ratio higher than 2), otherwise is the same. QWake is quiet wakefulness, this is, the WAKE period after substracting all hight theta periods (which correspond with locomotion of the animals).
+
+It is not very clear to me how to do add this information. Should I add an extensive description on the IntervalsTable of the SleepStatesInterface?
 
 ## Synchronization and times
 
