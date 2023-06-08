@@ -53,7 +53,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     # Add videos
     folder_path = session_dir_path
     source_data.update(Video=dict(folder_path=str(folder_path)))
-    conversion_options.update(Video=dict(stub_test=stub_test))
+    conversion_options.update(Video=dict(stub_test=stub_test, external_mode=True))
 
     # Add epochs
     folder_path = session_dir_path
@@ -114,15 +114,15 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/home/heberto/buzaki")
     # session_dir_path = project_root / "fCamk1_200827_sess9"
-    session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
+    # session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
     # session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
-    # session_dir_path = project_root / "fCamk3_201030_sess12"
+    session_dir_path = project_root / "fCamk3_201030_sess12"
     nwbfile = session_to_nwbfile(
         session_dir_path,
         output_dir_path,
@@ -131,13 +131,9 @@ if __name__ == "__main__":
         verbose=verbose,
     )
 
-    # import pandas as pd
-    # dataframe = nwbfile.electrodes.to_dataframe()
-    # # Show all the entries of the dataframe
-    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
-    #     print(dataframe)
+    import pandas as pd
 
-    # unique_channels = dataframe.channel_name.unique()
-    # print(f"Unique channels size: {len(unique_channels)}")
-    # print(unique_channels)
-    # print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])
+    dataframe = nwbfile.electrodes.to_dataframe()
+    # Show all the entries of the dataframe
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        print(dataframe)
