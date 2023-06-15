@@ -180,12 +180,10 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         merged_behavior_descriptions = mat_file["behavior"]["description"]
 
         if nest_depth > 1:
-            merged_behavior_descriptions = ";".join(
-                np.unique(mat_file["behavior"]["description"])
-            )  # NOTE: Description is an array in this case
+            merged_behavior_descriptions = ", ".join(mat_file["behavior"]["description"])  # NOTE: Description is an array in this case
 
-        description = f"The behavior of the subject in the following conditions: {merged_behavior_descriptions}"
-        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=description)
+        complete_behavior_description = f"The behavior of the subject for the following recordings: {merged_behavior_descriptions}"
+        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=complete_behavior_description)
 
         pos_obj = Position(
             name="SubjectPosition",
