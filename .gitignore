@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 
 buzsaki_lab_to_nwb/huszar_hippocampus_dynamics/_json_files
+buzsaki_lab_to_nwb/valero/_json_files

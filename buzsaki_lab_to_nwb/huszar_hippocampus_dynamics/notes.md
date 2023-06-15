@@ -1,5 +1,6 @@
 
-Some useful information. The link to the [paper](https://www.researchgate.net/publication/360752155_Preconfigured_dynamics_in_the_hippocampus_are_guided_by_embryonic_birthdate_and_rate_of_neurogenesis)
+### Some useful information. 
+The link to the [paper](https://www.researchgate.net/publication/360752155_Preconfigured_dynamics_in_the_hippocampus_are_guided_by_embryonic_birthdate_and_rate_of_neurogenesis)
 
 
 Peter Petersen, one of the members of the Buzsaki lab, has shared with us the following documents that contain the structure of the cell explorer format:
