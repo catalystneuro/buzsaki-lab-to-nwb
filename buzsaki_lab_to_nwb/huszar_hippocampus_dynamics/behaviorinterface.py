@@ -187,7 +187,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
 
         pos_obj = Position(
             name="SubjectPosition",
-            description=f'The position of the subject in the following conditions: {merged_behavior_descriptions}'
+            description=f"The position of the subject in the following conditions: {merged_behavior_descriptions}",
         )
 
         spatial_series_object = SpatialSeries(
@@ -207,7 +207,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         # Add linearized information
         linearized_pos_obj = Position(
             name="LinearizedPosition",
-            description=f'The linearized position of the subject in the following conditions: {merged_behavior_descriptions}'
+            description=f"The linearized position of the subject in the following conditions: {merged_behavior_descriptions}",
         )
 
         linearized_spatial_series_object = SpatialSeries(
