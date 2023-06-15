@@ -48,8 +48,8 @@ class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
         assert np.all(np.diff(timestamps) > 0)
 
         events = LabeledEvents(
-            name="RewardEvents8MazeTrack",
-            description="rewards in a figure 8 maze",
+            name="RewardEventsEightMazeTrack",
+            description="rewards in a figure-eight maze",
             timestamps=timestamps,
             data=data,
             labels=["right_reward", "left_reward"],
@@ -154,8 +154,8 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
-        module_name = "Figure 8 maze"
-        module_description = "A figure 8 maze"
+        module_name = "FigureEightMaze"
+        module_description = "A figure-eight maze"
         processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
