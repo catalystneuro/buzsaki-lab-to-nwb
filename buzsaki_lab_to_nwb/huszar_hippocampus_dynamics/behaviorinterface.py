@@ -68,9 +68,11 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
-        module_name = "Neural states"
-        module_description = "Contains behavioral data concerning classified states."
-        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        # module_name = "Neural states"
+        # module_description = "Contains behavioral data concerning classified states."
+        # processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+
         # Sleep states
         sleep_states_file_path = self.session_path / f"{self.session_id}.SleepState.states.mat"
 
@@ -154,9 +156,10 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
-        module_name = "FigureEightMaze"
-        module_description = "A figure-eight maze"
-        processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        # module_name = "FigureEightMaze"
+        # module_description = "A figure-eight maze"
+        # processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
         mat_file = loadmat_scipy(file_path, simplify_cells=True)
@@ -175,16 +178,20 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         nest_depth = len(mat_file["behavior"]["trials"]["position_trcat"])
 
         # Merge unique descriptions if there are nested entries inside the behavior file
-        description = mat_file["behavior"]["description"]
+        merged_behavior_descriptions = mat_file["behavior"]["description"]
 
         if nest_depth > 1:
-            description = ";".join(
+            merged_behavior_descriptions = ";".join(
                 np.unique(mat_file["behavior"]["description"])
             )  # NOTE: Description is an array in this case
 
-        pos_obj = Position(name=description)
+        pos_obj = Position(
+            name="SubjectPosition",
+            description=f'The position of the subject in the following conditions: {merged_behavior_descriptions}'
+        )
+
         spatial_series_object = SpatialSeries(
-            name="position",
+            name="SpatialSeries",
             description="(x,y) coordinates tracking subject movement.",
             data=H5DataIO(data, compression="gzip"),
             reference_frame=reference_frame,
@@ -193,13 +200,30 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
             timestamps=timestamps,
             resolution=np.nan,
         )
-        pos_obj.add_spatial_series(spatial_series_object)
-        processing_module.add_data_interface(pos_obj)
 
-        time_series = TimeSeries(
-            name="linearized_position", data=lin, unit=unit, timestamps=timestamps, resolution=np.nan
+        pos_obj.add_spatial_series(spatial_series_object)
+        processing_module.add(pos_obj)
+
+        # Add linearized information
+        linearized_pos_obj = Position(
+            name="LinearizedPosition",
+            description=f'The linearized position of the subject in the following conditions: {merged_behavior_descriptions}'
         )
-        processing_module.add_data_interface(time_series)
+
+        linearized_spatial_series_object = SpatialSeries(
+            name="LinearizedSpatialSeries",
+            description="Linearization of the (x,y) coordinates tracking subject movement.",
+            data=H5DataIO(lin, compression="gzip"),
+            unit=unit,
+            reference_frame=reference_frame,
+            conversion=conversion,
+            timestamps=timestamps,
+            resolution=np.nan,
+        )
+
+        pos_obj.add_spatial_series(linearized_spatial_series_object)
+
+        processing_module.add(linearized_pos_obj)
 
     def align_timestamps(self, aligned_timestamps: np.ndarray):
         """
