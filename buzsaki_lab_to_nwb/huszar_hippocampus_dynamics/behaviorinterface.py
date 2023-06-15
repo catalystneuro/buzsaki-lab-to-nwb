@@ -159,7 +159,6 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         # module_name = "FigureEightMaze"
         # module_description = "A figure-eight maze"
         # processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
-        processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
         mat_file = loadmat_scipy(file_path, simplify_cells=True)
@@ -185,9 +184,12 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
                 np.unique(mat_file["behavior"]["description"])
             )  # NOTE: Description is an array in this case
 
+        description=f'The behavior of the subject in the following conditions: {merged_behavior_descriptions}'
+        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=description)
+
+
         pos_obj = Position(
             name="SubjectPosition",
-            description=f'The position of the subject in the following conditions: {merged_behavior_descriptions}'
         )
 
         spatial_series_object = SpatialSeries(
@@ -207,7 +209,6 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         # Add linearized information
         linearized_pos_obj = Position(
             name="LinearizedPosition",
-            description=f'The linearized position of the subject in the following conditions: {merged_behavior_descriptions}'
         )
 
         linearized_spatial_series_object = SpatialSeries(
