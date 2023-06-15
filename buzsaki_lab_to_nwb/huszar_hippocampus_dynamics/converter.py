@@ -89,7 +89,7 @@ class HuzsarNWBConverter(NWBConverter):
         metadata["NWBFile"]["session_id"] = session_mat["session"]["general"]["name"]
 
         possibleNote = session_mat["session"]["general"]["notes"]
-        ignoredNotes = [ "Notes:    Description from xml: " ]
+        ignoredNotes = ["Notes:    Description from xml: "]
         if not any(x in possibleNote for x in ignoredNotes):
             metadata["NWBFile"]["notes"] = possibleNote
 
