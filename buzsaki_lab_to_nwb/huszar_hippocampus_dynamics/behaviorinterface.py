@@ -184,9 +184,8 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
                 np.unique(mat_file["behavior"]["description"])
             )  # NOTE: Description is an array in this case
 
-        description=f'The behavior of the subject in the following conditions: {merged_behavior_descriptions}'
+        description = f"The behavior of the subject in the following conditions: {merged_behavior_descriptions}"
         processing_module = get_module(nwbfile=nwbfile, name="behavior", description=description)
-
 
         pos_obj = Position(
             name="SubjectPosition",
