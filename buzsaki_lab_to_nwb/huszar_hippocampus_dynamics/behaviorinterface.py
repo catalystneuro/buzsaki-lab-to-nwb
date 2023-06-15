@@ -49,7 +49,7 @@ class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
 
         events = LabeledEvents(
             name="RewardEventsEightMazeTrack",
-            description="rewards in a figure-eight maze",
+            description="Rewards in a figure-eight maze",
             timestamps=timestamps,
             data=data,
             labels=["right_reward", "left_reward"],
@@ -82,7 +82,7 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
 
         state_label_names = dict(WAKEstate="Awake", NREMstate="Non-REM", REMstate="REM")
         sleep_state_dic = mat_file["SleepState"]["ints"]
-        table = TimeIntervals(name="Sleep states", description="Sleep state of the animal.")
+        table = TimeIntervals(name="SleepStates", description="Sleep state of the animal.")
         table.add_column(name="label", description="Sleep state.")
 
         data = []
