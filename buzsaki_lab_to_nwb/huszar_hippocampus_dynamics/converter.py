@@ -87,7 +87,11 @@ class HuzsarNWBConverter(NWBConverter):
         # Add additional NWBFile metadata
         # NOTE: experimenters is specifid in the metadata.yml file
         metadata["NWBFile"]["session_id"] = session_mat["session"]["general"]["name"]
-        metadata["NWBFile"]["notes"] = session_mat["session"]["general"]["notes"]
+
+        possibleNote = session_mat["session"]["general"]["notes"]
+        ignoredNotes = [ "Notes:    Description from xml: " ]
+        if not any(x in possibleNote for x in ignoredNotes):
+            metadata["NWBFile"]["notes"] = possibleNote
 
         # Add Subject metadata
         subject_metadata = session_mat["session"]["animal"]
