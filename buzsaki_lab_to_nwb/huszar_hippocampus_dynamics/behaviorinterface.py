@@ -222,7 +222,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
             resolution=np.nan,
         )
 
-        pos_obj.add_spatial_series(linearized_spatial_series_object)
+        linearized_pos_obj.add_spatial_series(linearized_spatial_series_object)
 
         processing_module.add(linearized_pos_obj)
 
