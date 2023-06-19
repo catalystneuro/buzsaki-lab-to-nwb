@@ -43,7 +43,7 @@ https://www.neurolighttech.com/product
 The fact sheet of thei probes is a good source of info:
 https://www.neurolighttech.com/_files/ugd/63a305_28d96686c0ec4cc18b728b2c5c9b7d78.pdf
 
-In particular, we know they use an `Intan RHD2132 Amplifier Board`. This is a 32 channel amplifier.
+In particular, we know they use an `Intan RHD2132 Amplifier Board`. This is a 32 channel amplifier. This is the ones that connects directly to the probe.
 
 https://intantech.com/products_RHD2000.html
 
