@@ -53,7 +53,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     # Add videos
     folder_path = session_dir_path
     source_data.update(Video=dict(folder_path=str(folder_path)))
-    conversion_options.update(Video=dict(stub_test=stub_test))
+    conversion_options.update(Video=dict(stub_test=stub_test, external_mode=True))
 
     # Add epochs
     folder_path = session_dir_path
@@ -92,7 +92,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
 
     # Build the converter
-    converter = ValeroNWBConverter(source_data=source_data, verbose=verbose)
+    converter = ValeroNWBConverter(source_data=source_data, session_folder_path=str(session_dir_path), verbose=verbose)
 
     # Session start time (missing time, only the date part)
     metadata = converter.get_metadata()
@@ -131,13 +131,9 @@ if __name__ == "__main__":
         verbose=verbose,
     )
 
-    # import pandas as pd
-    # dataframe = nwbfile.electrodes.to_dataframe()
-    # # Show all the entries of the dataframe
-    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
-    #     print(dataframe)
+    import pandas as pd
 
-    # unique_channels = dataframe.channel_name.unique()
-    # print(f"Unique channels size: {len(unique_channels)}")
-    # print(unique_channels)
-    # print(dataframe.loc[dataframe["channel_name"] == "ch20grp0"])
+    dataframe = nwbfile.electrodes.to_dataframe()
+    # Show all the entries of the dataframe
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        print(dataframe)

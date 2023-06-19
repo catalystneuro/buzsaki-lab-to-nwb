@@ -36,6 +36,73 @@ class ValeroVideoInterface(VideoInterface):
         self.sorted_epoch_to_video_info = {k: v for k, v in sorted_items}
         file_paths = [info["file_path"] for info in self.sorted_epoch_to_video_info.values()]
 
+        from neuroconv.datainterfaces.behavior.video.video_utils import (
+            VideoCaptureContext,
+        )
+
+        self._starting_frames = [0]
+        for file_index, file_path in enumerate(file_paths):
+            with VideoCaptureContext(file_path=str(file_path)) as video_capture:
+                self._starting_frames.append(video_capture.get_video_frame_count())
+
+        self._starting_frames = self._starting_frames[:-1]
         super().__init__(file_paths, verbose)
 
-        self._segment_starting_times = [info["start_time"] for info in self.sorted_epoch_to_video_info.values()]
+        self.segment_starting_times = [info["start_time"] for info in self.sorted_epoch_to_video_info.values()]
+
+    def get_metadata(self):
+        metadata = super().get_metadata()
+        behavior_metadata = dict(
+            Videos=[
+                dict(
+                    name=f"ImageSeriesTrackingVideo{index + 1}",
+                    description="Video recorded with Basler camera.",
+                    unit="Frames",
+                )
+                for index, file_path in enumerate(self.source_data["file_paths"])
+            ]
+        )
+        metadata["Behavior"] = behavior_metadata
+
+        return metadata
+
+    def run_conversion(
+        self,
+        nwbfile_path: Optional[FilePathType] = None,
+        nwbfile: Optional[NWBFile] = None,
+        metadata: Optional[dict] = None,
+        overwrite: bool = False,
+        stub_test: bool = False,
+        external_mode: bool = True,
+        starting_frames: Optional[list] = None,
+        chunk_data: bool = True,
+        module_name: Optional[str] = None,
+        module_description: Optional[str] = None,
+        compression: Optional[str] = "gzip",
+        compression_options: Optional[int] = None,
+    ):
+        file_paths = self.source_data["file_paths"]
+        if starting_frames is None:
+            starting_frames = self._starting_frames
+
+        self._timestamps = self.get_original_timestamps(stub_test=stub_test)
+        self.set_aligned_segment_starting_times(
+            aligned_segment_starting_times=self.segment_starting_times, stub_test=stub_test
+        )
+
+        nwbfile_out = super().run_conversion(
+            nwbfile_path=nwbfile_path,
+            nwbfile=nwbfile,
+            metadata=metadata,
+            overwrite=overwrite,
+            stub_test=stub_test,
+            external_mode=external_mode,
+            starting_frames=starting_frames,
+            chunk_data=chunk_data,
+            module_name=module_name,
+            module_description=module_description,
+            compression=compression,
+            compression_options=compression_options,
+        )
+
+        return nwbfile_out

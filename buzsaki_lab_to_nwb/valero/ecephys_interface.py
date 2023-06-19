@@ -14,7 +14,7 @@ def add_extra_properties_to_recorder(recording_extractor, folder_path):
     session_path = Path(folder_path)
     session_id = session_path.stem
 
-    # We use the behavioral cellinfo file to get the trial intervals
+    # This is a file that is used as an input for kilosort
     chan_map_path = session_path / f"chanMap.mat"
     assert chan_map_path.exists(), f"chanMap.mat file not found: {chan_map_path}"
 
