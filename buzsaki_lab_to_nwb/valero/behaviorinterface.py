@@ -1,3 +1,4 @@
+import json
 import warnings
 from pathlib import Path
 
@@ -168,7 +169,6 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
             "Sleep state of the subject."
             "Estimated using `https://github.com/buzsakilab/buzcode/tree/master/detectors/detectStates/SleepScoreMaster`"
         )
-        import json
 
         description_of_available_states = {state: description_of_states[state] for state in available_states}
         description = f"Description of states : {json.dumps(description_of_available_states, indent=4)}"
