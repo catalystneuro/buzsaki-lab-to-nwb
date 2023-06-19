@@ -1,14 +1,12 @@
 from pathlib import Path
 
 import numpy as np
-from pynwb.file import NWBFile, TimeIntervals, TimeSeries
-from pynwb.behavior import SpatialSeries, Position, CompassDirection
 from hdmf.backends.hdf5.h5_utils import H5DataIO
-
-from neuroconv.utils.json_schema import FolderPathType
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
-
+from neuroconv.utils.json_schema import FolderPathType
+from pynwb.behavior import CompassDirection, Position, SpatialSeries
+from pynwb.file import NWBFile, TimeIntervals, TimeSeries
 from scipy.io import loadmat as loadmat_scipy
 
 
@@ -16,7 +14,7 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
@@ -102,7 +100,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 

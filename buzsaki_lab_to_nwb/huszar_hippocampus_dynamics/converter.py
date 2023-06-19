@@ -1,17 +1,21 @@
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import numpy as np
+from neuroconv import NWBConverter
 from scipy.io import loadmat as loadmat_scipy
 
-from neuroconv import NWBConverter
-
 from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import (
-    HuzsarBehaviorSleepInterface,
     HuszarBehavior8MazeInterface,
+    HuzsarBehaviorSleepInterface,
 )
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.sortinginterface import CellExplorerSortingInterface
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.electordesinterface import (
+    HuszarElectrodeInterface,
+)
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.sortinginterface import (
+    CellExplorerSortingInterface,
+)
 
 
 class HuzsarNWBConverter(NWBConverter):
@@ -21,6 +25,7 @@ class HuzsarNWBConverter(NWBConverter):
         Sorting=CellExplorerSortingInterface,
         Behavior8Maze=HuszarBehavior8MazeInterface,
         BehaviorSleep=HuzsarBehaviorSleepInterface,
+        Electrodes=HuszarElectrodeInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):

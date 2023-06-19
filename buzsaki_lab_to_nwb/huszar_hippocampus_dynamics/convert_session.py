@@ -1,12 +1,12 @@
 """Primary script to run to convert an entire session of data using the NWBConverter."""
 import datetime
-from zoneinfo import ZoneInfo
 import warnings
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from neuroconv.utils import load_dict_from_file, dict_deep_update
+from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics import HuzsarNWBConverter
-from pathlib import Path
 
 
 def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=False):
@@ -32,6 +32,7 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     # Add behavior data
     source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
+    source_data.update(Electrodes=dict(folder_path=str(session_dir_path)))
 
     # Build the converter
     converter = HuzsarNWBConverter(source_data=source_data, verbose=verbose)
@@ -48,12 +49,14 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     conversion_options = dict(
         Behavior8Maze=dict(stub_test=stub_test),
     )
-    converter.run_conversion(
+    nwbfile = converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
         conversion_options=conversion_options,
         overwrite=True,
     )
+
+    return nwbfile
 
 
 if __name__ == "__main__":
@@ -61,5 +64,17 @@ if __name__ == "__main__":
     stub_test = False  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     output_dir_path = Path.home() / "conversion_nwb"
-    session_dir_path = Path("/home/heberto/buzaki/e13_16f1_210302/")
-    session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+    project_root = Path("/media/heberto/One Touch/Buzsaki/optotagCA1")
+    session_dir_path = project_root / "e13" / "e13_16f1" / "e13_16f1_210302"
+    assert session_dir_path.is_dir()
+    nwbfile = session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+
+    # import pandas as pd
+    # # Open the NWB file from output_dir_path
+    # from pynwb import NWBHDF5IO
+    # nwbfile = NWBHDF5IO(output_dir_path / f"{session_dir_path.name}.nwb", "r").read()
+
+    # dataframe = nwbfile.electrodes.to_dataframe()
+    # # Show all the entries of the dataframe
+    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
+    #     print(dataframe)
