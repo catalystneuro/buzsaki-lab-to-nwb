@@ -48,10 +48,9 @@ class HuszarElectrodeInterface(BaseDataInterface):
 
         # This should transform to microvolts which is the standard in spikeinterface
         recording.set_channel_gains(channel_ids=channel_ids, gains=np.ones(num_channels) * 0.195)
-        recording.set_channel_offsets(channel_ids=channel_ids, offsets=np.ones(num_channels) * 32_768)
+        # Probably we should not use this if we use Neuroscope convention
+        # recording.set_channel_offsets(channel_ids=channel_ids, offsets=np.ones(num_channels) * -32768 * 0.195)
         recording.set_property(key="group", ids=channel_ids, values=channel_groups)
         recording.set_property(key="group_name", ids=channel_ids, values=channel_group_names)
 
         add_electrodes(recording=recording, nwbfile=nwbfile)
-
-        x = 1
