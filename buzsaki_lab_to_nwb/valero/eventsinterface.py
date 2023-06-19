@@ -48,7 +48,7 @@ class ValeroHSUPDownEventsInterface(BaseDataInterface):
 
         # Create TimeIntervals
         name = "UpDownStatesTimeIntervals"
-        description = "TBD"
+        description = "TBD"  # TODO Cody, what do you think is a good description of this?
         states_intervals = TimeIntervals(name=name, description=description)
 
         # Add a new column for states
