@@ -1,3 +1,4 @@
+import json
 import warnings
 from pathlib import Path
 
@@ -151,7 +152,27 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
         sleep_intervals = mat_file["SleepState"]["ints"]
         available_states = [str(key) for key in sleep_intervals.keys()]
 
-        table = TimeIntervals(name="SleepStates", description="Sleep state of the subject.")
+        description_of_states = {
+            "WAKEstate": "Waked and in locomotion",
+            "NREMstate": "Non-REM sleep",
+            "REMstate": "Rapid eye movement sleep",
+            "WAKEtheta": "Wake with theta",
+            "WAKEnontheta": "Wake without theta",
+            "WAKEtheta_ThDt": "Wake with theta, estimated with higher theta/delta ratio",
+            "REMtheta_ThDt": "REM sleep with theta, estimated with higher theta/delta ratio",
+            "QWake_ThDt": "Quiet wakefulness esimated with higher theta/delta ratio",
+            "QWake_noRipples_ThDt": "Quite wakefulness without ripples, estimated with higher theta/delta ratio",
+            "NREM_ThDt": "Non-REM sleep, estimated with higher theta/delta ratio",
+            "NREM_noRipples_ThDt": "Non-REM sleep without ripples, estimated with higher theta/delta ratio",
+        }
+        description = (
+            "Sleep state of the subject."
+            "Estimated using `https://github.com/buzsakilab/buzcode/tree/master/detectors/detectStates/SleepScoreMaster`"
+        )
+
+        description_of_available_states = {state: description_of_states[state] for state in available_states}
+        description = f"Description of states : {json.dumps(description_of_available_states, indent=4)}"
+        table = TimeIntervals(name="SleepStates", description=description)
         table.add_column(name="label", description="Sleep state.")
 
         table_rows = []
