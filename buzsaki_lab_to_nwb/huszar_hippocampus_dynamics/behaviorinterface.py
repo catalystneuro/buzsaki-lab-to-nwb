@@ -170,8 +170,8 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         y = position["y"]
         data = np.column_stack((x, y))
 
-        unit = "cm"
-        conversion = 100.0  # cm to m TODO: Double check if this is the meaning.
+        unit = "true_unit_of_data"
+        conversion = 1.0
         reference_frame = "Arbitrary, camera"
 
         nest_depth = len(mat_file["behavior"]["trials"]["position_trcat"])

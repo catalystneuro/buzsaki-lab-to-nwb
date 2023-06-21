@@ -38,21 +38,28 @@ class HuszarTrialsInterface(BaseDataInterface):
         trial_info = behavior_mat["behavior"]["trials"]
         trial_interval_list = access_behavior_property_safe("trial_ints", trial_info, behavior_mat)
 
-        data = []
+        familiar_final_idx = len(trial_info["trial_ints"])
+        if (len(trial_info["position_trcat"]) > 1):
+                familiar_final_idx = len(trial_info["trial_ints"][0])
 
-        for start_time, stop_time in trial_interval_list:
+        data = []
+        is_familiar_maze = []
+
+        for idx, times in trial_interval_list.enumerate():
             data.append(
                 dict(
-                    start_time=float(start_time),
-                    stop_time=float(stop_time),
+                    start_time=float(times[0]),
+                    stop_time=float(times[1]),
                 )
             )
+
+            is_familiar_maze.append(idx < familiar_final_idx)
 
         [nwbfile.add_trial(**row) for row in sorted(data, key=lambda x: x["start_time"])]
 
         nwbfile.add_trial_column(
-            name="choice",
-            description="An value of 0 or 1 representing whether the expected and visited arm of the trial matches",
+            name="visited_matched_expected",
+            description="A boolean representing whether the expected and visited arm of the trial matches",
             data=trial_info["choice"],
         )
         nwbfile.add_trial_column(
@@ -69,6 +76,12 @@ class HuszarTrialsInterface(BaseDataInterface):
             name="recordings",
             description="An integer value representing which recording this trial belongs to",
             data=trial_info["recordings"],
+        )
+
+        nwbfile.add_trial_column(
+            name="is_familiar_maze",
+            description="A boolean representing whether the maze is familiar or novel",
+            data=is_familiar_maze,
         )
         # nwbfile.add_trial_column(name="start_point", description="start point of the trial", data=trial_info['startPoint'])
         # nwbfile.add_trial_column(name="end_delay", description="end delay of the trial", data=trial_info['endDelay'])
