@@ -39,8 +39,8 @@ class HuszarTrialsInterface(BaseDataInterface):
         trial_interval_list = access_behavior_property_safe("trial_ints", trial_info, behavior_mat)
 
         familiar_final_idx = len(trial_info["trial_ints"])
-        if (len(trial_info["position_trcat"]) > 1):
-                familiar_final_idx = len(trial_info["trial_ints"][0])
+        if len(trial_info["position_trcat"]) > 1:
+            familiar_final_idx = len(trial_info["trial_ints"][0])
 
         data = []
         is_familiar_maze = []
