@@ -1,5 +1,6 @@
 """Primary script to run to convert an entire session of data using the NWBConverter."""
 from pathlib import Path
+from warnings import warn
 
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
@@ -28,23 +29,27 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
     # Add Recording
     file_path = session_dir_path / f"{session_id}.dat"
-    assert file_path.is_file()
     xml_file_path = session_dir_path / f"{session_id}.xml"
     folder_path = session_dir_path
-    source_data.update(
-        Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
-    )
-    conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+    if file_path.is_file() and xml_file_path.is_file():
+        source_data.update(
+            Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
+        )
+        conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+    else:
+        warn(f"Skipping recording interface for {session_id} because the file {file_path} does not exist.")
 
     # Add LFP
     file_path = session_dir_path / f"{session_id}.lfp"
-    assert file_path.is_file()
     xml_file_path = session_dir_path / f"{session_id}.xml"
-    folder_path = session_dir_path
-    source_data.update(
-        LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
-    )
-    conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+    if file_path.is_file() and xml_file_path.is_file():
+        folder_path = session_dir_path
+        source_data.update(
+            LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
+        )
+        conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+    else:
+        warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
 
     # Add sorter
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
@@ -102,14 +107,12 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    nwbfile = converter.run_conversion(
+    converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
         conversion_options=conversion_options,
         overwrite=True,
     )
-
-    return nwbfile
 
 
 if __name__ == "__main__":
@@ -118,12 +121,12 @@ if __name__ == "__main__":
     verbose = True
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
-    project_root = Path("/home/heberto/buzaki")
-    # session_dir_path = project_root / "fCamk1_200827_sess9"
-    session_dir_path = project_root / "fCamk2" / "fCamk2_201012_sess1"
-    # session_dir_path = project_root / "fCamk2" / "fCamk2_201013_sess2"
-    # session_dir_path = project_root / "fCamk3_201030_sess12"
-    nwbfile = session_to_nwbfile(
+    project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
+    subject_path = project_root_path / "fCamk1"
+    subject_path = project_root_path / "fCamk2"
+    session_dir_path = subject_path / "fCamk2_201015_sess4"
+
+    session_to_nwbfile(
         session_dir_path,
         output_dir_path,
         stub_test=stub_test,
@@ -131,9 +134,11 @@ if __name__ == "__main__":
         verbose=verbose,
     )
 
-    import pandas as pd
+    # import pandas as pd
+    # from pynwb import NWBHDF5IO
+    # nwbfile = NWBHDF5IO(output_dir_path / f"{session_dir_path.name}.nwb", "r").read()
 
-    dataframe = nwbfile.electrodes.to_dataframe()
-    # Show all the entries of the dataframe
-    with pd.option_context("display.max_rows", None, "display.max_columns", None):
-        print(dataframe)
+    # dataframe = nwbfile.electrodes.to_dataframe()
+    # # Show all the entries of the dataframe
+    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
+    #     print(dataframe)

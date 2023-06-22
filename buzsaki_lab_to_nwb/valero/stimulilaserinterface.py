@@ -17,17 +17,17 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
         pulses_data_path = self.session_path / f"{self.session_id}.pulses.events.mat"
         assert pulses_data_path.is_file(), f"{pulses_data_path} not found"
 
-        mat_file = read_mat(pulses_data_path)
+        ignore_fields = ["duration"]
+        mat_file = read_mat(pulses_data_path, ignore_fields=ignore_fields)
         pulses_data = mat_file["pulses"]
         pulse_intervals = pulses_data["timestamps"]
-        pulse_micro_led = pulses_data["analogChannel"]
         pulse_amplitude = pulses_data["amplitude"]
 
         # Create device
@@ -36,6 +36,21 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
             neurolight_probe = nwbfile.create_device(**device_metadata)
         else:
             neurolight_probe = nwbfile.devices[device_metadata["name"]]
+
+        site_identity_is_available = "analogueChannel" in pulses_data or "analogChannelsList" in pulses_data
+        if site_identity_is_available:
+            pulse_micro_led = pulses_data.get("analogChannel", None)
+            pulse_micro_led = pulses_data["analogChannelsList"] if pulse_micro_led is None else pulse_micro_led
+            self.add_one_optogenetic_series_per_site(
+                nwbfile, neurolight_probe, pulse_intervals, pulse_amplitude, pulse_micro_led
+            )
+        else:
+            # Maybe we should a single optogenetic series for all sites
+            return None
+
+    def add_one_optogenetic_series_per_site(
+        self, nwbfile: NWBFile, neurolight_probe, pulse_intervals, pulse_amplitude, pulse_micro_led
+    ):
         # Create the sites
         site_description = f"Microled site in Neurolight probe. Microscopic LED 10 x 15 µm each, 3 per shank. Each μLED has an emission area of 150 μm2"
         location = "dorsal right hippocampus (antero-posterior 2.0 mm, mediolateral 1.5 mm, dorsoventral 0.6 mm)"
@@ -101,7 +116,7 @@ class ValeroLaserPulsesInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 

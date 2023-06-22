@@ -66,12 +66,10 @@ class ValeroVideoInterface(VideoInterface):
 
         return metadata
 
-    def run_conversion(
+    def add_to_nwb(
         self,
-        nwbfile_path: Optional[FilePathType] = None,
         nwbfile: Optional[NWBFile] = None,
         metadata: Optional[dict] = None,
-        overwrite: bool = False,
         stub_test: bool = False,
         external_mode: bool = True,
         starting_frames: Optional[list] = None,
@@ -90,11 +88,9 @@ class ValeroVideoInterface(VideoInterface):
             aligned_segment_starting_times=self.segment_starting_times, stub_test=stub_test
         )
 
-        nwbfile_out = super().run_conversion(
-            nwbfile_path=nwbfile_path,
+        nwbfile_out = super().add_to_nwb(
             nwbfile=nwbfile,
             metadata=metadata,
-            overwrite=overwrite,
             stub_test=stub_test,
             external_mode=external_mode,
             starting_frames=starting_frames,

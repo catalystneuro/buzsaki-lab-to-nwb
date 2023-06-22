@@ -17,7 +17,7 @@ class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
@@ -68,7 +68,7 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
@@ -136,11 +136,9 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
-
-        processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         # Sleep states
         sleep_states_file_path = self.session_path / f"{self.session_id}.SleepState.states.mat"
@@ -150,7 +148,7 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
         mat_file = read_mat(sleep_states_file_path)
 
         sleep_intervals = mat_file["SleepState"]["ints"]
-        available_states = [str(key) for key in sleep_intervals.keys()]
+        sleep_intervals = {key: value for key, value in sleep_intervals.items() if value.shape[0] > 0}
 
         description_of_states = {
             "WAKEstate": "Waked and in locomotion",
@@ -170,17 +168,24 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
             "Estimated using `https://github.com/buzsakilab/buzcode/tree/master/detectors/detectStates/SleepScoreMaster`"
         )
 
-        description_of_available_states = {state: description_of_states[state] for state in available_states}
+        description_of_available_states = {state: description_of_states[state] for state in sleep_intervals}
         description = f"Description of states : {json.dumps(description_of_available_states, indent=4)}"
-        table = TimeIntervals(name="SleepStates", description=description)
-        table.add_column(name="label", description="Sleep state.")
 
         table_rows = []
         for state_name, state_intervals in sleep_intervals.items():
-            for start_time, stop_time in state_intervals:
+            if state_intervals.ndim > 1:
+                for start_time, stop_time in state_intervals:
+                    row_as_dict = dict(start_time=float(start_time), stop_time=float(stop_time), label=state_name)
+                    table_rows.append(row_as_dict)
+            else:  # This is necessary because `read_mat` returns a 1D array if there is only one interval
+                start_time, stop_time = state_intervals
                 row_as_dict = dict(start_time=float(start_time), stop_time=float(stop_time), label=state_name)
                 table_rows.append(row_as_dict)
 
+        time_intervals = TimeIntervals(name="SleepStates", description=description)
+        time_intervals.add_column(name="label", description="Sleep state.")
         sorted_table = sorted(table_rows, key=lambda x: (x["start_time"], x["stop_time"]))
-        [table.add_row(**row_as_dict) for row_as_dict in sorted_table]
-        processing_module.add(table)
+        [time_intervals.add_row(**row_as_dict) for row_as_dict in sorted_table]
+
+        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+        processing_module.add(time_intervals)

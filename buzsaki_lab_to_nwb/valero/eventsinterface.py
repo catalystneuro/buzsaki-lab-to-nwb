@@ -1,5 +1,6 @@
-import warnings
+import json
 from pathlib import Path
+from warnings import warn
 
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
@@ -15,22 +16,49 @@ class ValeroHSUPDownEventsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
         # We use the behavioral cellinfo file to get the trial intervals
         up_down_states_file_path = self.session_path / f"{self.session_id}.UDStates.events.mat"
-        assert up_down_states_file_path.exists(), f"Up down states event file not found: {up_down_states_file_path}"
+        if not up_down_states_file_path.exists():
+            warn(f"Up down states event file not found for session {self.session_id}. Skipping interface")
+            return nwbfile
+
+        up_down_states_definition = (
+            "Up and Down states are a phenomenon observed in neurons, predominantly "
+            "in the cerebral cortex, where they spontaneously fluctuate between periods "
+            "of high (Up state) and low (Down state) activity. The Up state is characterized "
+            "by a high rate of neuronal firing and depolarized membrane potentials, indicating "
+            "active information processing. Conversely, the Down state is associated with a "
+            "low rate of neuronal firing and hyperpolarized membrane potentials, suggesting "
+            "a resting or inactive phase."
+        )
 
         mat_file = read_mat(up_down_states_file_path, variable_names=["UDStates"])
-
         up_and_down_states_data = mat_file["UDStates"]
 
+        detection_kwargs = up_and_down_states_data["detectionInfo"]
+        detection_kwargs_json = json.dumps(detection_kwargs, indent=4)
+        description = up_down_states_definition + f"\n\nDetection parameters:\n{detection_kwargs_json}"
+
         intervals = up_and_down_states_data["ints"]
+        up_data_is_an_interval = intervals["UP"].ndim == 2
+        down_data_is_an_interval = intervals["DOWN"].ndim == 2
+
+        if up_data_is_an_interval and down_data_is_an_interval:
+            self.add_up_and_down_sates_as_intervals(nwbfile, intervals, description)
+        else:
+            warn(f"Up and down states data is not an interval for session_path: {self.session_id}. Skipping.")
+
+        return nwbfile
+
+    def add_up_and_down_sates_as_intervals(self, nwbfile: NWBFile, intervals, description):
         up_intervals = intervals["UP"]
-        up_start_time, up_stop_time = up_intervals[:, 0], up_intervals[:, 1]
         down_intervals = intervals["DOWN"]
+
+        up_start_time, up_stop_time = up_intervals[:, 0], up_intervals[:, 1]
         down_start_time, down_stop_time = down_intervals[:, 0], down_intervals[:, 1]
 
         # Combine and sort UP and DOWN intervals
@@ -48,11 +76,11 @@ class ValeroHSUPDownEventsInterface(BaseDataInterface):
 
         # Create TimeIntervals
         name = "UpDownStatesTimeIntervals"
-        description = "TBD"  # TODO Cody, what do you think is a good description of this?
+
         states_intervals = TimeIntervals(name=name, description=description)
 
         # Add a new column for states
-        states_intervals.add_column(name="state", description="State (UP or DOWN)")
+        states_intervals.add_column(name="state", description="UP or DOWN state")
 
         # Add intervals
         for start_time, stop_time, state in zip(combined_start_times, combined_stop_times, combined_states):
@@ -66,14 +94,14 @@ class ValeroHSEventsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
         # We use the behavioral cellinfo file to get the trial intervals
         hse_data_path = self.session_path / f"{self.session_id}.HSE.mat"
         if not hse_data_path.exists():
-            warnings.warn(f"HSE event file not found: {hse_data_path}. Skipping HSE events interface. \n")
+            warn(f"HSE event file not found: {hse_data_path}. Skipping HSE events interface. \n")
             return nwbfile
 
         mat_file = read_mat(hse_data_path, variable_names=["HSE"])
@@ -105,25 +133,30 @@ class ValeroHSEventsInterface(BaseDataInterface):
 
         processing_module.add(ripple_events_table)
 
+        return nwbfile
+
 
 class ValeroRipplesEventsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
         # We use the behavioral cellinfo file to get the trial intervals
         ripples_file_path = self.session_path / f"{self.session_id}.ripples.events.mat"
-        assert ripples_file_path.exists(), f"Ripples event file not found: {ripples_file_path}"
+        if not ripples_file_path.exists():
+            warn(f"Ripples events file not found for session {self.session_id}. Skipping ripple events interface. \n")
+
+            return nwbfile
 
         mat_file = read_mat(ripples_file_path, variable_names=["ripples"])
         ripples_data = mat_file["ripples"]
 
         ripple_intervals = ripples_data["timestamps"]
         if ripple_intervals.size == 0:
-            warnings.warn(f"\n No ripples found for session: {self.session_id}. Skipping ripple events interface \n")
+            warn(f"\n No ripples found for session: {self.session_id}. Skipping ripple events interface \n")
             return nwbfile
 
         # Name and descriptions
@@ -203,3 +236,5 @@ class ValeroRipplesEventsInterface(BaseDataInterface):
         # Add the events to the ecephys processing module
         processing_module = get_module(nwbfile=nwbfile, name="ecephys")
         processing_module.add(ripple_events_table)
+
+        return nwbfile
