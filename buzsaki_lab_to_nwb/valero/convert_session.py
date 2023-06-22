@@ -123,8 +123,8 @@ if __name__ == "__main__":
     output_dir_path = Path.home() / "conversion_nwb"
     project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
     subject_path = project_root_path / "fCamk1"
-    subject_path = project_root_path / "fCamk2"
-    session_dir_path = subject_path / "fCamk2_201015_sess4"
+    # subject_path = project_root_path / "fCamk2"
+    session_dir_path = subject_path / "fCamk1_200901_sess12"
 
     session_to_nwbfile(
         session_dir_path,

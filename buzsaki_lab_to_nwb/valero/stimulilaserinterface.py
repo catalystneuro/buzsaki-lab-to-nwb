@@ -27,8 +27,6 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
         ignore_fields = ["duration"]
         mat_file = read_mat(pulses_data_path, ignore_fields=ignore_fields)
         pulses_data = mat_file["pulses"]
-        pulse_intervals = pulses_data["timestamps"]
-        pulse_amplitude = pulses_data["amplitude"]
 
         # Create device
         device_metadata = generate_neurolight_device_metadata()
@@ -39,24 +37,36 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
 
         site_identity_is_available = "analogueChannel" in pulses_data or "analogChannelsList" in pulses_data
         if site_identity_is_available:
-            pulse_micro_led = pulses_data.get("analogChannel", None)
-            pulse_micro_led = pulses_data["analogChannelsList"] if pulse_micro_led is None else pulse_micro_led
-            self.add_one_optogenetic_series_per_site(
-                nwbfile, neurolight_probe, pulse_intervals, pulse_amplitude, pulse_micro_led
-            )
+            self.add_one_optogenetic_series_per_site(nwbfile, neurolight_probe, pulses_data)
         else:
             # Maybe we should a single optogenetic series for all sites
             return None
 
-    def add_one_optogenetic_series_per_site(
-        self, nwbfile: NWBFile, neurolight_probe, pulse_intervals, pulse_amplitude, pulse_micro_led
-    ):
+    def add_one_optogenetic_series_per_site(self, nwbfile: NWBFile, neurolight_probe, pulses_data):
         # Create the sites
         site_description = f"Microled site in Neurolight probe. Microscopic LED 10 x 15 µm each, 3 per shank. Each μLED has an emission area of 150 μm2"
         location = "dorsal right hippocampus (antero-posterior 2.0 mm, mediolateral 1.5 mm, dorsoventral 0.6 mm)"
 
-        micro_led_ids_to_site = dict()
+        pulse_intervals = pulses_data["timestamps"]
+        pulse_amplitude = pulses_data["amplitude"]
+        pulse_micro_led = pulses_data.get("analogChannel", None)
+        pulse_micro_led = pulses_data["analogChannelsList"] if pulse_micro_led is None else pulse_micro_led
+
+        # Sometimes ()the last timestamps are cut off, e.g. `'fCamk1_200901_sess12'`, so we need to remove them
+        # According to the paper the duration of the pulses is 20 ms (the data actually shows something like 19.6 ms)
+        # The shorter pulses are probably due to the fact that the last pulses are cut off and writing their
+        # timestamps as it is leads to a non-monothonic time series
+        # We discard them using the heuristic that the last pulse should be at least 15 ms
+
+        duration = pulses_data["duration"]
+        good_data = duration > 0.015
+
+        pulse_intervals = pulse_intervals[good_data]
+        pulse_amplitude = pulse_amplitude[good_data]
+        pulse_micro_led = pulse_micro_led[good_data]
+
         micro_led_ids = np.unique(pulse_micro_led)
+        micro_led_ids_to_site = dict()
 
         for id in micro_led_ids:
             optogenetic_site = OptogeneticStimulusSite(
@@ -78,12 +88,12 @@ class VeleroOptogeneticStimuliInterface(BaseDataInterface):
             pulse_start_time = site_intervals[:, 0]
             amplitude_at_start = np.zeros_like(pulse_start_time)
 
-            raise_time = 0.001  # 1 ms
-            rise_to_max_time = pulse_start_time + raise_time
+            time_to_raise_to_max = 0.001  # 1 ms
+            rise_to_max_time = pulse_start_time + time_to_raise_to_max
             amplitude_at_max = site_amplitudes
 
             pulse_stop_time = site_intervals[:, 1]
-            start_decaying_time = pulse_stop_time - raise_time
+            start_decaying_time = pulse_stop_time - time_to_raise_to_max
             amplitude_start_decaying = site_amplitudes
             ampltidue_stop_time = np.zeros_like(start_decaying_time)
 
