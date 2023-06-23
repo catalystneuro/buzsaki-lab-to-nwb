@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 from neuroconv import NWBConverter
 from pymatreader import read_mat
+from pynwb import NWBFile
 
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
@@ -93,3 +94,11 @@ class ValeroNWBConverter(NWBConverter):
             metadata["Subject"]["weight"] = f"{weight_in_grams / 1000:2.3f} kg"  # Convert to kg
 
         return metadata
+
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata, conversion_options: Optional[dict] = None):
+        conversion_options = conversion_options or dict()
+        for interface_name, data_interface in self.data_interface_objects.items():
+            print(f"Adding {interface_name} to NWBFile...")
+            data_interface.add_to_nwbfile(
+                nwbfile=nwbfile, metadata=metadata, **conversion_options.get(interface_name, dict())
+            )

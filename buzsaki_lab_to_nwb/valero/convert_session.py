@@ -100,10 +100,8 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     # Build the converter
     converter = ValeroNWBConverter(source_data=source_data, session_folder_path=str(session_dir_path), verbose=verbose)
 
-    # Session start time (missing time, only the date part)
-    metadata = converter.get_metadata()
-
     # Update default metadata with the one in the editable yaml file in this directory
+    metadata = converter.get_metadata()
     editable_metadata_path = Path(__file__).parent / "metadata.yml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
@@ -114,13 +112,15 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
         conversion_options=conversion_options,
         overwrite=True,
     )
+    if verbose:
+        print("Conversion done!")
 
     return nwbfile_path
 
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"

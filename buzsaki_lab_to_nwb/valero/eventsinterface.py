@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from warnings import warn
 
@@ -14,7 +13,7 @@ from pynwb.file import NWBFile
 
 
 def get_human_readable_size(file_path):
-    size = os.path.getsize(file_path)
+    size = file_path.stat().st_size
     units = ["B", "KB", "MB", "GB", "TB"]
 
     # Determine the appropriate unit and scale the size
