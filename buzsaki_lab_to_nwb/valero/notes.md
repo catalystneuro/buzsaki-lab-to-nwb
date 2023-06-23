@@ -400,7 +400,8 @@ What is DMSO?
 # Transforming the whole datasets
 
 Some notes to discuss with the team
-* It seems that seome sessions do not have binary raw data (.e.g `fCamk1/fCamk1_200902_sess13`, `fCamk1_200909_sess17`).
+* It seems that the following sessions do not have binary raw data (`fCamk1/fCamk1_200902_sess13`, `fCamk1_200909_sess17`, `fCamk1_200904_sess15`, `fCamk1_200910_sess18`, `fCamk1_200911_sess19`).
 * Some sessions (.e.g. `fCamk1_200901_sess12`) do not have the channel information for the stimuli. That is, we do not from which microLED the stimuli came.
 * In some sessions the UP and Down states are not intervals, that is, the int variables which are usually start and stop time only are only 1-dimensional. Maybe it is the start time? (e.g. `fCamk1_200901_sess12`)
 * Some sessions do not have spikes (e.g. `fCamk1_200911_sess19`)
+* Some sessions seem not to have videos `fCamk5_210406_sess10`

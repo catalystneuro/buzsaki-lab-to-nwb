@@ -29,31 +29,32 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
     # Add Recording
     file_path = session_dir_path / f"{session_id}.dat"
-    xml_file_path = session_dir_path / f"{session_id}.xml"
     folder_path = session_dir_path
-    if file_path.is_file() and xml_file_path.is_file():
-        source_data.update(
-            Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
-        )
+    if file_path.is_file():
+        if verbose:
+            size_in_GB = file_path.stat().st_size / 1000
+            print(f"The size of {file_path.name} is {size_in_GB} GB")
+        source_data.update(Recording=dict(folder_path=str(folder_path), verbose=verbose))
         conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
     else:
         warn(f"Skipping recording interface for {session_id} because the file {file_path} does not exist.")
 
     # Add LFP
     file_path = session_dir_path / f"{session_id}.lfp"
-    xml_file_path = session_dir_path / f"{session_id}.xml"
-    if file_path.is_file() and xml_file_path.is_file():
-        folder_path = session_dir_path
-        source_data.update(
-            LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path), folder_path=str(folder_path))
-        )
+    folder_path = session_dir_path
+    if file_path.is_file():
+        if verbose:
+            size_in_GB = file_path.stat().st_size / 1000**3
+            print(f"The size of {file_path.name} is {size_in_GB} GB")
+
+        source_data.update(LFP=dict(folder_path=str(folder_path), verbose=verbose))
         conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
     else:
         warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
 
     # Add sorter
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
-    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
+    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0, verbose=verbose))
 
     # Add videos
     folder_path = session_dir_path
@@ -82,19 +83,19 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
     # Add ripple events
     folder_path = session_dir_path
-    source_data.update(RippleEvents=dict(folder_path=str(folder_path)))
+    source_data.update(RippleEvents=dict(folder_path=str(folder_path), verbose=verbose))
 
     # Add HSE events
     folder_path = session_dir_path
-    source_data.update(HSEvents=dict(folder_path=str(folder_path)))
+    source_data.update(HSEvents=dict(folder_path=str(folder_path), verbose=verbose))
 
     # Add UP and Down events
     folder_path = session_dir_path
-    source_data.update(UPDownEvents=dict(folder_path=str(folder_path)))
+    source_data.update(UPDownEvents=dict(folder_path=str(folder_path), verbose=verbose))
 
     # Add sleep states
     folder_path = session_dir_path
-    source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path)))
+    source_data.update(BehaviorSleepStates=dict(folder_path=str(folder_path), verbose=verbose))
 
     # Build the converter
     converter = ValeroNWBConverter(source_data=source_data, session_folder_path=str(session_dir_path), verbose=verbose)
@@ -114,6 +115,8 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
         overwrite=True,
     )
 
+    return nwbfile_path
+
 
 if __name__ == "__main__":
     # Parameters for conversion
@@ -123,10 +126,10 @@ if __name__ == "__main__":
     output_dir_path = Path.home() / "conversion_nwb"
     project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
     subject_path = project_root_path / "fCamk1"
-    # subject_path = project_root_path / "fCamk2"
-    session_dir_path = subject_path / "fCamk1_200901_sess12"
+    subject_path = project_root_path / "fCamk2"
+    session_dir_path = subject_path / "fCamk2_201015_sess4"
 
-    session_to_nwbfile(
+    nwbfile_path = session_to_nwbfile(
         session_dir_path,
         output_dir_path,
         stub_test=stub_test,
@@ -134,11 +137,12 @@ if __name__ == "__main__":
         verbose=verbose,
     )
 
-    # import pandas as pd
-    # from pynwb import NWBHDF5IO
-    # nwbfile = NWBHDF5IO(output_dir_path / f"{session_dir_path.name}.nwb", "r").read()
+    import pandas as pd
+    from pynwb import NWBHDF5IO
 
-    # dataframe = nwbfile.electrodes.to_dataframe()
-    # # Show all the entries of the dataframe
-    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
-    #     print(dataframe)
+    nwbfile = NWBHDF5IO(nwbfile_path, "r").read()
+
+    dataframe = nwbfile.electrodes.to_dataframe()
+    # Show all the entries of the dataframe
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        print(dataframe)

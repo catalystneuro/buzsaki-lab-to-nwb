@@ -3,8 +3,8 @@ from typing import Optional
 
 import numpy as np
 from neuroconv.datainterfaces import (
-    NeuroScopeLFPInterface,
-    NeuroScopeRecordingInterface,
+    CellExplorerLFPInterface,
+    CellExplorerRecordingInterface,
 )
 from neuroconv.utils import FilePathType, FolderPathType
 from pymatreader import read_mat
@@ -60,21 +60,9 @@ def correct_device_metadata(metadata):
     return metadata
 
 
-class ValeroLFPInterface(NeuroScopeLFPInterface):
-    def __init__(
-        self,
-        file_path: FilePathType,
-        folder_path: FolderPathType,
-        gain: Optional[float] = None,
-        xml_file_path: Optional[FilePathType] = None,
-        verbose: bool = True,
-    ):
-        super().__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path)
-        self.recording_extractor._sampling_frequency = 1250.0
-
-        # Update the sampling frequency of the segments
-        for segment in self.recording_extractor._recording_segments:
-            segment.sampling_frequency = 1250.0
+class ValeroLFPInterface(CellExplorerLFPInterface):
+    def __init__(self, folder_path: FolderPathType, verbose: bool = True, es_key: str = "ElectricalSeriesLFP"):
+        super().__init__(folder_path=folder_path, verbose=verbose, es_key=es_key)
 
         # Add further properties
         add_extra_properties_to_recorder(self.recording_extractor, folder_path)
@@ -86,19 +74,9 @@ class ValeroLFPInterface(NeuroScopeLFPInterface):
         return metadata
 
 
-class ValeroRawInterface(NeuroScopeRecordingInterface):
-    ExtractorName = "NeuroScopeRecordingExtractor"
-
-    def __init__(
-        self,
-        file_path: FilePathType,
-        folder_path: FolderPathType,
-        gain: Optional[float] = None,
-        xml_file_path: Optional[FilePathType] = None,
-        verbose: bool = True,
-        es_key: str = "ElectricalSeries",
-    ):
-        super().__init__(file_path=file_path, gain=gain, xml_file_path=xml_file_path, verbose=verbose, es_key=es_key)
+class ValeroRawInterface(CellExplorerRecordingInterface):
+    def __init__(self, folder_path: FolderPathType, verbose: bool = True, es_key: str = "ElectricalSeries"):
+        super().__init__(folder_path=folder_path, verbose=verbose, es_key=es_key)
 
         # Add further properties
         add_extra_properties_to_recorder(self.recording_extractor, folder_path)

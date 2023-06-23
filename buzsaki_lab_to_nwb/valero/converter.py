@@ -10,7 +10,6 @@ from pymatreader import read_mat
 from buzsaki_lab_to_nwb.valero.behaviorinterface import (
     ValeroBehaviorLinearTrackInterface,
     ValeroBehaviorLinearTrackRewardsInterface,
-    ValeroBehaviorSleepStatesInterface,
 )
 from buzsaki_lab_to_nwb.valero.ecephys_interface import (
     ValeroLFPInterface,
@@ -18,6 +17,7 @@ from buzsaki_lab_to_nwb.valero.ecephys_interface import (
 )
 from buzsaki_lab_to_nwb.valero.epochsinterface import ValeroEpochsInterface
 from buzsaki_lab_to_nwb.valero.eventsinterface import (
+    ValeroBehaviorSleepStatesInterface,
     ValeroHSEventsInterface,
     ValeroHSUPDownEventsInterface,
     ValeroRipplesEventsInterface,

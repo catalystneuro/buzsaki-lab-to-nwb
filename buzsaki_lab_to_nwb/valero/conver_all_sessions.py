@@ -4,7 +4,7 @@ from buzsaki_lab_to_nwb.valero.convert_session import session_to_nwbfile
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
