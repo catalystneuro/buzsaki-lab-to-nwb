@@ -65,7 +65,7 @@ class HuszarTrialsInterface(BaseDataInterface):
         data = []
         is_familiar_maze = []
 
-        for idx, times in trial_interval_list.enumerate():
+        for idx, times in enumerate(trial_interval_list):
             data.append(
                 dict(
                     start_time=float(times[0]),
