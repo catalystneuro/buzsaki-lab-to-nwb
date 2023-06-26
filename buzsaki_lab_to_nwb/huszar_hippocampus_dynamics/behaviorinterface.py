@@ -170,8 +170,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         y = position["y"]
         data = np.column_stack((x, y))
 
-        unit = "true_unit_of_data"
-        conversion = 1.0
+        unit = "cm"
         reference_frame = "Arbitrary, camera"
 
         nest_depth = len(mat_file["behavior"]["trials"]["position_trcat"])
@@ -199,7 +198,6 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
             data=H5DataIO(data, compression="gzip"),
             reference_frame=reference_frame,
             unit=unit,
-            conversion=conversion,
             timestamps=timestamps,
             resolution=np.nan,
         )
@@ -218,7 +216,6 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
             data=H5DataIO(lin, compression="gzip"),
             unit=unit,
             reference_frame=reference_frame,
-            conversion=conversion,
             timestamps=timestamps,
             resolution=np.nan,
         )
