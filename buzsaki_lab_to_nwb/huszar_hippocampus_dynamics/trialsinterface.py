@@ -109,5 +109,3 @@ class HuszarTrialsInterface(BaseDataInterface):
             description="A boolean representing whether the maze is familiar or novel",
             data=is_familiar_maze,
         )
-        # nwbfile.add_trial_column(name="start_point", description="start point of the trial", data=trial_info['startPoint'])
-        # nwbfile.add_trial_column(name="end_delay", description="end delay of the trial", data=trial_info['endDelay'])

@@ -68,9 +68,6 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
-        # module_name = "Neural states"
-        # module_description = "Contains behavioral data concerning classified states."
-        # processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
         processing_module = get_module(nwbfile=nwbfile, name="behavior")
 
         # Sleep states
@@ -155,10 +152,6 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
     def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
-
-        # module_name = "FigureEightMaze"
-        # module_description = "A figure-eight maze"
-        # processing_module = get_module(nwbfile=nwbfile, name=module_name, description=module_description)
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
         mat_file = loadmat_scipy(file_path, simplify_cells=True)
