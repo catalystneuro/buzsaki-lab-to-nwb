@@ -5,6 +5,7 @@ from neuroconv.utils.json_schema import FolderPathType
 from pynwb.file import NWBFile
 
 from scipy.io import loadmat as loadmat_scipy
+from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 
 def access_behavior_property_safe(property, parent, behavior_mat):
@@ -21,6 +22,26 @@ def access_behavior_property_safe(property, parent, behavior_mat):
 
     return value
 
+
+def isNaN(num):
+    return num != num
+
+def to_direction(arr):
+    output = []
+    for value in arr:
+
+        if (isNaN(value)):
+            output.append('timeout')
+        
+        elif (value == 0):
+            output.append('right')
+
+        else:
+            output.append('left')
+
+    return output
+
+        
 
 # Add trial table from the behavior file
 class HuszarTrialsInterface(BaseDataInterface):
@@ -57,21 +78,28 @@ class HuszarTrialsInterface(BaseDataInterface):
 
         [nwbfile.add_trial(**row) for row in sorted(data, key=lambda x: x["start_time"])]
 
+
+        visited_arm_data = to_direction(trial_info["visitedArm"])
+        expected_arm_data = to_direction(trial_info["expectedArm"])
+
         nwbfile.add_trial_column(
             name="visited_matched_expected",
             description="A boolean representing whether the expected and visited arm of the trial matches",
             data=trial_info["choice"],
         )
+
         nwbfile.add_trial_column(
             name="visited_arm",
             description="An integer value representing the visited arm of the trial",
-            data=trial_info["visitedArm"],
+            data=H5DataIO(visited_arm_data, compression="gzip") 
         )
+
         nwbfile.add_trial_column(
             name="expected_arm",
             description="An integer value representing the expected arm of the trial",
-            data=trial_info["expectedArm"],
+            data=H5DataIO(expected_arm_data, compression="gzip") 
         )
+
         nwbfile.add_trial_column(
             name="recordings",
             description="An integer value representing which recording this trial belongs to",
