@@ -84,7 +84,7 @@ class HuszarTrialsInterface(BaseDataInterface):
         nwbfile.add_trial_column(
             name="visited_matched_expected",
             description="A boolean (or NaN) representing whether the expected and visited arm of the trial matches",
-            data=np.array(trial_info["choice"]).astype('f8'),
+            data=np.array(trial_info["choice"]).astype("f8"),
         )
 
         nwbfile.add_trial_column(

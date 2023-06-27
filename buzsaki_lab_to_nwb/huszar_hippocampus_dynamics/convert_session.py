@@ -4,6 +4,7 @@ from neuroconv.utils import load_dict_from_file, dict_deep_update
 from converter import HuzsarNWBConverter
 from pathlib import Path
 
+
 def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
     if verbose:
         print("---------------------")
@@ -21,7 +22,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
     source_data = dict()
     conversion_options = dict()
-    
+
     # Add sorter
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
@@ -30,20 +31,21 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
     conversion_options.update(Behavior8Maze=dict(stub_test=stub_test))
 
-    
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
 
     # Add Recordings
     file_path = session_dir_path / f"{session_id}.dat"
     xml_file_path = session_dir_path / f"{session_id}.xml"
-    
+
     if file_path.is_file():
         size_in_GB = file_path.stat().st_size / 1000
         if size_in_GB:
             if verbose:
                 print(f"The size of {file_path.name} is {size_in_GB} GB")
             source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
-            conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+            conversion_options.update(
+                Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series)
+            )
         else:
             print(f"Skipping recording interface for {session_id} because the file {file_path} does not have any data.")
 
@@ -55,7 +57,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     folder_path = session_dir_path
     if file_path.is_file():
         size_in_GB = file_path.stat().st_size / 1000**3
-        
+
         if size_in_GB:
             if verbose:
                 print(f"The size of {file_path.name} is {size_in_GB} GB")
