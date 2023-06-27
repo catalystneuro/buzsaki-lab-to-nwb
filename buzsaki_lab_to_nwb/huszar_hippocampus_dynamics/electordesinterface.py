@@ -21,7 +21,7 @@ class HuszarElectrodeInterface(BaseDataInterface):
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict):
         mat_file = read_mat(self.chan_map_file_path)
         channel_groups = mat_file["connected"]
-        channel_group_names = [f"Group{group_index + 1}" for group_index in channel_groups]
+        channel_group_names = [f"Group{group_index}" for group_index in channel_groups]
 
         channel_indices = mat_file["chanMap0ind"]
 

@@ -11,15 +11,16 @@ from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 def access_behavior_property_safe(property, parent, behavior_mat):
     trial_info = behavior_mat["behavior"]["trials"]
-    nest_depth = len(trial_info["position_trcat"])
-
+    
+    position_trcat = trial_info["position_trcat"]
     value = parent[property]
-    if nest_depth > 1:
+    
+    if isinstance(position_trcat, list) and len(position_trcat) > 1: # Check nest depth
         value = [num for sublist in value for num in sublist]  # Flatten the list if large depth
-
+    
     assert len(value) == len(
         trial_info["recordings"]
-    )  # Save access properties should have the same length as the number of recordings
+    )  # Safe access properties should have the same length as the number of recordings
 
     return value
 

@@ -25,6 +25,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
     # Add sorter
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
+    # source_data.update(Sorting=dict(file_path=str(file_path)))
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Add behavior data
@@ -114,6 +115,6 @@ if __name__ == "__main__":
     verbose = True
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/shared/catalystneuro/HuszarR/optotagCA1")
-    session_dir_path = project_root / "e13" / "e13_26m1" / "e13_26m1_211019"
+    session_dir_path = project_root / "e13" / "e13_26m1" / "e13_26m1_211119"
     assert session_dir_path.is_dir()
     nwbfile = session_to_nwbfile(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)

@@ -27,8 +27,10 @@ from epochsinterface import HuszarEpochsInterface
 from trialsinterface import HuszarTrialsInterface
 
 
-from sortinginterface import CellExplorerSortingInterface
 
+# NOTE: When swapping between these two interfaces, you have to ensure the kwargs in convert_session.py match...
+from sortinginterface import CellExplorerSortingInterface
+# from neuroconv.datainterfaces import CellExplorerSortingInterface
 
 class HuzsarNWBConverter(NWBConverter):
     """Primary conversion class for the Huzsar hippocampus data set."""
@@ -58,17 +60,20 @@ class HuzsarNWBConverter(NWBConverter):
         xcoords = [x[0] for x in chan_map["xcoords"]]
         ycoords = [y[0] for y in chan_map["ycoords"]]
         kcoords = [y[0] for y in chan_map["kcoords"]]
+        
+        channel_indices = chan_map["chanMap0ind"][0]
+        channel_ids = [str(channel_indices[i]) for i in channel_indices]
+        locations = np.array((xcoords, ycoords, kcoords)).T.astype("float32")
+                        
+        if self.data_interface_objects.get("LFP"):
+            self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
+                locations=locations, channel_ids=channel_ids
+            )
 
-        for channel_id in chan_map["chanMap0ind"]:
-            if self.data_interface_objects.get("LFP"):
-                self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
-                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
-                )
-
-            if self.data_interface_objects.get("Recording"):
-                self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
-                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
-                )
+        if self.data_interface_objects.get("Recording"):
+            self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
+                locations=locations, channel_ids=channel_ids
+            )
 
     def get_metadata(self):
         metadata = super().get_metadata()
