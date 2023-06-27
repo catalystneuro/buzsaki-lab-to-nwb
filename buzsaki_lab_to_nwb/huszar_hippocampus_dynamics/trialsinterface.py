@@ -5,6 +5,7 @@ from neuroconv.utils.json_schema import FolderPathType
 from pynwb.file import NWBFile
 
 from scipy.io import loadmat as loadmat_scipy
+import numpy as np
 from hdmf.backends.hdf5.h5_utils import H5DataIO
 
 
@@ -83,7 +84,7 @@ class HuszarTrialsInterface(BaseDataInterface):
         nwbfile.add_trial_column(
             name="visited_matched_expected",
             description="A boolean (or NaN) representing whether the expected and visited arm of the trial matches",
-            data=trial_info["choice"].astype("float8"),
+            data=np.array(trial_info["choice"]).astype('f8'),
         )
 
         nwbfile.add_trial_column(

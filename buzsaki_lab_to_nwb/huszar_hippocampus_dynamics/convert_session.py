@@ -4,8 +4,7 @@ from neuroconv.utils import load_dict_from_file, dict_deep_update
 from converter import HuzsarNWBConverter
 from pathlib import Path
 
-
-def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=False):
+def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
     if verbose:
         print("---------------------")
         print("conversion for:")
@@ -21,23 +20,53 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     nwbfile_path = output_dir_path / f"{session_id}.nwb"
 
     source_data = dict()
+    conversion_options = dict()
+    
     # Add sorter
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
     source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0))
 
     # Add behavior data
     source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
+    conversion_options.update(Behavior8Maze=dict(stub_test=stub_test))
+
+    
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
 
-    #     # Add Recordings
-    #     file_path = session_dir_path / f"{session_id}.dat"
-    #     assert file_path.is_file()
-    #     xml_file_path = session_dir_path / f"{session_id}.xml"
-    #     source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+    # Add Recordings
+    file_path = session_dir_path / f"{session_id}.dat"
+    xml_file_path = session_dir_path / f"{session_id}.xml"
+    
+    if file_path.is_file():
+        size_in_GB = file_path.stat().st_size / 1000
+        if size_in_GB:
+            if verbose:
+                print(f"The size of {file_path.name} is {size_in_GB} GB")
+            source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+            conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+        else:
+            print(f"Skipping recording interface for {session_id} because the file {file_path} does not have any data.")
 
-    #     file_path = session_dir_path / f"{session_id}.lfp"
-    #     assert file_path.is_file()
-    #     source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+    else:
+        print(f"Skipping recording interface for {session_id} because the file {file_path} does not exist.")
+
+    # Add LFP
+    file_path = session_dir_path / f"{session_id}.lfp"
+    folder_path = session_dir_path
+    if file_path.is_file():
+        size_in_GB = file_path.stat().st_size / 1000**3
+        
+        if size_in_GB:
+            if verbose:
+                print(f"The size of {file_path.name} is {size_in_GB} GB")
+
+            source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
+            conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+        else:
+            print(f"Skipping LFP interface for {session_id} because the file {file_path} does not have any data.")
+
+    else:
+        print(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
 
     # Add epochs
     source_data.update(Epochs=dict(folder_path=str(session_dir_path)))
@@ -65,10 +94,7 @@ def session_to_nwb(session_dir_path, output_dir_path, stub_test=False, verbose=F
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    # Set conversion options and run conversion
-    conversion_options = dict(
-        Behavior8Maze=dict(stub_test=stub_test),
-    )
+    # Run conversion
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
@@ -87,4 +113,4 @@ if __name__ == "__main__":
     # session_dir_path = Path("/home/heberto/buzaki/e13_16f1_210302/")
     session_dir_path = Path("/shared/catalystneuro/HuszarR/optotagCA1/e13/e13_26m1/e13_26m1_211019")
 
-    session_to_nwb(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+    session_to_nwbfile(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)

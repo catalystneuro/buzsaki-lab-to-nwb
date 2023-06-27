@@ -19,7 +19,7 @@ class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
@@ -64,7 +64,7 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
@@ -149,7 +149,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
     def __init__(self, folder_path: FolderPathType):
         super().__init__(folder_path=folder_path)
 
-    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+    def run_conversion(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.session_path = Path(self.source_data["folder_path"])
         self.session_id = self.session_path.stem
 
