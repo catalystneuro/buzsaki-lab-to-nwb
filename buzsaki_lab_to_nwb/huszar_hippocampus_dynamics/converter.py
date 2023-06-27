@@ -54,26 +54,27 @@ class HuzsarNWBConverter(NWBConverter):
         self.session_folder_path = Path(self.data_interface_objects["Behavior8Maze"].source_data["folder_path"])
         self.session_id = self.session_folder_path.stem
 
-        # Add electrode locations (modeled after yutavcnwbconverter)
-        electrode_chan_map_file_path = self.session_folder_path / "chanMap.mat"
-        chan_map = loadmat_scipy(electrode_chan_map_file_path)
-        xcoords = [x[0] for x in chan_map["xcoords"]]
-        ycoords = [y[0] for y in chan_map["ycoords"]]
-        kcoords = [y[0] for y in chan_map["kcoords"]]
+#         # REMOVE THIS LOCATION METADATA SINCE IT IS ADDED IN THE ELECTRODES TABLE
+#         # Add electrode locations (modeled after yutavcnwbconverter)
+#         electrode_chan_map_file_path = self.session_folder_path / "chanMap.mat"
+#         chan_map = loadmat_scipy(electrode_chan_map_file_path)
+#         xcoords = [x[0] for x in chan_map["xcoords"]]
+#         ycoords = [y[0] for y in chan_map["ycoords"]]
+#         kcoords = [y[0] for y in chan_map["kcoords"]]
         
-        channel_indices = chan_map["chanMap0ind"][0]
-        channel_ids = [str(channel_indices[i]) for i in channel_indices]
-        locations = np.array((xcoords, ycoords, kcoords)).T.astype("float32")
+#         channel_indices = chan_map["chanMap0ind"][0]
+#         channel_ids = [str(channel_indices[i]) for i in channel_indices]
+#         locations = np.array((xcoords, ycoords, kcoords)).T.astype("float32")
                         
-        if self.data_interface_objects.get("LFP"):
-            self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
-                locations=locations, channel_ids=channel_ids
-            )
+#         if self.data_interface_objects.get("LFP"):
+#             self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
+#                 locations=locations, channel_ids=channel_ids
+#             )
 
-        if self.data_interface_objects.get("Recording"):
-            self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
-                locations=locations, channel_ids=channel_ids
-            )
+#         if self.data_interface_objects.get("Recording"):
+#             self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
+#                 locations=locations, channel_ids=channel_ids
+#             )
 
     def get_metadata(self):
         metadata = super().get_metadata()
