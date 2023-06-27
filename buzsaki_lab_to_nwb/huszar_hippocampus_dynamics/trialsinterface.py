@@ -31,7 +31,7 @@ def to_direction(arr):
     output = []
     for value in arr:
         if isNaN(value):
-            output.append("timeout")
+            output.append("none")
 
         elif value == 0:
             output.append("right")
@@ -82,19 +82,19 @@ class HuszarTrialsInterface(BaseDataInterface):
 
         nwbfile.add_trial_column(
             name="visited_matched_expected",
-            description="A boolean representing whether the expected and visited arm of the trial matches",
-            data=trial_info["choice"],
+            description="A boolean (or NaN) representing whether the expected and visited arm of the trial matches",
+            data=trial_info["choice"].astype("float8"),
         )
 
         nwbfile.add_trial_column(
             name="visited_arm",
-            description="An integer value representing the visited arm of the trial",
+            description="A string representing the visited arm of the trial",
             data=H5DataIO(visited_arm_data, compression="gzip"),
         )
 
         nwbfile.add_trial_column(
             name="expected_arm",
-            description="An integer value representing the expected arm of the trial",
+            description="A string representing the expected arm of the trial",
             data=H5DataIO(expected_arm_data, compression="gzip"),
         )
 
