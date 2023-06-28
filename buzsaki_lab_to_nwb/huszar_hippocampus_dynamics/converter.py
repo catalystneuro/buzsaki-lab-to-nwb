@@ -1,15 +1,13 @@
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import numpy as np
-from scipy.io import loadmat as loadmat_scipy
-
 from neuroconv import NWBConverter
+from scipy.io import loadmat as loadmat_scipy
 
 from neuroconv.datainterfaces import NeuroScopeLFPInterface, NeuroScopeRecordingInterface
 
-# from laserpulsesinterface import ValeroLaserPulsesInterface
 from ripplesinterface import (
     HuszarProcessingRipplesEventsInterface,
 )
@@ -24,8 +22,7 @@ from behaviorinterface import (
 from epochsinterface import HuszarEpochsInterface
 from trialsinterface import HuszarTrialsInterface
 
-
-from sortinginterface import CellExplorerSortingInterface
+from neuroconv.datainterfaces import CellExplorerSortingInterface
 
 
 class HuzsarNWBConverter(NWBConverter):
@@ -48,24 +45,6 @@ class HuzsarNWBConverter(NWBConverter):
 
         self.session_folder_path = Path(self.data_interface_objects["Behavior8Maze"].source_data["folder_path"])
         self.session_id = self.session_folder_path.stem
-
-        # Add electrode locations (modeled after yutavcnwbconverter)
-        electrode_chan_map_file_path = self.session_folder_path / "chanMap.mat"
-        chan_map = loadmat_scipy(electrode_chan_map_file_path)
-        xcoords = [x[0] for x in chan_map["xcoords"]]
-        ycoords = [y[0] for y in chan_map["ycoords"]]
-        kcoords = [y[0] for y in chan_map["kcoords"]]
-
-        for channel_id in chan_map["chanMap0ind"]:
-            if self.data_interface_objects.get("LFP"):
-                self.data_interface_objects["LFP"].recording_extractor.set_channel_locations(
-                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
-                )
-
-            if self.data_interface_objects.get("Recording"):
-                self.data_interface_objects["Recording"].recording_extractor.set_channel_locations(
-                    locations=[xcoords[channel_id], ycoords[channel_id], kcoords[channel_id]], channel_ids=channel_id
-                )
 
     def get_metadata(self):
         metadata = super().get_metadata()
