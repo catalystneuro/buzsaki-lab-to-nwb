@@ -1,26 +1,43 @@
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import numpy as np
+from neuroconv import NWBConverter
 from scipy.io import loadmat as loadmat_scipy
 
-from neuroconv import NWBConverter
+from neuroconv.datainterfaces import NeuroScopeLFPInterface, NeuroScopeRecordingInterface
 
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.behaviorinterface import (
+from ripplesinterface import (
+    HuszarProcessingRipplesEventsInterface,
+)
+
+
+from behaviorinterface import (
     HuzsarBehaviorSleepInterface,
     HuszarBehavior8MazeInterface,
+    HuszarBehavior8MazeRewardsInterface,
 )
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.sortinginterface import CellExplorerSortingInterface
+
+from epochsinterface import HuszarEpochsInterface
+from trialsinterface import HuszarTrialsInterface
+
+from neuroconv.datainterfaces import CellExplorerSortingInterface
 
 
 class HuzsarNWBConverter(NWBConverter):
     """Primary conversion class for the Huzsar hippocampus data set."""
 
     data_interface_classes = dict(
+        Recording=NeuroScopeRecordingInterface,
+        LFP=NeuroScopeLFPInterface,
         Sorting=CellExplorerSortingInterface,
         Behavior8Maze=HuszarBehavior8MazeInterface,
         BehaviorSleep=HuzsarBehaviorSleepInterface,
+        BehaviorRewards=HuszarBehavior8MazeRewardsInterface,
+        Epochs=HuszarEpochsInterface,
+        Trials=HuszarTrialsInterface,
+        RippleEvents=HuszarProcessingRipplesEventsInterface,
     )
 
     def __init__(self, source_data: dict, verbose: bool = True):
@@ -45,4 +62,23 @@ class HuzsarNWBConverter(NWBConverter):
 
         # Get today date
         metadata["NWBFile"]["session_start_time"] = date
+
+        # Add additional NWBFile metadata
+        # NOTE: experimenters is specifid in the metadata.yml file
+        metadata["NWBFile"]["session_id"] = session_mat["session"]["general"]["name"]
+
+        possibleNote = session_mat["session"]["general"]["notes"]
+        ignoredNotes = ["Notes:    Description from xml: "]
+        if not any(x in possibleNote for x in ignoredNotes):
+            metadata["NWBFile"]["notes"] = possibleNote
+
+        # Add Subject metadata
+        subject_metadata = session_mat["session"]["animal"]
+        metadata["Subject"]["subject_id"] = subject_metadata["name"]
+        metadata["Subject"]["sex"] = subject_metadata["sex"][0]
+        metadata["Subject"]["strain"] = subject_metadata["strain"]
+        metadata["Subject"]["genotype"] = subject_metadata["geneticLine"]
+
+        # NOTE: No weight information because there isn't any surgery metadata
+
         return metadata
