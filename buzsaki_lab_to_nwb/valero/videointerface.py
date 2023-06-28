@@ -4,8 +4,10 @@ from typing import Optional
 import numpy as np
 from neuroconv.datainterfaces import VideoInterface
 from neuroconv.utils import FilePathType, FolderPathType
+from neuroconv.utils.json_schema import get_base_schema, get_schema_from_hdmf_class
 from pymatreader import read_mat
 from pynwb import NWBFile
+from pynwb.image import ImageSeries
 
 
 class ValeroVideoInterface(VideoInterface):
@@ -54,19 +56,45 @@ class ValeroVideoInterface(VideoInterface):
 
     def get_metadata(self):
         metadata = super().get_metadata()
-        behavior_metadata = dict(
-            Videos=[
-                dict(
-                    name=f"ImageSeriesTrackingVideo{index + 1}",
-                    description="Video recorded with Basler camera.",
-                    unit="Frames",
-                )
-                for index, file_path in enumerate(self.source_data["file_paths"])
-            ]
-        )
-        metadata["Behavior"] = behavior_metadata
+
+        file_paths = self.source_data["file_paths"]
+        if file_paths:
+            behavior_metadata = dict(
+                Videos=[
+                    dict(
+                        name=f"ImageSeriesTrackingVideo{index + 1}",
+                        description="Video recorded with Basler camera.",
+                        unit="Frames",
+                    )
+                    for index, file_path in enumerate(self.source_data["file_paths"])
+                ]
+            )
+            metadata["Behavior"] = behavior_metadata
+        else:
+            metadata["Behavior"].pop("Videos")  # Avoid the schema complaining
 
         return metadata
+
+    def get_metadata_schema(self):
+        metadata_schema = super().get_metadata_schema()
+        image_series_metadata_schema = get_schema_from_hdmf_class(ImageSeries)
+        # TODO: in future PR, add 'exclude' option to get_schema_from_hdmf_class to bypass this popping
+        exclude = ["format", "conversion", "starting_time", "rate"]
+        for key in exclude:
+            image_series_metadata_schema["properties"].pop(key)
+        metadata_schema["properties"]["Behavior"] = get_base_schema(tag="Behavior")
+        if len(self.source_data["file_paths"]) > 0:
+            metadata_schema["properties"]["Behavior"].update(
+                required=["Videos"],
+                properties=dict(
+                    Videos=dict(
+                        type="array",
+                        minItems=1,
+                        items=image_series_metadata_schema,
+                    )
+                ),
+            )
+        return metadata_schema
 
     def add_to_nwbfile(
         self,
@@ -82,25 +110,31 @@ class ValeroVideoInterface(VideoInterface):
         compression_options: Optional[int] = None,
     ):
         file_paths = self.source_data["file_paths"]
-        if starting_frames is None:
-            starting_frames = self._starting_frames
+        if file_paths:
+            if starting_frames is None:
+                starting_frames = self._starting_frames
 
-        self._timestamps = self.get_original_timestamps(stub_test=stub_test)
-        self.set_aligned_segment_starting_times(
-            aligned_segment_starting_times=self.segment_starting_times, stub_test=stub_test
-        )
+            self._timestamps = self.get_original_timestamps(stub_test=stub_test)
+            self.set_aligned_segment_starting_times(
+                aligned_segment_starting_times=self.segment_starting_times, stub_test=stub_test
+            )
 
-        nwbfile_out = super().add_to_nwbfile(
-            nwbfile=nwbfile,
-            metadata=metadata,
-            stub_test=stub_test,
-            external_mode=external_mode,
-            starting_frames=starting_frames,
-            chunk_data=chunk_data,
-            module_name=module_name,
-            module_description=module_description,
-            compression=compression,
-            compression_options=compression_options,
-        )
+            nwbfile = super().add_to_nwbfile(
+                nwbfile=nwbfile,
+                metadata=metadata,
+                stub_test=stub_test,
+                external_mode=external_mode,
+                starting_frames=starting_frames,
+                chunk_data=chunk_data,
+                module_name=module_name,
+                module_description=module_description,
+                compression=compression,
+                compression_options=compression_options,
+            )
 
-        return nwbfile_out
+            return nwbfile
+        else:
+            from warnings import warn
+
+            warn(f"No video files found for session {self.session_id} . Skipping video interface.")
+            nwbfile
