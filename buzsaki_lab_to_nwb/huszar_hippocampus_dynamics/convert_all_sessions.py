@@ -37,7 +37,7 @@ if __name__ == "__main__":
             )
         except Exception as e:
             print(e)
-    
+
     # Create a pool of worker processes
     num_physical_cores = psutil.cpu_count(logical=False)
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_physical_cores) as executor:

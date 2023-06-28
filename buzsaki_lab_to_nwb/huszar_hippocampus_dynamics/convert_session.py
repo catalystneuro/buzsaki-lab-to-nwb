@@ -4,6 +4,7 @@ from neuroconv.utils import load_dict_from_file, dict_deep_update
 from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics import HuzsarNWBConverter
 from pathlib import Path
 
+
 def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
     if verbose:
         print("---------------------")
