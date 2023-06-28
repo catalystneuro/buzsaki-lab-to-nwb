@@ -30,9 +30,10 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     # Add Recording
     file_path = session_dir_path / f"{session_id}.dat"
     folder_path = session_dir_path
-    if file_path.is_file():
+    raw_recording_file_available = file_path.is_file()
+    if raw_recording_file_available:
         if verbose:
-            size_in_GB = file_path.stat().st_size / 1000
+            size_in_GB = file_path.stat().st_size / 1000**3
             print(f"The size of {file_path.name} is {size_in_GB} GB")
         source_data.update(Recording=dict(folder_path=str(folder_path), verbose=verbose))
         conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
@@ -42,7 +43,8 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     # Add LFP
     file_path = session_dir_path / f"{session_id}.lfp"
     folder_path = session_dir_path
-    if file_path.is_file():
+    lfp_file_available = file_path.is_file()
+    if lfp_file_available:
         if verbose:
             size_in_GB = file_path.stat().st_size / 1000**3
             print(f"The size of {file_path.name} is {size_in_GB} GB")
@@ -53,8 +55,10 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
         warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
 
     # Add sorter
+    write_ecephys_metadata = (not raw_recording_file_available) and (not lfp_file_available)
     file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
-    source_data.update(Sorting=dict(file_path=str(file_path), sampling_frequency=30_000.0, verbose=verbose))
+    source_data.update(Sorting=dict(file_path=str(file_path), verbose=verbose))
+    conversion_options.update(Sorting=dict(write_ecephys_metadata=write_ecephys_metadata))
 
     # Add videos
     folder_path = session_dir_path
@@ -120,14 +124,16 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
     subject_path = project_root_path / "fCamk1"
-    subject_path = project_root_path / "fCamk2"
-    session_dir_path = subject_path / "fCamk2_201015_sess4"
+    # subject_path = project_root_path / "fCamk2"
+    subject_path = project_root_path / "fcamk3"
+    subject_path = project_root_path / "fcamk5"
+    session_dir_path = subject_path / "fCamk5_210406_sess10"
 
     nwbfile_path = session_to_nwbfile(
         session_dir_path,

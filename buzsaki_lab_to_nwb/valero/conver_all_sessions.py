@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     subject_path = project_root_path / "fCamk1"
     subject_path = project_root_path / "fCamk2"
-    subject_path_list = ["fCamk1", "fCamk2"]
+    subject_path_list = ["fCamk1", "fCamk2", "fcamk3", "fcamk5"]
     for subject in subject_path_list:
         subject_path = project_root_path / subject
         all_subject_sessions_paths = (path for path in subject_path.iterdir() if path.is_dir())
