@@ -29,8 +29,6 @@ def add_extra_properties_to_recorder(recording_extractor, folder_path):
     locations = np.array((x_coords, y_coords)).T.astype("float32")
     recording_extractor.set_channel_locations(channel_ids=channel_ids_in_matlab, locations=locations)
 
-    recording_extractor.set_property(key="brain_area", values=["CA1"] * recording_extractor.get_num_channels())
-
 
 def generate_neurolight_device_metadata() -> dict:
     # Create device
@@ -64,8 +62,12 @@ class ValeroLFPInterface(CellExplorerLFPInterface):
     def __init__(self, folder_path: FolderPathType, verbose: bool = True, es_key: str = "ElectricalSeriesLFP"):
         super().__init__(folder_path=folder_path, verbose=verbose, es_key=es_key)
 
+        recording_extractor = self.recording_extractor
+        recording_extractor.set_property(key="brain_area", values=["CA1"] * recording_extractor.get_num_channels())
+        self.recording_extractor = recording_extractor
+
         # Add further properties
-        add_extra_properties_to_recorder(self.recording_extractor, folder_path)
+        # add_extra_properties_to_recorder(self.recording_extractor, folder_path)
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
@@ -78,8 +80,12 @@ class ValeroRawInterface(CellExplorerRecordingInterface):
     def __init__(self, folder_path: FolderPathType, verbose: bool = True, es_key: str = "ElectricalSeries"):
         super().__init__(folder_path=folder_path, verbose=verbose, es_key=es_key)
 
+        recording_extractor = self.recording_extractor
+        recording_extractor.set_property(key="brain_area", values=["CA1"] * recording_extractor.get_num_channels())
+        self.recording_extractor = recording_extractor
+
         # Add further properties
-        add_extra_properties_to_recorder(self.recording_extractor, folder_path)
+        # add_extra_properties_to_recorder(self.recording_extractor, folder_path)
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()

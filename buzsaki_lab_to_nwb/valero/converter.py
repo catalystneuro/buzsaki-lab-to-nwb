@@ -61,7 +61,8 @@ class ValeroNWBConverter(NWBConverter):
         session_file_path = self.session_folder_path / f"{self.session_id}.session.mat"
         assert session_file_path.is_file(), f"Session file not found: {session_file_path}"
 
-        session_mat = read_mat(session_file_path)
+        ignore_fields = ["behavioralTracking", "timeSeries", "spikeSorting", "extracellular", "brainRegions"]
+        session_mat = read_mat(session_file_path, ignore_fields=ignore_fields)
         session_data = session_mat["session"]
 
         # Add session start time

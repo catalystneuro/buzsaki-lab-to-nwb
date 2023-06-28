@@ -15,7 +15,9 @@ class ValeroVideoInterface(VideoInterface):
         session_file_path = self.session_folder_path / f"{self.session_id}.session.mat"
         assert session_file_path.is_file(), session_file_path
 
-        mat_file = read_mat(session_file_path)
+        ignore_fields = ["animal", "behavioralTracking", "timeSeries", "spikeSorting", "extracellular", "brainRegions"]
+        mat_file = read_mat(session_file_path, ignore_fields=ignore_fields)
+
         epoch_list = mat_file["session"]["epochs"]
 
         name_of_folders = [self.session_folder_path / f"{epoch['name']}" for epoch in epoch_list]
@@ -66,7 +68,7 @@ class ValeroVideoInterface(VideoInterface):
 
         return metadata
 
-    def add_to_nwb(
+    def add_to_nwbfile(
         self,
         nwbfile: Optional[NWBFile] = None,
         metadata: Optional[dict] = None,
@@ -88,7 +90,7 @@ class ValeroVideoInterface(VideoInterface):
             aligned_segment_starting_times=self.segment_starting_times, stub_test=stub_test
         )
 
-        nwbfile_out = super().add_to_nwb(
+        nwbfile_out = super().add_to_nwbfile(
             nwbfile=nwbfile,
             metadata=metadata,
             stub_test=stub_test,
