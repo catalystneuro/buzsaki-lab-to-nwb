@@ -1,5 +1,6 @@
 from pathlib import Path
-from convert_session import session_to_nwbfile
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics import session_to_nwbfile
+
 import concurrent.futures
 import psutil
 
@@ -26,15 +27,17 @@ if __name__ == "__main__":
             session_dir_path_list.extend(all_subject_sessions_paths)
 
     def worker(session_dir_path):
-        session_to_nwbfile(
-            session_dir_path,
-            output_dir_path,
-            iterator_opts=iterator_opts,
-            stub_test=stub_test,
-            write_electrical_series=write_electrical_series,
-            verbose=verbose,
-        )
-
+        try:
+            session_to_nwbfile(
+                session_dir_path,
+                output_dir_path,
+                stub_test=stub_test,
+                write_electrical_series=write_electrical_series,
+                verbose=verbose,
+            )
+        except Exception as e:
+            print(e)
+    
     # Create a pool of worker processes
     num_physical_cores = psutil.cpu_count(logical=False)
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_physical_cores) as executor:
