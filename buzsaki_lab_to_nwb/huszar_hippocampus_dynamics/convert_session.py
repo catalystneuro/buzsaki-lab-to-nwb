@@ -22,7 +22,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
     source_data = dict()
     conversion_options = dict()
-     
+
     # Add Recordings
     file_path = session_dir_path / f"{session_id}.dat"
     xml_file_path = session_dir_path / f"{session_id}.xml"
@@ -57,14 +57,13 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
 
             source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
             conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
-            
+
         else:
             print(f"Skipping LFP interface for {session_id} because the file {file_path} does not have any data.")
 
     else:
         print(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
-        
-        
+
     write_ecephys_metadata = (not raw_recording_file_available) and (not lfp_file_available)
 
     # Add sorter
@@ -77,7 +76,6 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
     conversion_options.update(Behavior8Maze=dict(stub_test=stub_test))
 
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
-
 
     # Add epochs
     source_data.update(Epochs=dict(folder_path=str(session_dir_path)))

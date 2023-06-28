@@ -24,6 +24,7 @@ from trialsinterface import HuszarTrialsInterface
 
 from neuroconv.datainterfaces import CellExplorerSortingInterface
 
+
 class HuzsarNWBConverter(NWBConverter):
     """Primary conversion class for the Huzsar hippocampus data set."""
 
