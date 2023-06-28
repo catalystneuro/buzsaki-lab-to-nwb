@@ -38,4 +38,4 @@ if __name__ == "__main__":
     # Create a pool of worker processes
     num_physical_cores = psutil.cpu_count(logical=False)
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_physical_cores) as executor:
-        executor.map(worker, session_dirs)
+        executor.map(worker, session_dir_path_list)
