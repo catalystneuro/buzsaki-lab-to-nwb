@@ -43,7 +43,7 @@ class HuszarProcessingRipplesEventsInterface(BaseDataInterface):
             peak_amplitudes="Peak amplitude of the ripple.",
         )
 
-        name = "ripples_events"
+        name = "Ripples"
         ripple_events_table = TimeIntervals(name=name, description="Ripples and their metrics")
 
         for start_time, stop_time in ripple_intervals:
