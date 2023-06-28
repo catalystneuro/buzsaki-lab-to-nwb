@@ -13,15 +13,18 @@ if __name__ == "__main__":
     subject_path = project_root_path / "fCamk1"
     subject_path = project_root_path / "fCamk2"
     subject_path_list = ["fCamk1", "fCamk2", "fcamk3", "fcamk5"]
+
+    session_dir_path_list = []
     for subject in subject_path_list:
         subject_path = project_root_path / subject
         all_subject_sessions_paths = (path for path in subject_path.iterdir() if path.is_dir())
+        session_dir_path_list.extend(all_subject_sessions_paths)
 
-        for session_dir_path in all_subject_sessions_paths:
-            session_to_nwbfile(
-                session_dir_path,
-                output_dir_path,
-                stub_test=stub_test,
-                write_electrical_series=write_electrical_series,
-                verbose=verbose,
-            )
+    for session_dir_path in session_dir_path_list:
+        session_to_nwbfile(
+            session_dir_path,
+            output_dir_path,
+            stub_test=stub_test,
+            write_electrical_series=write_electrical_series,
+            verbose=verbose,
+        )
