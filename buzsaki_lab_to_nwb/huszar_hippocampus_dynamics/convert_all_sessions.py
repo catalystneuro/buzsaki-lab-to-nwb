@@ -12,9 +12,9 @@ if __name__ == "__main__":
 
     output_dir_path = Path.home() / "conversion_nwb"
     project_root_path = Path("/shared/catalystneuro/HuszarR/optotagCA1")
-    
+
     all_condition_paths = (path for path in project_root_path.iterdir() if path.is_dir())
-    
+
     session_dir_path_list = []
 
     for condition in all_condition_paths:
@@ -23,10 +23,9 @@ if __name__ == "__main__":
 
         for subject_path in all_condition_subject_paths:
             all_subject_sessions_paths = (path for path in subject_path.iterdir() if path.is_dir())
-            session_dir_path_list.extend(all_subject_sessions_paths)                
+            session_dir_path_list.extend(all_subject_sessions_paths)
 
     def worker(session_dir_path):
-        
         session_to_nwbfile(
             session_dir_path,
             output_dir_path,
