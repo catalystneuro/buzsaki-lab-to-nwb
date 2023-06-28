@@ -19,12 +19,11 @@ if __name__ == "__main__":
     subject_path = project_root_path / "fCamk2"
     subject_path_list = ["fCamk1", "fCamk2", "fcamk3", "fcamk5"]
 
-    # Collect all session directories
-    session_dirs = []
+    session_dir_path_list = []
     for subject in subject_path_list:
         subject_path = project_root_path / subject
         all_subject_sessions_paths = (path for path in subject_path.iterdir() if path.is_dir())
-        session_dirs.extend(all_subject_sessions_paths)
+        session_dir_path_list.extend(all_subject_sessions_paths)
 
     def worker(session_dir_path):
         session_to_nwbfile(

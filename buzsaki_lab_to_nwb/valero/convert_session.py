@@ -1,4 +1,5 @@
 """Primary script to run to convert an entire session of data using the NWBConverter."""
+import time
 from pathlib import Path
 from warnings import warn
 
@@ -7,8 +8,12 @@ from neuroconv.utils import dict_deep_update, load_dict_from_file
 from buzsaki_lab_to_nwb.valero.converter import ValeroNWBConverter
 
 
-def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
+def session_to_nwbfile(
+    session_dir_path, output_dir_path, iterator_opts=None, stub_test=False, write_electrical_series=True, verbose=False
+):
+    iterator_opts = dict() if iterator_opts is None else iterator_opts
     if verbose:
+        start_time = time.time()
         print("---------------------")
         print("conversion for:")
         print(f"{session_dir_path=}")
@@ -36,7 +41,13 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
             size_in_GB = file_path.stat().st_size / 1000**3
             print(f"The size of {file_path.name} is {size_in_GB} GB")
         source_data.update(Recording=dict(folder_path=str(folder_path), verbose=verbose))
-        conversion_options.update(Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+        conversion_options.update(
+            Recording=dict(
+                stub_test=stub_test,
+                iterator_opts=iterator_opts,
+                write_electrical_series=write_electrical_series,
+            )
+        )
     else:
         warn(f"Skipping recording interface for {session_id} because the file {file_path} does not exist.")
 
@@ -50,7 +61,13 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
             print(f"The size of {file_path.name} is {size_in_GB} GB")
 
         source_data.update(LFP=dict(folder_path=str(folder_path), verbose=verbose))
-        conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
+        conversion_options.update(
+            LFP=dict(
+                stub_test=stub_test,
+                iterator_opts=iterator_opts,
+                write_electrical_series=write_electrical_series,
+            )
+        )
     else:
         warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
 
@@ -117,27 +134,32 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
         overwrite=True,
     )
     if verbose:
-        print("Conversion done!")
+        end_time = time.time()
+        conversion_time = end_time - start_time
+        print(f"Conversion for session {session_id} done in {conversion_time / 60.0 :,.2f} minutes!")
 
     return nwbfile_path
 
 
 if __name__ == "__main__":
     # Parameters for conversion
-    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
+    stub_test = False  # Converts a only a stub of the data for quick iteration and testing
     verbose = True
+    iterator_opts = dict(buffer_gb=20.0, display_progress=verbose)
+
     write_electrical_series = True  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
     subject_path = project_root_path / "fCamk1"
     # subject_path = project_root_path / "fCamk2"
-    subject_path = project_root_path / "fcamk3"
-    subject_path = project_root_path / "fcamk5"
-    session_dir_path = subject_path / "fCamk5_210406_sess10"
+    # subject_path = project_root_path / "fcamk3"
+    # subject_path = project_root_path / "fcamk5"
+    session_dir_path = subject_path / "fCamk1_200901_sess12"
 
     nwbfile_path = session_to_nwbfile(
         session_dir_path,
         output_dir_path,
+        iterator_opts=iterator_opts,
         stub_test=stub_test,
         write_electrical_series=write_electrical_series,
         verbose=verbose,

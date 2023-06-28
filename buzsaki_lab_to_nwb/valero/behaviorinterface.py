@@ -91,9 +91,6 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
                 warnings.warn(f" \n Tracking behavior file {file_path} not found. Skipping behavior interface \n")
                 return nwbfile
 
-        # Create behavior module
-        processing_module = get_module(nwbfile=nwbfile, name="behavior")
-
         x = position["x"]
         y = position["y"]
         data = np.column_stack((x, y))
@@ -129,4 +126,7 @@ class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
             )
             position_container.add_spatial_series(spatial_series_linear)
 
+        # Create behavior module
+        behavior_description = "Tracking data obtained from positional tracking in video"
+        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=behavior_description)
         processing_module.add_data_interface(position_container)
