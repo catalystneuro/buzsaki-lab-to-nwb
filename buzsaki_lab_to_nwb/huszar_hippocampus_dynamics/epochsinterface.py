@@ -20,8 +20,6 @@ class HuszarEpochsInterface(BaseDataInterface):
         mat_file = read_mat(session_file_path)
 
         epoch_list = mat_file["session"].get("epochs", []) # Include epochs if present
-        
-        nwbfile.add_epoch_column(name="epoch_name", description="The name of the epoch")
             
         if type(epoch_list) is not np.ndarray and not isinstance(epoch_list, list):
             epoch_list = [epoch_list]
@@ -32,4 +30,4 @@ class HuszarEpochsInterface(BaseDataInterface):
             start_time = float(epoch["startTime"])
             if (epoch.get("stopTime")):
                 stop_time = float(epoch["stopTime"])
-                nwbfile.add_epoch(epoch_name=epoch_name, start_time=start_time, stop_time=stop_time)
+                nwbfile.add_epoch(start_time=start_time, stop_time=stop_time)
