@@ -77,6 +77,9 @@ class HuzsarNWBConverter(NWBConverter):
         # Add Subject metadata
         subject_metadata = session_mat["session"]["animal"]
         metadata["Subject"]["subject_id"] = subject_metadata["name"]
+        
+        if metadata["Subject"]["subject_id"] == "DATA":
+            metadata["Subject"]["subject_id"] = '_'.join(metadata["NWBFile"]["session_id"].split('_')[:2])
         metadata["Subject"]["sex"] = subject_metadata["sex"][0]
         metadata["Subject"]["strain"] = subject_metadata["strain"]
         metadata["Subject"]["genotype"] = subject_metadata["geneticLine"]
