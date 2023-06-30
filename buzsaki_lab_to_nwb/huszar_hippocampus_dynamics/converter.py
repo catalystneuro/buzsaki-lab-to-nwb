@@ -43,7 +43,7 @@ class HuzsarNWBConverter(NWBConverter):
     def __init__(self, source_data: dict, verbose: bool = True):
         super().__init__(source_data=source_data, verbose=verbose)
 
-        self.session_folder_path = Path(self.data_interface_objects["Behavior8Maze"].source_data["folder_path"])
+        self.session_folder_path = Path(self.data_interface_objects["RippleEvents"].source_data["folder_path"])
         self.session_id = self.session_folder_path.stem
 
     def get_metadata(self):
@@ -52,9 +52,11 @@ class HuzsarNWBConverter(NWBConverter):
         assert session_file.is_file(), f"Session file not found: {session_file}"
 
         session_mat = loadmat_scipy(session_file, simplify_cells=True)
-        date = session_mat["session"]["general"]["date"]  # This does not contain the time
-        # Conver date str to date object
-        date = datetime.strptime(date, "%Y-%m-%d")
+        date = self.session_id.split('_')[2]  # This does not contain the time
+        
+        # Convert date str to date object
+                    
+        date = datetime.strptime('20'+date, '%Y%m%d')
         # Build a datetime object and add the timezone from NY
         date = datetime.combine(date, datetime.min.time())
         tzinfo = ZoneInfo("America/New_York")  # This is the standard library
