@@ -57,7 +57,9 @@ class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
             labels=["right_reward", "left_reward"],
         )
 
-        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+        # Create behavior module
+        behavior_description = "Tracking data obtained from positional tracking in video"
+        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=behavior_description)
 
         processing_module.add(events)
 

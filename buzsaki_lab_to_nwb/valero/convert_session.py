@@ -29,6 +29,9 @@ def session_to_nwbfile(
     session_id = session_dir_path.stem
     nwbfile_path = output_dir_path / f"{session_id}.nwb"
 
+    if not write_electrical_series:
+        nwbfile_path = output_dir_path / f"{session_id}_no_raw_data.nwb"
+
     source_data = dict()
     conversion_options = dict()
 
@@ -127,6 +130,11 @@ def session_to_nwbfile(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
+    session_id_to_write = metadata["NWBFile"]["session_id"]
+    if not write_electrical_series:
+        session_id_to_write += "_no_raw_data"
+        metadata["NWBFile"]["session_id"] = session_id_to_write
+
     converter.run_conversion(
         nwbfile_path=nwbfile_path,
         metadata=metadata,
@@ -137,6 +145,7 @@ def session_to_nwbfile(
         end_time = time.time()
         conversion_time = end_time - start_time
         print(f"Conversion for session {session_id} done in {conversion_time / 60.0 :,.2f} minutes!")
+        print(f"File saved to {nwbfile_path}")
 
     return nwbfile_path
 
@@ -147,14 +156,14 @@ if __name__ == "__main__":
     verbose = True
     iterator_opts = dict(buffer_gb=20.0, display_progress=verbose)
 
-    write_electrical_series = True  # Write the electrical series to the NWB file
+    write_electrical_series = False  # Write the electrical series to the NWB file
     output_dir_path = Path.home() / "conversion_nwb"
     project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
     subject_path = project_root_path / "fCamk1"
     # subject_path = project_root_path / "fCamk2"
-    # subject_path = project_root_path / "fcamk3"
+    subject_path = project_root_path / "fcamk3"
     # subject_path = project_root_path / "fcamk5"
-    session_dir_path = subject_path / "fCamk1_200901_sess12"
+    session_dir_path = subject_path / "fCamk3_201105_sess16"
 
     nwbfile_path = session_to_nwbfile(
         session_dir_path,
@@ -165,12 +174,12 @@ if __name__ == "__main__":
         verbose=verbose,
     )
 
-    import pandas as pd
-    from pynwb import NWBHDF5IO
+    # import pandas as pd
+    # from pynwb import NWBHDF5IO
 
-    nwbfile = NWBHDF5IO(nwbfile_path, "r").read()
+    # nwbfile = NWBHDF5IO(nwbfile_path, "r").read()
 
-    dataframe = nwbfile.electrodes.to_dataframe()
-    # Show all the entries of the dataframe
-    with pd.option_context("display.max_rows", None, "display.max_columns", None):
-        print(dataframe)
+    # dataframe = nwbfile.electrodes.to_dataframe()
+    # # Show all the entries of the dataframe
+    # with pd.option_context("display.max_rows", None, "display.max_columns", None):
+    #     print(dataframe)
