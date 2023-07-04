@@ -1,0 +1,6 @@
+hdf5storage>=0.1.18
+neuroconv @ git+https://github.com/catalystneuro/neuroconv.git@main
+pymatreader==0.0.31
+ndx-events==0.2.0
+spikeinterface==0.97.1
+lxml==4.9.2
