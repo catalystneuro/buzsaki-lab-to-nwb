@@ -5,6 +5,7 @@ from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics import HuzsarNWBConverter
 from pathlib import Path
 import warnings
 
+
 def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
     if verbose:
         print("---------------------")
