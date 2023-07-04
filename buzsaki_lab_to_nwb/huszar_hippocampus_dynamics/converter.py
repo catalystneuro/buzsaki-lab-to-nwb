@@ -52,11 +52,11 @@ class HuzsarNWBConverter(NWBConverter):
         assert session_file.is_file(), f"Session file not found: {session_file}"
 
         session_mat = loadmat_scipy(session_file, simplify_cells=True)
-        date = self.session_id.split('_')[2]  # This does not contain the time
-        
+        date = self.session_id.split("_")[2]  # This does not contain the time
+
         # Convert date str to date object
-                    
-        date = datetime.strptime('20'+date, '%Y%m%d')
+
+        date = datetime.strptime("20" + date, "%Y%m%d")
         # Build a datetime object and add the timezone from NY
         date = datetime.combine(date, datetime.min.time())
         tzinfo = ZoneInfo("America/New_York")  # This is the standard library
@@ -77,9 +77,9 @@ class HuzsarNWBConverter(NWBConverter):
         # Add Subject metadata
         subject_metadata = session_mat["session"]["animal"]
         metadata["Subject"]["subject_id"] = subject_metadata["name"]
-        
+
         if metadata["Subject"]["subject_id"] == "DATA":
-            metadata["Subject"]["subject_id"] = '_'.join(metadata["NWBFile"]["session_id"].split('_')[:2])
+            metadata["Subject"]["subject_id"] = "_".join(metadata["NWBFile"]["session_id"].split("_")[:2])
         metadata["Subject"]["sex"] = subject_metadata["sex"][0]
         metadata["Subject"]["strain"] = subject_metadata["strain"]
         metadata["Subject"]["genotype"] = subject_metadata["geneticLine"]

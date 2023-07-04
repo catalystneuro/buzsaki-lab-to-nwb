@@ -60,18 +60,18 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
             conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
 
         elif verbose:
-            warnings.warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not have any data.")
+            warnings.warn(
+                f"Skipping LFP interface for {session_id} because the file {file_path} does not have any data."
+            )
 
     elif verbose:
         warnings.warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
 
-    
     # Add behavior data
     file_path = session_dir_path / f"{session_id}.Behavior.mat"
     if file_path.is_file():
-        
         write_ecephys_metadata = (not raw_recording_file_available) and (not lfp_file_available)
-            
+
         # Add sorter
         file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
         source_data.update(Sorting=dict(file_path=str(file_path), verbose=verbose))
@@ -80,7 +80,7 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
         # Add linear track behavior
         source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
         conversion_options.update(Behavior8Maze=dict(stub_test=stub_test))
-        
+
         # Add reward events in linear track
         source_data.update(BehaviorRewards=dict(folder_path=str(session_dir_path)))
 
@@ -88,11 +88,13 @@ def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write
         source_data.update(Trials=dict(folder_path=str(session_dir_path)))
 
     elif verbose:
-            warnings.warn(f"Behavior file not found: {file_path}. Skipping sorting, rewards, maze, and trials interfaces. \n")
-        
+        warnings.warn(
+            f"Behavior file not found: {file_path}. Skipping sorting, rewards, maze, and trials interfaces. \n"
+        )
+
     # Add sleep data
     source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
-    
+
     # Add epochs
     source_data.update(Epochs=dict(folder_path=str(session_dir_path)))
 
@@ -127,14 +129,12 @@ if __name__ == "__main__":
     verbose = True
     output_dir_path = Path.home() / "conversion_nwb"
     project_root = Path("/shared/catalystneuro/HuszarR/optotagCA1")
-    
+
     # # Still session error
-    session_dir_path = project_root / "e14" / "e14_2m3" / "e14_2m3_201208" 
+    session_dir_path = project_root / "e14" / "e14_2m3" / "e14_2m3_201208"
 
     # # strptime() argument 1 must be str, not numpy.ndarray
     # session_dir_path = project_root / "e13" / "e13_26m1" / "e13_26m1_211116"
-
-
 
     # session_dir_path = project_root / "e13" / "e13_26m1" / "e13_26m1_211119"
     assert session_dir_path.is_dir()
