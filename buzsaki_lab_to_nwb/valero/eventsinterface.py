@@ -107,7 +107,9 @@ class ValeroHSUPDownEventsInterface(BaseDataInterface):
         for start_time, stop_time, state in zip(combined_start_times, combined_stop_times, combined_states):
             states_intervals.add_interval(start_time=start_time, stop_time=stop_time, state=state)
 
-        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+        # Create behavior module
+        behavior_description = "Tracking data obtained from positional tracking in video"
+        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=behavior_description)
         processing_module.add(states_intervals)
 
 
@@ -332,5 +334,7 @@ class ValeroBehaviorSleepStatesInterface(BaseDataInterface):
         sorted_table = sorted(table_rows, key=lambda x: (x["start_time"], x["stop_time"]))
         [time_intervals.add_row(**row_as_dict) for row_as_dict in sorted_table]
 
-        processing_module = get_module(nwbfile=nwbfile, name="behavior")
+        # Create behavior module
+        behavior_description = "Tracking data obtained from positional tracking in video"
+        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=behavior_description)
         processing_module.add(time_intervals)
