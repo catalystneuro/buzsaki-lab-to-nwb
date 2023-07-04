@@ -14,10 +14,12 @@ if __name__ == "__main__":
     write_electrical_series = False  # Write the electrical series to the NWB file
     iterator_opts = dict(buffer_gb=1.0, display_progress=verbose)
 
-    output_dir_path = Path.home() / "conversion_nwb" / "no_raw_data"
+    output_dir_path = Path.home() / "conversion_nwb"
+    if not write_electrical_series:
+        output_dir_path = output_dir_path / "no_raw_data"
     output_dir_path.mkdir(parents=True, exist_ok=True)
-    project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
 
+    project_root_path = Path("/media/heberto/One Touch/Buzsaki/ValeroM/")
     subject_path_list = ["fCamk1", "fCamk2", "fcamk3", "fcamk5"]
 
     session_dir_path_list = []
