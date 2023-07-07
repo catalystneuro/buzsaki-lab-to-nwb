@@ -9,6 +9,7 @@ from pynwb.behavior import CompassDirection, Position, SpatialSeries
 from pynwb.file import NWBFile, TimeIntervals, TimeSeries
 from scipy.io import loadmat as loadmat_scipy
 from pymatreader import read_mat
+import warnings
 
 from ndx_events import LabeledEvents
 
@@ -22,6 +23,7 @@ class HuszarBehavior8MazeRewardsInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+
         mat_file = read_mat(file_path)
 
         events_data = mat_file["behavior"]["events"]
@@ -83,8 +85,10 @@ class HuzsarBehaviorSleepInterface(BaseDataInterface):
         data = []
         for sleep_state in state_label_names:
             values = sleep_state_dic[sleep_state]
-            if len(values) != 0 and isinstance(values[0], int):
+
+            if len(values) != 0 and type(values[0]) is not np.ndarray:
                 values = [values]
+
             for start_time, stop_time in values:
                 data.append(
                     dict(
@@ -152,6 +156,7 @@ class HuszarBehavior8MazeInterface(BaseDataInterface):
         self.session_id = self.session_path.stem
 
         file_path = self.session_path / f"{self.session_id}.Behavior.mat"
+
         mat_file = loadmat_scipy(file_path, simplify_cells=True)
 
         timestamps = mat_file["behavior"]["timestamps"]
