@@ -1,0 +1,12 @@
+name: buzsaki_tingley_metabolic
+channels:
+- defaults
+- anaconda
+- conda-forge
+dependencies:
+- python==3.9
+- pip
+- git
+- pip:
+  - -e .
+  - -r buzsaki_lab_to_nwb/tingley_metabolic/tingley_metabolic_requirements.txt
