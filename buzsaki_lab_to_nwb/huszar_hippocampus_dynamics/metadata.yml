@@ -1,7 +1,7 @@
 NWBFile:
   experiment_description:
     Preconfigured dynamics in the hippocampus are guided by embryonic birthdate and rate of neurogenesis
-  institution: Princeton
+  institution: NYU
   lab: Buzsaki
   experimenter:
     - Huszár, Roman 
