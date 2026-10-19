@@ -21,7 +21,8 @@ convert_sessions = [
     "Dino/Dino_061814",
     "Dino/Dino_061914",
     "Dino/Dino_062014",  # incorrect # of channels for full lfp reshaping...
-    "Dino/Dino_072114" "Dino/Dino_072314",  # , # missing clu files...
+    "Dino/Dino_072114",  # missing clu files...
+    "Dino/Dino_072314",
     "Dino/Dino_072414",
     "Rizzo/Rizzo_022615",
     "Rizzo/Rizzo_022715",
@@ -33,7 +34,7 @@ convert_sessions = [
 experimenter = "Brendon Watson"
 paper_descr = (
     "Data was recorded using silicon probe electrodes in the frontal cortices of male Long "
-    "Evans rats between 4-7 months of age. The design was to have no specific behavior, "
+    "Evans rats between 3-7 months of age. The design was to have no specific behavior, "
     "task or stimulus, rather the animal was left alone in it’s home cage (which it lives in at all "
     "times)."
 )

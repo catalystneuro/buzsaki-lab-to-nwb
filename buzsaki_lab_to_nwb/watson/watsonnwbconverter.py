@@ -170,7 +170,14 @@ class WatsonNWBConverter(NWBConverter):
             },
             self.get_sorting_type(): {
                 "UnitProperties": [
-                    {"name": "cell_type", "description": "name of cell type", "data": celltype_info},
+                    {
+                        "name": "cell_type",
+                        "description": (
+                            "putative cell type from CellClass.cellinfo.mat (pE: excitatory, pI: inhibitory); "
+                            "'unknown' for units in the clu files that are not in CellClass.cellinfo.mat"
+                        ),
+                        "data": celltype_info,
+                    },
                     {
                         "name": "global_id",
                         "description": "global id for cell for entire experiment",
@@ -189,7 +196,10 @@ class WatsonNWBConverter(NWBConverter):
                     },
                     {
                         "name": "region",
-                        "description": "brain region where unit was detected",
+                        "description": (
+                            "brain region where unit was detected, from spikes.cellinfo.mat; "
+                            "'unknown' for units in the clu files that are not in CellClass.cellinfo.mat"
+                        ),
                         "data": [str(x[0]) for x in cell_info["region"][0][0][0]],
                     },
                 ]

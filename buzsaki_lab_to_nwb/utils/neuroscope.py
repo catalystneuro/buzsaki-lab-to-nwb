@@ -438,14 +438,11 @@ def read_lfp(session_path: str, n_channels: int, stub: bool = False):
         all_channels_data = np.fromfile(filepath, dtype=np.int16, count=max_size * n_channels).reshape(-1, n_channels)
     else:
         data = np.fromfile(filepath, dtype=np.int16)
-        cont = True
-        while cont:
-            try:
-                all_channels_data = data.reshape(-1, n_channels)
-                cont = False
-            except:
-                cont = True
-                n_channels -= 1
+        if data.size % n_channels != 0:
+            raise ValueError(
+                f"The size of {filepath} ({data.size} samples) is not a multiple of n_channels ({n_channels})."
+            )
+        all_channels_data = data.reshape(-1, n_channels)
 
     return lfp_fs, all_channels_data
 

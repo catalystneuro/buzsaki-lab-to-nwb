@@ -111,7 +111,13 @@ class WatsonBehaviorInterface(BaseDataInterface):
         if os.path.isfile(sleep_state_fpath):
             matin = loadmat(sleep_state_fpath)["SleepState"]["ints"][0][0]
 
-            table = TimeIntervals(name="states", description="Sleep states of animal.")
+            table = TimeIntervals(
+                name="states",
+                description=(
+                    "Sleep states of animal, from the WAKEstate, NREMstate and REMstate intervals of "
+                    f"{session_id}.SleepState.states.mat."
+                ),
+            )
             table.add_column(name="label", description="Sleep state.")
 
             data = []
