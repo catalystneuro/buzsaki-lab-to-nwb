@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from nwb_conversion_tools.basesortingextractorinterface import BaseSortingExtractorInterface
 import spikeextractors as se
 from scipy.io import loadmat

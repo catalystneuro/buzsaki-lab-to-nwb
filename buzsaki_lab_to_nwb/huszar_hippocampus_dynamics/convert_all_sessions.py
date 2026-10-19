@@ -6,7 +6,6 @@ import psutil
 import json
 import shutil
 
-
 if __name__ == "__main__":
     # Parameters for conversion
     stub_test = False  # Converts a only a stub of the data for quick iteration and testing

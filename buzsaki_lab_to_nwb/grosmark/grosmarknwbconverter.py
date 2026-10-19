@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 import os
 from datetime import datetime
 from dateutil.parser import parse as dateparse

@@ -1,4 +1,5 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
+
 import sys
 from pathlib import Path
 

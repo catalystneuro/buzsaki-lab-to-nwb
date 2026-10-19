@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from buzsaki_lab_to_nwb import GrosmarkNWBConverter
 from pathlib import Path
 import os

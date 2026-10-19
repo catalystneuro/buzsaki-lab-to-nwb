@@ -1,4 +1,5 @@
 """Primary script to run to convert an entire session of data using the NWBConverter."""
+
 import time
 from pathlib import Path
 from warnings import warn

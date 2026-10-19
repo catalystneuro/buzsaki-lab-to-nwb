@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from buzsaki_lab_to_nwb import WatsonNWBConverter
 
 # TODO: add pathlib

@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 import spikeextractors as se
 from nwb_conversion_tools import NWBConverter, neuroscopedatainterface
 from .watsonlfpdatainterface import WatsonLFPInterface

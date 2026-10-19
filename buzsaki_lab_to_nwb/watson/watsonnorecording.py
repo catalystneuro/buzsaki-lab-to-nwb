@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from nwb_conversion_tools.baserecordingextractorinterface import BaseRecordingExtractorInterface
 import spikeextractors as se
 

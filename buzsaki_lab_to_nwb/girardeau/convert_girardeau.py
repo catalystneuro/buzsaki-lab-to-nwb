@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from pathlib import Path
 
 from buzsaki_lab_to_nwb import GirardeauNWBConverter

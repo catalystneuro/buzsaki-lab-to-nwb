@@ -1,4 +1,5 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
+
 from scipy.io import loadmat
 from pynwb import NWBFile, H5DataIO
 from pynwb.file import TimeIntervals
