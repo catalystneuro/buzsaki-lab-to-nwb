@@ -1,4 +1,5 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
+
 import dateutil
 from pathlib import Path
 from collections import Counter
@@ -14,7 +15,6 @@ from nwb_conversion_tools import (
 
 from .tingleyseptalbehaviorinterface import TingleySeptalBehaviorInterface
 from .tingleyseptal_utils import read_matlab_file
-
 
 DEVICE_INFO = dict(
     cambridge=dict(

@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile
@@ -111,7 +112,13 @@ class WatsonBehaviorInterface(BaseDataInterface):
         if os.path.isfile(sleep_state_fpath):
             matin = loadmat(sleep_state_fpath)["SleepState"]["ints"][0][0]
 
-            table = TimeIntervals(name="states", description="Sleep states of animal.")
+            table = TimeIntervals(
+                name="states",
+                description=(
+                    "Sleep states of animal, from the WAKEstate, NREMstate and REMstate intervals of "
+                    f"{session_id}.SleepState.states.mat."
+                ),
+            )
             table.add_column(name="label", description="Sleep state.")
 
             data = []

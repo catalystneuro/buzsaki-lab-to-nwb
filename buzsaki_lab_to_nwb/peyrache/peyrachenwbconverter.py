@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from dateutil.parser import parse as dateparse
 from pathlib import Path
 

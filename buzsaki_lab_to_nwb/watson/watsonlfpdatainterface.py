@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from nwb_conversion_tools.utils import get_base_schema, get_schema_from_hdmf_class
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile, TimeSeries

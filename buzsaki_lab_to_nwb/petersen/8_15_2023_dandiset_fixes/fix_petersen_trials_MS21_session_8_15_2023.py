@@ -5,6 +5,7 @@ No available information to properly syncrhonize the trials to the rest of the f
 
 Simply removing the trials table, will need to be repacked (doing that anyway for pagination).
 """
+
 import h5py
 
 nwbfile_path = "E:/Buzsaki/PetersenP/000059/sub-MS21/sub-MS21_ses-Peter-MS21-180712-103200-concat_behavior+ecephys.nwb"

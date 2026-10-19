@@ -1,4 +1,5 @@
 """Authors: Heberto Mayorquin and Cody Baker."""
+
 from pathlib import Path
 from nwb_conversion_tools.utils.json_schema import FolderPathType
 

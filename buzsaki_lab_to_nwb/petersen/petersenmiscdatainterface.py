@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 import numpy as np
 from pathlib import Path
 from hdf5storage import loadmat  # scipy.io loadmat doesn't support >= v7.3 matlab files

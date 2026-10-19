@@ -1,11 +1,11 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from pathlib import Path
 import numpy as np
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from pynwb import NWBFile, H5DataIO
 from pynwb.image import ImageSeries
-
 
 try:
     import cv2
@@ -32,7 +32,7 @@ class MPGInterface(BaseDataInterface):
         else:
             count_max = np.inf
 
-        (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split(".")
+        major_ver, minor_ver, subminor_ver = (cv2.__version__).split(".")
         file_paths = self.source_data["file_paths"]
         for file in file_paths:
             cap = cv2.VideoCapture(file)
