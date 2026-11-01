@@ -6,8 +6,8 @@ OBO = "http://purl.obolibrary.org/obo/"
 
 SUBJECT_TERMS = dict(
     species={"Rattus norvegicus": "NCBITaxon:10116"},
-    # Crl:LE lists "Long Evans" and "Long-Evans" as synonyms
-    strain={"Long Evans": "RS:0001827"},
+    # No strain term: the Rat Strain Ontology has Long Evans only as vendor lines (e.g. Crl:LE), and the paper does
+    # not name the vendor
     sex={"M": "PATO:0000384"},
 )
 # Cortical regions as named in the CortexRegion field of the _BasicMetaData.mat files
@@ -15,12 +15,12 @@ REGION_TERMS = {
     "ACC": "UBERON:0009835",  # anterior cingulate cortex
     "mPFC": "UBERON:4450000",  # medial prefrontal cortex
     "OFC": "UBERON:0004167",  # orbitofrontal cortex
-    # The lab's "MotorCtx" does not say primary or secondary, and UBERON has no term for motor cortex as a whole
-    "MotorCtx": "UBERON:0001870",  # frontal cortex
+    # The lab's "MotorCtx" is the secondary motor cortex of Watson et al. 2016
+    "MotorCtx": "UBERON:0016634",  # premotor cortex, synonym "nonprimary motor cortex"
     "CTX": "UBERON:0000956",  # cerebral cortex, the region of every unit in spikes.cellinfo.mat
 }
 CELL_TYPE_TERMS = {
-    "excitatory": "CL:0000679",  # glutamatergic neuron
+    "excitatory": "CL:0000598",  # pyramidal neuron; the paper's pE cells are putative pyramidal cells
     "inhibitory": "CL:0000498",  # inhibitory interneuron
 }
 
