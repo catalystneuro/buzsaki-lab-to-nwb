@@ -1,6 +1,7 @@
 """Authors: Cody Baker and Ben Dichter."""
 
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
@@ -25,8 +26,26 @@ class WatsonSortingInterface(BaseDataInterface):
     .spikes.cellinfo.mat.
     """
 
-    def __init__(self, folder_path: DirectoryPath, verbose: bool = False):
-        super().__init__(folder_path=folder_path, verbose=verbose)
+    def __init__(
+        self,
+        folder_path: DirectoryPath,
+        exclude_shanks: Optional[list[int]] = None,
+        exclusion_reason: Optional[str] = None,
+        verbose: bool = False,
+    ):
+        """
+        Parameters
+        ----------
+        folder_path : DirectoryPath
+            Session folder.
+        exclude_shanks : list of int, optional
+            1-indexed shanks whose units are left out.
+        exclusion_reason : str, optional
+            Why they are left out; added to the description of the units table.
+        """
+        super().__init__(
+            folder_path=folder_path, exclude_shanks=exclude_shanks, exclusion_reason=exclusion_reason, verbose=verbose
+        )
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
@@ -68,10 +87,17 @@ class WatsonSortingInterface(BaseDataInterface):
         units = self.read_clustered_units()
         if not units:
             units = {key: info["times"] for key, info in cell_info.items()}
+        exclude_shanks = self.source_data["exclude_shanks"] or []
+        units = {key: times for key, times in units.items() if key[0] not in exclude_shanks}
+
+        description = "sorted single units"
+        if exclude_shanks:
+            shank_list = ", ".join(str(shank) for shank in exclude_shanks)
+            description += f"; units on shank {shank_list} are left out: {self.source_data['exclusion_reason']}"
 
         nwbfile.units = Units(
             name="units",
-            description="sorted single units",
+            description=description,
             resolution=1 / self.xml_info["sampling_rate"],
         )
         nwbfile.add_unit_column(name="global_id", description="global id of the cell for the entire experiment")

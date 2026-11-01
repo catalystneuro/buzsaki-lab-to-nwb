@@ -39,6 +39,17 @@ SESSIONS = [
 # multiple of its 128 channels, so its columns do not correspond to channels.
 UNUSABLE_PUBLISHED_LFP = {"Dino/Dino_061914"}
 
+# Shanks whose units are left out, with the reason recorded in the units table
+EXCLUDED_SHANKS = {
+    "Dino/Dino_072114": (
+        [7],
+        "their spike times in the .res/.clu files and in .spikes.cellinfo.mat disagree. The two have the same number "
+        "of spikes per cluster, but the .res/.clu times lock only weakly to the NREM slow oscillation of the LFP, "
+        "while the .spikes.cellinfo.mat times lock to it as strongly as the other shanks yet stop 30 minutes before "
+        "the end of the recording.",
+    ),
+}
+
 # Chunk sizes before compression. gzip shrinks the LFP and the phases by less than 25% and the spike waveforms by
 # about 3x, so these give stored chunks of roughly 20-35 MB: large enough that streaming from S3 is not dominated by
 # the overhead of each range request, small enough that a short read does not fetch much more than it needs.
@@ -92,6 +103,7 @@ def session_to_nwb(
     """
     session_path = Path(session_path)
     session_id = session_path.name
+    exclude_shanks, exclusion_reason = EXCLUDED_SHANKS.get(f"{session_path.parent.name}/{session_id}", (None, None))
     lfp_file_path = session_path / f"{session_id}.lfp"
 
     source_data = dict(
@@ -100,7 +112,7 @@ def session_to_nwb(
             lfp_file_path=str(lfp_file_path) if lfp_file_path.is_file() else None,
             published_nwb_file_path=str(published_nwb_file_path) if published_nwb_file_path else None,
         ),
-        Sorting=dict(folder_path=str(session_path)),
+        Sorting=dict(folder_path=str(session_path), exclude_shanks=exclude_shanks, exclusion_reason=exclusion_reason),
     )
     sleep_state_file_path = session_path / f"{session_id}.SleepState.states.mat"
     if sleep_state_file_path.is_file():
