@@ -1,4 +1,5 @@
 """Authors: Cody Baker."""
+
 from nwb_conversion_tools.basedatainterface import BaseDataInterface
 from nwb_conversion_tools.tools.hdmf import SliceableDataChunkIterator
 from nwb_conversion_tools.utils import FilePathType

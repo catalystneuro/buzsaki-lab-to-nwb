@@ -1,4 +1,5 @@
 """Add missing trials tables to a few sessions."""
+
 from pathlib import Path
 
 import numpy as np

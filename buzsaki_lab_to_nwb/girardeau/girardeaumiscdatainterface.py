@@ -1,4 +1,5 @@
 """Authors: Cody Baker and Ben Dichter."""
+
 from pathlib import Path
 from scipy.io import loadmat
 import pandas as pd
@@ -8,7 +9,6 @@ from pynwb import NWBFile
 from pynwb.file import TimeIntervals
 
 from ..neuroscope import get_events, check_module, add_position_data
-
 
 # TODO
 # Add mpg movies as acquisition image series

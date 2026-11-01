@@ -1,4 +1,5 @@
 """Authors: Cody Baker."""
+
 import dateutil
 from pathlib import Path
 from datetime import datetime
@@ -13,7 +14,6 @@ from .tingleymetabolicaccelerometerinterface import TingleyMetabolicAcceleromete
 from .tingleymetabolicglucoseinterface import TingleyMetabolicGlucoseInterface
 from .tingleymetabolicripplesinterface import TingleyMetabolicRipplesInterface
 from ..common_interfaces.sleepstatesinterface import SleepStatesInterface
-
 
 DEVICE_INFO = dict(
     cambridge=dict(

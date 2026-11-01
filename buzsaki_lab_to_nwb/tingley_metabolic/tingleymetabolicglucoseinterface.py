@@ -1,4 +1,5 @@
 """Authors: Cody Baker."""
+
 from datetime import datetime
 
 from nwb_conversion_tools.basedatainterface import BaseDataInterface

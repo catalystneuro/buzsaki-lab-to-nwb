@@ -1,4 +1,5 @@
 """Delete bulk contents, rechunk remaining datasets, and repack all files in DANDI set 000059 with pagination."""
+
 import h5py
 from pathlib import Path
 from typing import Union, Tuple, List
@@ -13,7 +14,7 @@ all_dandi_nwbfiles = list(dandi_base.rglob("**/*.nwb"))
 
 
 def recursively_rechunk_datasets(
-    h5py_object: Union[h5py.Group, h5py.Dataset]
+    h5py_object: Union[h5py.Group, h5py.Dataset],
 ) -> List[Tuple[str, Union[Tuple[int], Tuple[int, int]]]]:
     if isinstance(h5py_object, h5py.Group):
         running_paths_and_chunk_shapes = list()
