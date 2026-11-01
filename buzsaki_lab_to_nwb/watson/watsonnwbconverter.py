@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from neuroconv import NWBConverter
 
 from .watsonecephysinterface import WatsonEcephysInterface
+from .watsonontology import add_ontology_annotations
 from .watsonsleepstatesinterface import WatsonSleepStatesInterface
 from .watsonsortinginterface import WatsonSortingInterface
 
@@ -35,3 +36,7 @@ class WatsonNWBConverter(NWBConverter):
         )
         metadata["Subject"]["subject_id"] = subject_id
         return metadata
+
+    def add_to_nwbfile(self, nwbfile, metadata, conversion_options=None):
+        super().add_to_nwbfile(nwbfile=nwbfile, metadata=metadata, conversion_options=conversion_options)
+        add_ontology_annotations(nwbfile)
