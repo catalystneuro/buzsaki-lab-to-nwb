@@ -41,40 +41,43 @@ class SenzaiMonosynapticInterface(BaseDataInterface):
                 pre, post = (pre_shank, pre_cluster), (post_shank, post_cluster)
                 if pre in row_of and post in row_of:  # a stub conversion keeps only some units
                     connections.append((row_of[pre], row_of[post], kind))
-        table = DynamicTable(
-            name="monosynaptic_connections",
-            description=(
-                "putative monosynaptic connections from the authors' MonoSynConvClick.mat: narrow significant peaks "
-                "(excitatory) or troughs (inhibitory) at latencies under 5 ms in the spike cross-correlogram of the "
-                "presynaptic unit and the postsynaptic unit"
-            ),
-            columns=[
-                unit_region("presynaptic_unit", "the presynaptic unit", [pre for pre, _, _ in connections]),
-                unit_region("postsynaptic_unit", "the postsynaptic unit", [post for _, post, _ in connections]),
-            ],
-        )
-        table.add_column(
-            name="connection",
-            description="excitatory or inhibitory",
-            data=np.asarray([kind for _, _, kind in connections], dtype=str),
-        )
-        module.add(table)
+        # Empty tables are left out
+        if connections:
+            table = DynamicTable(
+                name="monosynaptic_connections",
+                description=(
+                    "putative monosynaptic connections from the authors' MonoSynConvClick.mat: narrow significant peaks "
+                    "(excitatory) or troughs (inhibitory) at latencies under 5 ms in the spike cross-correlogram of the "
+                    "presynaptic unit and the postsynaptic unit"
+                ),
+                columns=[
+                    unit_region("presynaptic_unit", "the presynaptic unit", [pre for pre, _, _ in connections]),
+                    unit_region("postsynaptic_unit", "the postsynaptic unit", [post for _, post, _ in connections]),
+                ],
+            )
+            table.add_column(
+                name="connection",
+                description="excitatory or inhibitory",
+                data=np.asarray([kind for _, _, kind in connections], dtype=str),
+            )
+            module.add(table)
 
         pairs = [
             (row_of[(shank_1, cluster_1)], row_of[(shank_2, cluster_2)])
             for shank_1, cluster_1, shank_2, cluster_2 in unit_pairs(mat, "FinalpureZeroLag")
             if (shank_1, cluster_1) in row_of and (shank_2, cluster_2) in row_of
         ]
-        module.add(
-            DynamicTable(
-                name="zero_lag_synchrony",
-                description=(
-                    "pairs of units with a narrow large peak at under 1 ms latency in their spike cross-correlogram "
-                    "('zero time lag' pairs), from FinalpureZeroLag of the authors' MonoSynConvClick.mat"
-                ),
-                columns=[
-                    unit_region("unit_1", "first unit of the pair", [first for first, _ in pairs]),
-                    unit_region("unit_2", "second unit of the pair", [second for _, second in pairs]),
-                ],
+        if pairs:
+            module.add(
+                DynamicTable(
+                    name="zero_lag_synchrony",
+                    description=(
+                        "pairs of units with a narrow large peak at under 1 ms latency in their spike cross-correlogram "
+                        "('zero time lag' pairs), from FinalpureZeroLag of the authors' MonoSynConvClick.mat"
+                    ),
+                    columns=[
+                        unit_region("unit_1", "first unit of the pair", [first for first, _ in pairs]),
+                        unit_region("unit_2", "second unit of the pair", [second for _, second in pairs]),
+                    ],
+                )
             )
-        )

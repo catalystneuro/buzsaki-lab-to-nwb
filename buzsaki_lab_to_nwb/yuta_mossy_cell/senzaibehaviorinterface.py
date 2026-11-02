@@ -9,6 +9,7 @@ from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath
 from pynwb import NWBFile, TimeSeries
+from pynwb.misc import AnnotationSeries
 from pynwb.behavior import Position, SpatialSeries
 from pynwb.epoch import TimeIntervals
 from scipy.io import loadmat
@@ -278,28 +279,24 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         nwbfile.add_time_intervals(table)
 
     def add_lab_events(self, nwbfile: NWBFile):
-        """Every other .evt file: stimulation and ripple events whose file names do not give their duration."""
+        """Every other .evt file, as instants: stimulation and ripple events whose file names do not give a duration."""
         files = [
             path
             for path in sorted(self.session_path.glob(f"{self.session_id}.*.evt"))
             if not PULSE_NAME.search(path.name) and not re.search(r"\.DS[12]\.ch\d+\.evt$", path.name)
         ]
-        rows = set()
+        if not files:
+            return
+        module = get_module(nwbfile, "events", "events from the lab's .evt files that are instants")
         for evt_file in files:
             label = evt_file.name[len(self.session_id) + 1 : -len(".evt")]
             events = pd.read_csv(evt_file, sep="\t", header=None, names=["ms", "text"], dtype={"text": str})
-            rows |= {(float(ms) / 1000, label, str(text)) for ms, text in zip(events.ms, events.text.fillna(""))}
-        if not rows:
-            return
-        table = TimeIntervals(
-            name="lab_events",
-            description=(
-                "events from the lab's other .evt files (for example stimulation onsets and ends, and ripples), as "
-                "instants with the file they came from and the text of their line; repeated lines are kept once"
-            ),
-        )
-        table.add_column(name="label", description="name of the lab's event file, without the session name")
-        table.add_column(name="text", description="text of the event's line in the file")
-        for time, label, text in sorted(rows):
-            table.add_row(start_time=time, stop_time=time, label=label, text=text)
-        nwbfile.add_time_intervals(table)
+            events = events.fillna("").drop_duplicates().sort_values("ms")
+            module.add(
+                AnnotationSeries(
+                    name=label,
+                    description=f"events of the lab's {evt_file.name} file, with the text of each line; repeated lines are kept once",
+                    data=events.text.astype(str).to_numpy(),
+                    timestamps=events.ms.to_numpy(dtype=float) / 1000,
+                )
+            )
