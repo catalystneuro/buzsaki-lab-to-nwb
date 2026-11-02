@@ -1,0 +1,18 @@
+NWBFile:
+  experiment_description:
+    Physiological properties and behavioral correlates of hippocampal granule cells and mossy cells. Silicon probe
+    recordings in the dentate gyrus and CA3 of freely moving mice in the home cage, a circular T-maze and an open
+    field, with optogenetic tagging of mossy cells (DRD2-Cre::Ai35, POMC-Cre::Ai35) and SST interneurons (SST-Cre).
+  related_publications:
+    - https://doi.org/10.1016/j.neuron.2016.12.011
+  experimenter:
+    - Senzai, Yuta
+  institution: NYU
+  lab: Buzsaki
+  keywords:
+    - dentate gyrus
+    - granule cells
+    - mossy cells
+    - CA3
+    - optogenetic tagging
+    - silicon probe

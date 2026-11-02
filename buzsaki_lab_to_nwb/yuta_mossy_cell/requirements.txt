@@ -1,0 +1,7 @@
+neuroconv>=0.10.2
+scipy
+lxml
+h5py
+pandas
+openpyxl
+xlrd

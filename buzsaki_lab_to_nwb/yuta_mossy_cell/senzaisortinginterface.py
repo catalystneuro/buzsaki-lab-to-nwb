@@ -1,0 +1,182 @@
+"""Units of a Senzai session (DANDI:000003)."""
+
+from pathlib import Path
+from typing import Optional
+
+import h5py
+import numpy as np
+from neuroconv.basedatainterface import BaseDataInterface
+from pydantic import DirectoryPath, FilePath
+from pynwb import NWBFile
+from pynwb.misc import Units
+
+from .senzaiecephysinterface import VOLTS_PER_STEP
+from .senzaiutils import FINE_CELL_TYPES, REGIONS, read_session_xml, read_unit_summary
+
+STUB_UNITS = 5
+
+QUALITY_DESCRIPTION = (
+    "{name} from the lab's unit summary (DG_all_6__UnitFeatureSummary_add.mat); -1 for units not in the summary"
+)
+
+
+class SenzaiSortingInterface(BaseDataInterface):
+    """Units: the clusters numbered 2 and up in the .clu.N files, with spike times from the .res.N files.
+
+    Their cell type, region, quality and optogenetic tagging come from the row of the lab's unit summary with the same
+    session, shank and cluster. Their waveforms come from the session's earlier DANDI file, whose spike times are the
+    same spikes in the same order (checked), because most .spk files are not on the public share.
+    """
+
+    def __init__(
+        self,
+        folder_path: DirectoryPath,
+        unit_summary_file_path: FilePath,
+        published_nwb_file_path: Optional[FilePath] = None,
+        verbose: bool = False,
+    ):
+        super().__init__(
+            folder_path=folder_path,
+            unit_summary_file_path=unit_summary_file_path,
+            published_nwb_file_path=published_nwb_file_path,
+            verbose=verbose,
+        )
+        self.session_path = Path(folder_path)
+        self.session_id = self.session_path.name
+        self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
+
+    def read_units(self) -> dict:
+        """Map (shank, cluster) to spike times in samples, in shank and cluster order."""
+        units = {}
+        for shank_index, _ in enumerate(self.xml_info["shank_channels"]):
+            shank = shank_index + 1
+            clu_file_path = self.session_path / f"{self.session_id}.clu.{shank}"
+            if not clu_file_path.is_file():
+                continue
+            clusters = np.loadtxt(clu_file_path, dtype=np.int64, ndmin=1)[
+                1:
+            ]  # the first line is the number of clusters
+            samples = np.loadtxt(self.session_path / f"{self.session_id}.res.{shank}", dtype=np.int64, ndmin=1)
+            for cluster in np.unique(clusters[clusters > 1]):
+                units[(shank, int(cluster))] = samples[clusters == cluster]
+        return units
+
+    def read_published_waveforms(self, units: dict):
+        """Per-unit waveforms from the earlier DANDI file, after checking that its spikes are these spikes."""
+        published_nwb_file_path = self.source_data["published_nwb_file_path"]
+        if published_nwb_file_path is None:
+            return None
+        self._published_file = h5py.File(published_nwb_file_path, "r")
+        published = self._published_file["units"]
+        if "waveforms" not in published:
+            return None
+        sampling_rate = self.xml_info["sampling_rate"]
+        published_samples = np.rint(published["spike_times"][:] * sampling_rate).astype(np.int64)
+        samples = np.concatenate(list(units.values()))
+        if not np.array_equal(published_samples, samples):
+            raise ValueError(
+                f"The spikes of the earlier DANDI file of {self.session_id} are not the spikes of its .res/.clu files "
+                "in shank and cluster order, so its waveforms cannot be assigned to units"
+            )
+        row_ends = published["waveforms_index"][:]
+        row_starts = np.concatenate([[0], row_ends[:-1]])
+        waveforms = {}
+        first_spike = 0
+        for key, unit_samples in units.items():
+            last_spike = first_spike + len(unit_samples)
+            n_channels = int(row_ends[first_spike] - row_starts[first_spike])
+            rows = published["waveforms"][row_starts[first_spike] : row_ends[last_spike - 1]]
+            waveforms[key] = rows.reshape(len(unit_samples), n_channels, -1)
+            first_spike = last_spike
+        return waveforms
+
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        units = self.read_units()
+        waveforms = self.read_published_waveforms(units)
+        if stub_test:
+            units = dict(list(units.items())[:STUB_UNITS])
+
+        summary = read_unit_summary(Path(self.source_data["unit_summary_file_path"]))
+        summary = summary[summary.fname == self.session_id].set_index(["shank", "unitIDshank"])
+        sampling_rate = self.xml_info["sampling_rate"]
+
+        nwbfile.units = Units(
+            name="units",
+            description=(
+                "units sorted with KlustaKwik and curated in Klusters (clusters 2 and up of the .clu files); spike "
+                "waveforms are 32 samples (1.6 ms at 20 kHz) on each channel of the unit's shank, as stored in the "
+                "lab's .spk files, scaled to volts"
+            ),
+            resolution=1 / sampling_rate,
+            waveform_rate=sampling_rate,
+            waveform_unit="volts",
+        )
+        nwbfile.add_unit_column(name="shank", description="1-indexed shank the unit was detected on")
+        nwbfile.add_unit_column(name="cluster_id", description="cluster number in the .clu file of the shank")
+        nwbfile.add_unit_column(
+            name="global_id", description="unitID of the lab's unit summary; -1 for units not in the summary"
+        )
+        nwbfile.add_unit_column(
+            name="cell_type",
+            description=(
+                "cell type from the lab's unit summary (fineCellType); excitatory cells are granule cells in the "
+                "dentate gyrus and pyramidal cells in CA3; 'not in unit summary' for units the authors did not include"
+            ),
+        )
+        nwbfile.add_unit_column(
+            name="region", description="region of the unit in the lab's unit summary (DG or CA3); 'unknown' if absent"
+        )
+        for name in ("ACGquality", "UnitStability"):
+            nwbfile.add_unit_column(name=name, description=QUALITY_DESCRIPTION.format(name=name))
+        for name, cell in (("sstcell", "SST"), ("drd2cell", "DRD2"), ("pomccell", "POMC")):
+            nwbfile.add_unit_column(
+                name=f"{cell.lower()}_tagged",
+                description=f"the unit responded to light as a {cell}-expressing cell ({name} of the lab's unit summary)",
+            )
+
+        for (shank, cluster), unit_samples in units.items():
+            group = nwbfile.electrode_groups[f"shank{shank}"]
+            # In the order of the shank's channels in the .xml file, which is the channel order of the waveforms
+            channel_ids = list(nwbfile.electrodes["channel_id"][:])
+            electrodes = [channel_ids.index(channel) for channel in self.xml_info["shank_channels"][shank - 1]]
+            if (shank, cluster) in summary.index:
+                row = summary.loc[(shank, cluster)]
+                region = REGIONS.get(int(row.region), "unknown")
+                if int(row.fineCellType) == 1:
+                    cell_type = {"DG": "granule cell", "CA3": "CA3 pyramidal cell"}.get(region, "excitatory cell")
+                else:
+                    cell_type = FINE_CELL_TYPES[int(row.fineCellType)]
+                values = dict(
+                    global_id=int(row.unitID),
+                    ACGquality=int(row.ACGquality),
+                    UnitStability=int(row.UnitStability),
+                    sst_tagged=bool(row.sstcell),
+                    drd2_tagged=bool(row.drd2cell),
+                    pomc_tagged=bool(row.pomccell),
+                )
+            else:
+                region, cell_type = "unknown", "not in unit summary"
+                values = dict(
+                    global_id=-1,
+                    ACGquality=-1,
+                    UnitStability=-1,
+                    sst_tagged=False,
+                    drd2_tagged=False,
+                    pomc_tagged=False,
+                )
+            unit_waveforms = None
+            if waveforms is not None:
+                # The earlier files hold the .spk values in volts as if each step were a microvolt
+                steps = np.rint(waveforms[(shank, cluster)] * 1e6)
+                unit_waveforms = (steps * VOLTS_PER_STEP).astype(np.float32)
+            nwbfile.add_unit(
+                spike_times=unit_samples / sampling_rate,
+                electrode_group=group,
+                electrodes=electrodes,
+                shank=shank,
+                cluster_id=cluster,
+                cell_type=cell_type,
+                region=region,
+                waveforms=unit_waveforms,
+                **values,
+            )
