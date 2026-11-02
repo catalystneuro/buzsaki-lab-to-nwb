@@ -111,6 +111,7 @@ def session_to_nwb(
             folder_path=str(session_path),
             lfp_file_path=str(lfp_file_path) if lfp_file_path.is_file() else None,
             published_nwb_file_path=str(published_nwb_file_path) if published_nwb_file_path else None,
+            use_published_lfp=f"{session_path.parent.name}/{session_id}" not in UNUSABLE_PUBLISHED_LFP,
         ),
         Sorting=dict(folder_path=str(session_path), exclude_shanks=exclude_shanks, exclusion_reason=exclusion_reason),
     )
@@ -146,7 +147,7 @@ if __name__ == "__main__":
     for session in args.session or SESSIONS:
         subject_id, session_id = session.split("/")
         published_nwb_file_path = None
-        if args.published_path and session not in UNUSABLE_PUBLISHED_LFP:
+        if args.published_path:
             dandi_session = session_id.replace("_", "-")
             candidate = args.published_path / f"sub-{subject_id}" / f"sub-{subject_id}_ses-{dandi_session}_ecephys.nwb"
             published_nwb_file_path = candidate if candidate.is_file() else None

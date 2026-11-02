@@ -25,6 +25,25 @@ STUB_LFP_SAMPLES = 75_000  # one minute at 1250 Hz
 STUB_SPIKES = 50
 
 
+class TransposedWaveforms:
+    """(spikes, samples, channels) waveforms read lazily as (spikes, channels, samples)."""
+
+    def __init__(self, data):
+        self.data = data
+        self.shape = (data.shape[0], data.shape[2], data.shape[1])
+        self.dtype = data.dtype
+
+    def __len__(self):
+        return self.shape[0]
+
+    def __getitem__(self, selection):
+        if not isinstance(selection, tuple):
+            selection = (selection,)
+        selection = selection + (slice(None),) * (3 - len(selection))
+        spikes, channels, samples = selection
+        return np.asarray(self.data[spikes]).transpose(0, 2, 1)[:, channels, samples]
+
+
 class WatsonEcephysInterface(BaseDataInterface):
     """Electrodes, LFP, LFP phase decompositions and spike waveforms of a Watson session.
 
@@ -38,14 +57,18 @@ class WatsonEcephysInterface(BaseDataInterface):
         folder_path: DirectoryPath,
         lfp_file_path: Optional[FilePath] = None,
         published_nwb_file_path: Optional[FilePath] = None,
+        use_published_lfp: bool = True,
         verbose: bool = False,
     ):
         super().__init__(
             folder_path=folder_path,
             lfp_file_path=lfp_file_path,
             published_nwb_file_path=published_nwb_file_path,
+            use_published_lfp=use_published_lfp,
             verbose=verbose,
         )
+        # Kept open until the new file has been written
+        self._published_file = h5py.File(published_nwb_file_path, "r") if published_nwb_file_path else None
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
@@ -71,9 +94,7 @@ class WatsonEcephysInterface(BaseDataInterface):
                 )
             lfp = np.memmap(lfp_file_path, dtype=np.int16, mode="r").reshape(-1, n_channels)
             return lfp[:, self.channels]
-        if published_nwb_file_path is not None:
-            # Kept open until the new file has been written
-            self._published_file = h5py.File(published_nwb_file_path, "r")
+        if self._published_file is not None and self.source_data["use_published_lfp"]:
             lfp = self._published_file["processing/ecephys/LFP/lfp/data"]
             if lfp.shape[1] != len(self.channels):
                 raise ValueError(
@@ -181,17 +202,29 @@ class WatsonEcephysInterface(BaseDataInterface):
     ):
         spk_file_path = self.session_path / f"{self.session_id}.spk.{shank_number}"
         res_file_path = self.session_path / f"{self.session_id}.res.{shank_number}"
-        if not spk_file_path.is_file():
-            return
+        published_name = f"processing/ecephys/SpikeWaveforms{shank_number}"
         n_samples = self.xml_info["spikes_n_samples"]
-        # .spk files are (spikes, samples, channels); SpikeEventSeries data is (spikes, channels, samples)
-        waveforms = np.memmap(spk_file_path, dtype=np.int16, mode="r").reshape(-1, n_samples, len(shank_channels))
-        waveforms = waveforms.transpose(0, 2, 1)
-        spike_frames = np.loadtxt(res_file_path, dtype=np.int64, ndmin=1)
+        if spk_file_path.is_file():
+            # .spk files are (spikes, samples, channels); SpikeEventSeries data is (spikes, channels, samples)
+            waveforms = np.memmap(spk_file_path, dtype=np.int16, mode="r").reshape(-1, n_samples, len(shank_channels))
+            spike_frames = np.loadtxt(res_file_path, dtype=np.int64, ndmin=1)
+            source = f"the .spk.{shank_number} file"
+        elif self._published_file is not None and published_name in self._published_file:
+            # Most .spk files are not on the public share; the earlier DANDI files hold their values unchanged, in
+            # the same (spikes, samples, channels) layout
+            published = self._published_file[published_name]
+            waveforms = published["data"]
+            spike_frames = np.rint(published["timestamps"][:] * self.xml_info["sampling_rate"]).astype(np.int64)
+            source = f"the .spk.{shank_number} file, by way of the earlier DANDI file"
+        else:
+            return
+        if waveforms.shape[1:] != (n_samples, len(shank_channels)):
+            raise ValueError(f"Waveforms of shank {shank_number} have shape {waveforms.shape}")
         if len(spike_frames) != len(waveforms):
-            raise ValueError(f"{res_file_path} has {len(spike_frames)} spikes but {spk_file_path} has {len(waveforms)}")
+            raise ValueError(f"Shank {shank_number} has {len(spike_frames)} spike times for {len(waveforms)} waveforms")
         if stub_test:
             waveforms, spike_frames = waveforms[:STUB_SPIKES], spike_frames[:STUB_SPIKES]
+        waveforms = TransposedWaveforms(waveforms)
 
         group = nwbfile.electrode_groups[f"shank{shank_number}"]
         # The .spk columns follow the order of the shank's channels in the xml file
@@ -199,7 +232,7 @@ class WatsonEcephysInterface(BaseDataInterface):
         ecephys_module.add(
             SpikeEventSeries(
                 name=f"SpikeWaveforms{shank_number}",
-                description=f"waveforms of all spikes detected on {group.name}, from the .spk.{shank_number} file",
+                description=f"waveforms of all spikes detected on {group.name}, from {source}",
                 data=SliceableDataChunkIterator(data=waveforms),
                 timestamps=spike_frames / self.xml_info["sampling_rate"],
                 electrodes=nwbfile.create_electrode_table_region(
