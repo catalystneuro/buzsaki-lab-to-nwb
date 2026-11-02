@@ -56,6 +56,14 @@ RUN_COLUMNS = [
 PULSE_NAME = re.compile(r"PulseStim_(?P<voltage>[\d.]+)V_(?P<duration>\d+)ms_LD(?P<diodes>\d+)")
 
 
+def timing(times: np.ndarray) -> dict:
+    """starting_time and rate for evenly spaced times, otherwise the timestamps."""
+    steps = np.diff(times)
+    if len(steps) and np.allclose(steps, np.median(steps), rtol=1e-6, atol=1e-6):
+        return dict(starting_time=float(times[0]), rate=float(1 / np.median(steps)))
+    return dict(timestamps=times)
+
+
 def find_discontinuities(times: np.ndarray, factor: float = 10000) -> np.ndarray:
     """(start, stop) of the stretches of a time series separated by gaps much longer than its median step."""
     steps = np.diff(times)
@@ -143,7 +151,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                     "to meters: one unit is the 32.5 cm radius of the circle formed by the side arms"
                 ),
                 data=norm[:, 1:],
-                timestamps=times,
+                **timing(times),
                 reference_frame="center of the circle formed by the side arms",
                 conversion=METERS_PER_MAZE_UNIT,
             )
@@ -158,7 +166,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                         "scaled to meters); 0 while the mouse is on a side arm"
                     ),
                     data=linear[:, 1],
-                    timestamps=times,
+                    **timing(times),
                     reference_frame="start of the central arm",
                     conversion=METERS_PER_MAZE_UNIT,
                 )
@@ -171,7 +179,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                         "marks as left runs and negative on right runs, 0 while the mouse is on the central arm"
                     ),
                     data=linear[:, 2],
-                    timestamps=times,
+                    **timing(times),
                     unit="radians",
                 )
             )
@@ -234,7 +242,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                     name=label,
                     description=description,
                     data=norm[:, 1:],
-                    timestamps=times,
+                    **timing(times),
                     reference_frame="corner of the arena where both normalized coordinates are 0",
                     conversion=conversion,
                     unit=unit,
