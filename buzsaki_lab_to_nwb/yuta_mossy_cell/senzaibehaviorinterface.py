@@ -77,10 +77,13 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         return self.session_path / f"{self.session_id}{suffix}"
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict):
+        self.epochs = []
         self.add_states(nwbfile)
         self.add_led_positions(nwbfile)
         self.add_maze(nwbfile)
         self.add_open_fields(nwbfile)
+        for epoch in sorted(self.epochs, key=lambda epoch: epoch["start_time"]):
+            nwbfile.add_epoch(**epoch)
         self.add_dentate_spikes(nwbfile)
         self.add_light_pulses(nwbfile)
         self.add_lab_events(nwbfile)
@@ -176,7 +179,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
 
         epochs = find_discontinuities(times)
         for index, (start, stop) in enumerate(epochs):
-            nwbfile.add_epoch(start_time=float(start), stop_time=float(stop), tags=[f"t_maze_{index}"])
+            self.epochs.append(dict(start_time=float(start), stop_time=float(stop), tags=[f"t_maze_{index}"]))
 
         run_file = self.file("__EightMazeRun.mat")
         if run_file.is_file():
@@ -237,7 +240,9 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                     unit=unit,
                 )
             )
-            nwbfile.add_epoch(start_time=float(times[0]), stop_time=float(times[-1]), tags=[f"open_field_{label}"])
+            self.epochs.append(
+                dict(start_time=float(times[0]), stop_time=float(times[-1]), tags=[f"open_field_{label}"])
+            )
         get_module(nwbfile, "behavior", "behavior and brain states").add(position)
 
     def add_dentate_spikes(self, nwbfile: NWBFile):
