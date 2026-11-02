@@ -125,7 +125,7 @@ class WatsonEcephysInterface(BaseDataInterface):
         ecephys_module = get_module(
             nwbfile=nwbfile, name="ecephys", description="processed extracellular electrophysiology data"
         )
-        conversion = get_conversion_to_volts(self.xml_info)
+        conversion = get_conversion_to_volts(self.xml_info, self.basic_metadata)
         lfp_sampling_rate = self.xml_info["lfp_sampling_rate"]
 
         lfp_data = self.get_lfp_data()

@@ -28,8 +28,14 @@ def read_session_xml(xml_file_path: Path) -> dict:
     )
 
 
-def get_conversion_to_volts(xml_info: dict) -> float:
-    """Volts per int16 step: the ADC voltage range divided by its levels and by the amplifier gain."""
+def get_conversion_to_volts(xml_info: dict, basic_metadata: dict) -> float:
+    """Volts per int16 step.
+
+    The lab's _BasicMetaData.mat gives it as voltsperunit (0.3815 uV, the Amplipex system's 10 V range over 16 bits at
+    x400 gain). The .xml files give 20 V and x1000, which are template defaults, so they are only a fallback.
+    """
+    if basic_metadata.get("volts_per_unit"):
+        return basic_metadata["volts_per_unit"]
     return xml_info["voltage_range"] / 2 ** xml_info["n_bits"] / xml_info["amplification"]
 
 
@@ -42,6 +48,7 @@ def read_basic_metadata(file_path: Path) -> dict:
         spindle_reference=int(bmd["Spindlechannel"]),
         theta_reference=int(bmd["Thetachannel"]),
         cortex_region=str(mat["CortexRegion"]),
+        volts_per_unit=float(bmd["voltsperunit"]) if "voltsperunit" in bmd else None,
     )
 
 
