@@ -127,18 +127,36 @@ class SenzaiEcephysInterface(BaseDataInterface):
             region=list(range(len(self.channels))), description="all probe electrodes"
         )
 
+        def electrodes_of(data):
+            """Electrodes of the columns: channels 0 to n-1, which must be whole shanks."""
+            n_columns = data.shape[1]
+            if n_columns == len(self.channels):
+                return all_electrodes, ""
+            covered = set(range(n_columns))
+            whole_shanks = all(
+                set(group) <= covered or not set(group) & covered for group in self.xml_info["shank_channels"]
+            )
+            if n_columns > len(self.channels) or not whole_shanks:
+                raise ValueError(f"{data.name} has {n_columns} columns for {len(self.channels)} probe channels")
+            region = nwbfile.create_electrode_table_region(
+                region=list(range(n_columns)), description=f"channels 0 to {n_columns - 1}"
+            )
+            return (
+                region,
+                f"; the earlier DANDI file holds only channels 0 to {n_columns - 1}, the first probe's shanks",
+            )
+
         def select(data):
-            if data.shape[1] != len(self.channels):
-                raise ValueError(f"{data.name} has {data.shape[1]} columns for {len(self.channels)} probe channels")
             return data[:STUB_SAMPLES] if stub_test else data
 
         lfp_group = published["processing/ecephys/LFP"]
         lfp = lfp_group["LFP"] if "LFP" in lfp_group else lfp_group["lfp"]
+        lfp_electrodes, lfp_note = electrodes_of(lfp["data"])
         lfp_series = ElectricalSeries(
             name="lfp",
-            description="LFP of all probe channels: the wide-band signal down-sampled to 1250 Hz by the lab",
+            description="LFP of the probe channels: the wide-band signal down-sampled to 1250 Hz by the lab" + lfp_note,
             data=SliceableDataChunkIterator(data=select(lfp["data"])),
-            electrodes=all_electrodes,
+            electrodes=lfp_electrodes,
             rate=float(lfp["starting_time"].attrs["rate"]),
             conversion=VOLTS_PER_STEP,
         )
@@ -169,12 +187,14 @@ class SenzaiEcephysInterface(BaseDataInterface):
 
         if "acquisition/ElectricalSeries" in published:
             wideband = published["acquisition/ElectricalSeries"]
+            wideband_electrodes, wideband_note = electrodes_of(wideband["data"])
             nwbfile.add_acquisition(
                 ElectricalSeries(
                     name="ElectricalSeries",
-                    description="wide-band signal of all probe channels, recorded at 20 kHz on an Amplipex system",
+                    description="wide-band signal of the probe channels, recorded at 20 kHz on an Amplipex system"
+                    + wideband_note,
                     data=SliceableDataChunkIterator(data=select(wideband["data"])),
-                    electrodes=all_electrodes,
+                    electrodes=wideband_electrodes,
                     rate=float(wideband["starting_time"].attrs["rate"]),
                     conversion=VOLTS_PER_STEP,
                 )
