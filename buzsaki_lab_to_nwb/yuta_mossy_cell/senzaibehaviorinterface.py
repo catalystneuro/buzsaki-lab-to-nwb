@@ -37,6 +37,22 @@ TRIAL_COLUMNS = {
     "light_end": "end of light delivery during the run (s); 0 if none",
     "sessionIdx": "the lab's sessionIdx of the run",
 }
+# Column names of EightMazeRun.mat, as given by the EightMazeRunInfo.mat files
+RUN_COLUMNS = [
+    "run_start",
+    "run_end",
+    "left_run",
+    "right_run",
+    "error_run",
+    "stim_run",
+    "both_visit",
+    "arm_start",
+    "arm_end",
+    "sens_pass",
+    "light_start",
+    "light_end",
+    "sessionIdx",
+]
 PULSE_NAME = re.compile(r"PulseStim_(?P<voltage>[\d.]+)V_(?P<duration>\d+)ms_LD(?P<diodes>\d+)")
 
 
@@ -165,7 +181,14 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         run_file = self.file("__EightMazeRun.mat")
         if run_file.is_file():
             runs = np.atleast_2d(loadmat(str(run_file), squeeze_me=True)["EightMazeRun"])
-            info = list(loadmat(str(self.file("__EightMazeRunInfo.mat")), squeeze_me=True)["EightMazeRunInfo"])
+            info_file = self.file("__EightMazeRunInfo.mat")
+            if info_file.is_file():
+                info = list(loadmat(str(info_file), squeeze_me=True)["EightMazeRunInfo"])
+            elif runs.shape[1] == len(RUN_COLUMNS):
+                # Some sessions lack the column names; their runs have the same 13 columns as the others
+                info = RUN_COLUMNS
+            else:
+                raise ValueError(f"{run_file.name} has {runs.shape[1]} columns and no EightMazeRunInfo.mat")
             columns = [name for name in info if name in TRIAL_COLUMNS]
             for name in columns:
                 nwbfile.add_trial_column(name=name, description=TRIAL_COLUMNS[name])
