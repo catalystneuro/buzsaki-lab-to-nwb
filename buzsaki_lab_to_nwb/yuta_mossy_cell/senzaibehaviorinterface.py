@@ -65,6 +65,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         self.add_maze(nwbfile)
         self.add_dentate_spikes(nwbfile)
         self.add_light_pulses(nwbfile)
+        self.add_lab_events(nwbfile)
 
     def add_states(self, nwbfile: NWBFile):
         if not self.file("--StatePeriod.mat").is_file():
@@ -205,12 +206,14 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         get_module(nwbfile, "ecephys", "processed extracellular electrophysiology data").add(table)
 
     def add_light_pulses(self, nwbfile: NWBFile):
-        files = sorted(self.session_path.glob(f"{self.session_id}.PulseStim_*.evt"))
+        """Light pulse files whose names give the voltage, duration and laser diodes; other .evt files go to
+        add_lab_events."""
+        files = [
+            path for path in sorted(self.session_path.glob(f"{self.session_id}.*.evt")) if PULSE_NAME.search(path.name)
+        ]
         rows, notes = [], []
         for evt_file in files:
             match = PULSE_NAME.search(evt_file.name)
-            if match is None:
-                raise ValueError(f"Unexpected light pulse file name {evt_file.name}")
             onsets = pd.read_csv(evt_file, sep="\t", header=None, usecols=[0]).iloc[:, 0].to_numpy() / 1000
             unique_onsets = np.unique(onsets)  # sorted
             if len(unique_onsets) < len(onsets):
@@ -224,9 +227,9 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         table = TimeIntervals(
             name="light_pulses",
             description=(
-                "light pulses delivered through the optical fibers on the probe (.PulseStim_*.evt files), with the "
-                "voltage, pulse duration and laser diodes taken from each file's name; each onset is kept once"
-                + ("" if not notes else " (" + "; ".join(notes) + ")")
+                "light pulses delivered through the optical fibers on the probe (.PulseStim_<voltage>V_<duration>ms_"
+                "LD<diodes>.evt files), with the voltage, pulse duration and laser diodes taken from each file's name; "
+                "each onset is kept once" + ("" if not notes else " (" + "; ".join(notes) + ")")
             ),
         )
         table.add_column(name="voltage", description="voltage driving the laser diode (V)")
@@ -234,4 +237,31 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         table.add_column(name="protocol", description="name of the lab's event file")
         for start, stop, voltage, diodes, protocol in sorted(rows):
             table.add_row(start_time=start, stop_time=stop, voltage=voltage, laser_diodes=diodes, protocol=protocol)
+        nwbfile.add_time_intervals(table)
+
+    def add_lab_events(self, nwbfile: NWBFile):
+        """Every other .evt file: stimulation and ripple events whose file names do not give their duration."""
+        files = [
+            path
+            for path in sorted(self.session_path.glob(f"{self.session_id}.*.evt"))
+            if not PULSE_NAME.search(path.name) and not re.search(r"\.DS[12]\.ch\d+\.evt$", path.name)
+        ]
+        rows = set()
+        for evt_file in files:
+            label = evt_file.name[len(self.session_id) + 1 : -len(".evt")]
+            events = pd.read_csv(evt_file, sep="\t", header=None, names=["ms", "text"], dtype={"text": str})
+            rows |= {(float(ms) / 1000, label, str(text)) for ms, text in zip(events.ms, events.text.fillna(""))}
+        if not rows:
+            return
+        table = TimeIntervals(
+            name="lab_events",
+            description=(
+                "events from the lab's other .evt files (for example stimulation onsets and ends, and ripples), as "
+                "instants with the file they came from and the text of their line; repeated lines are kept once"
+            ),
+        )
+        table.add_column(name="label", description="name of the lab's event file, without the session name")
+        table.add_column(name="text", description="text of the event's line in the file")
+        for time, label, text in sorted(rows):
+            table.add_row(start_time=time, stop_time=time, label=label, text=text)
         nwbfile.add_time_intervals(table)

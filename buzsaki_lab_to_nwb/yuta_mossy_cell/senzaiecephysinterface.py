@@ -78,8 +78,8 @@ class SenzaiEcephysInterface(BaseDataInterface):
             name = f"shank{shank_index + 1}"
             nwbfile.create_electrode_group(
                 name=name,
-                description=f"{name} of the probe",
-                location="dorsal hippocampus (dentate gyrus and CA3)",
+                description=f"{name} of the probe, in the dentate gyrus and CA3 of the dorsal hippocampus",
+                location="Hippocampal region",
                 device=device,
             )
 
