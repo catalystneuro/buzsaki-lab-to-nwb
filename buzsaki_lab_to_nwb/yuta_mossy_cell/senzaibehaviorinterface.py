@@ -63,6 +63,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         self.add_states(nwbfile)
         self.add_led_positions(nwbfile)
         self.add_maze(nwbfile)
+        self.add_open_fields(nwbfile)
         self.add_dentate_spikes(nwbfile)
         self.add_light_pulses(nwbfile)
         self.add_lab_events(nwbfile)
@@ -177,6 +178,43 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                         for name in columns
                     },
                 )
+
+    def add_open_fields(self, nwbfile: NWBFile):
+        """Head position in the open field sessions (__OpenFieldPosition_<label>.mat), one series per session."""
+        files = sorted(self.session_path.glob(f"{self.session_id}__OpenFieldPosition_*.mat"))
+        if not files:
+            return
+        position = Position(name="open_field_position")
+        for position_file in files:
+            label = position_file.stem.split("__OpenFieldPosition_")[1]
+            norm = loadmat(str(position_file), squeeze_me=True)["twhl_norm"]
+            times = norm[:, 0]
+            if label == "ExtraLarge":
+                description = (
+                    f"head position in the lab's '{label}' open field session, with each axis normalized to 0-1 across "
+                    "the arena; the size of this arena is not given in the paper, so the values are not scaled"
+                )
+                conversion, unit = 1.0, "normalized arena units"
+            else:
+                description = (
+                    f"head position in the lab's '{label}' open field session (twhl_norm), scaled to meters: each "
+                    "axis is normalized to 0-1 across the 46 x 46 cm arena. The paper's mice explored open fields A, "
+                    "B and A' and the same arenas in another room or behind a curtain; the session labels are the lab's"
+                )
+                conversion, unit = 0.46, "meters"
+            position.add_spatial_series(
+                SpatialSeries(
+                    name=label,
+                    description=description,
+                    data=norm[:, 1:],
+                    timestamps=times,
+                    reference_frame="corner of the arena where both normalized coordinates are 0",
+                    conversion=conversion,
+                    unit=unit,
+                )
+            )
+            nwbfile.add_epoch(start_time=float(times[0]), stop_time=float(times[-1]), tags=[f"open_field_{label}"])
+        get_module(nwbfile, "behavior", "behavior and brain states").add(position)
 
     def add_dentate_spikes(self, nwbfile: NWBFile):
         files = sorted(self.session_path.glob(f"{self.session_id}.DS[12].ch*.evt"))

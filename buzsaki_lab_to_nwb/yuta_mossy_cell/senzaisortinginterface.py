@@ -86,13 +86,33 @@ class SenzaiSortingInterface(BaseDataInterface):
             last_spike = first_spike + len(unit_samples)
             n_channels = int(row_ends[first_spike] - row_starts[first_spike])
             rows = published["waveforms"][row_starts[first_spike] : row_ends[last_spike - 1]]
-            waveforms[key] = rows.reshape(len(unit_samples), n_channels, -1)
+            # The earlier files hold the .spk values in volts as if each step were a microvolt
+            waveforms[key] = np.rint(rows.reshape(len(unit_samples), n_channels, -1) * 1e6).astype(np.int16)
             first_spike = last_spike
+        return waveforms
+
+    def read_spk_waveforms(self, units: dict):
+        """Per-unit waveforms in steps from the .spk files, when every shank with units has one."""
+        n_samples = self.xml_info["spikes_n_samples"]
+        waveforms = {}
+        for shank in sorted({shank for shank, _ in units}):
+            spk_file_path = self.session_path / f"{self.session_id}.spk.{shank}"
+            if not spk_file_path.is_file():
+                return None
+            clusters = np.loadtxt(self.session_path / f"{self.session_id}.clu.{shank}", dtype=np.int64, ndmin=1)[1:]
+            n_channels = len(self.xml_info["shank_channels"][shank - 1])
+            spikes = np.memmap(spk_file_path, dtype=np.int16, mode="r").reshape(len(clusters), n_samples, n_channels)
+            for unit_shank, cluster in units:
+                if unit_shank == shank:
+                    # .spk files are (spikes, samples, channels)
+                    waveforms[(shank, cluster)] = np.asarray(spikes[clusters == cluster]).transpose(0, 2, 1)
         return waveforms
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         units = self.read_units()
         waveforms = self.read_published_waveforms(units)
+        if waveforms is None:
+            waveforms = self.read_spk_waveforms(units)
         if stub_test:
             units = dict(list(units.items())[:STUB_UNITS])
 
@@ -166,9 +186,7 @@ class SenzaiSortingInterface(BaseDataInterface):
                 )
             unit_waveforms = None
             if waveforms is not None:
-                # The earlier files hold the .spk values in volts as if each step were a microvolt
-                steps = np.rint(waveforms[(shank, cluster)] * 1e6)
-                unit_waveforms = (steps * VOLTS_PER_STEP).astype(np.float32)
+                unit_waveforms = (waveforms[(shank, cluster)] * VOLTS_PER_STEP).astype(np.float32)
             nwbfile.add_unit(
                 spike_times=unit_samples / sampling_rate,
                 electrode_group=group,
