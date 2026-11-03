@@ -1,0 +1,32 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 with hedtools.
+hed_schema_version: 8.4.0
+tables:
+  brain_states:
+    label:
+      awake:
+        meaning: wake, scored from the theta/delta ratio of the hilus LFP and the movement of the mouse
+        hed: Awake
+      nrem:
+        meaning: non-REM sleep, scored from the theta/delta ratio of the hilus LFP and the movement of the mouse
+        hed: Asleep
+      rem:
+        meaning: REM sleep, scored from the theta/delta ratio of the hilus LFP and the movement of the mouse
+        hed: Asleep
+      quiet:
+        meaning: a label of the lab's state scoring that the paper does not define
+      transit:
+        meaning: a label of the lab's state scoring that the paper does not define
+  trials:
+    left_run:
+      true:
+        meaning: the mouse ran to the left side arm
+        hed: (Run, Leftward)
+      false:
+        meaning: the mouse did not run to the left side arm
+    right_run:
+      true:
+        meaning: the mouse ran to the right side arm
+        hed: (Run, Rightward)
+      false:
+        meaning: the mouse did not run to the right side arm
