@@ -269,6 +269,8 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         table.add_column(name="hilus_channel", description="channel the dentate spike was detected on")
         rows = []
         for evt_file in files:
+            if evt_file.stat().st_size == 0:
+                continue
             kind, channel = re.search(r"\.(DS[12])\.ch(\d+)\.evt$", evt_file.name).groups()
             events = pd.read_csv(evt_file, sep="\t", header=None, names=["ms", "label"])
             marks = events.label.str.extract(r"(start|peak|stop)")[0]
@@ -288,6 +290,8 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         ]
         rows, notes = [], []
         for evt_file in files:
+            if evt_file.stat().st_size == 0:  # some sessions have empty pulse files, with no onsets
+                continue
             match = PULSE_NAME.search(evt_file.name)
             onsets = pd.read_csv(evt_file, sep="\t", header=None, usecols=[0]).iloc[:, 0].to_numpy() / 1000
             unique_onsets = np.unique(onsets)  # sorted
@@ -325,6 +329,8 @@ class SenzaiBehaviorInterface(BaseDataInterface):
             return
         module = get_module(nwbfile, "events", "events from the lab's .evt files that are instants")
         for evt_file in files:
+            if evt_file.stat().st_size == 0:
+                continue
             label = evt_file.name[len(self.session_id) + 1 : -len(".evt")]
             events = pd.read_csv(evt_file, sep="\t", header=None, names=["ms", "text"], dtype={"text": str})
             events = events.fillna("").drop_duplicates().sort_values("ms")
