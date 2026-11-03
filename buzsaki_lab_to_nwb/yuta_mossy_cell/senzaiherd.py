@@ -1,15 +1,10 @@
 """External resource (HERD) annotations for the Senzai conversion.
 
-The terms are written to a HERD file next to the NWB file (``<name>.herd.zip``), which pynwb reads with
-``NWBHDF5IO(path, "r", herd_path=...)``.
+The terms are stored in the NWB file's ``external_resources`` group (NWB 2.11), read back with
+``nwbfile.external_resources.to_dataframe()``.
 """
 
-import tempfile
-import zipfile
-from pathlib import Path
-
-from pynwb import NWBHDF5IO
-from pynwb.resources import HERD
+from pynwb import NWBFile
 
 
 def obo(curie: str) -> tuple:
@@ -38,48 +33,27 @@ CELL_TYPES = {
 }
 
 
-def to_zip(herd: HERD, path: Path):
-    """Write the HERD tables as tsv files at the top of a zip file.
-
-    HERD.to_zip in HDMF 6.2 stores the tables under their absolute paths, which HERD.from_zip cannot read.
-    """
-    with tempfile.TemporaryDirectory() as directory, zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
-        for table in herd.children:
-            tsv = Path(directory) / f"{table.name}.tsv"
-            table.to_dataframe().to_csv(tsv, sep="\t", index=False)
-            archive.write(tsv, arcname=tsv.name)
-
-
-def herd_path_for(nwbfile_path) -> Path:
-    nwbfile_path = Path(nwbfile_path)
-    return nwbfile_path.with_name(nwbfile_path.stem + ".herd.zip")
-
-
-def _add_column_terms(herd: HERD, column, terms: dict):
-    for value in sorted(set(column[:])):
+def _add_column_terms(herd, column, terms: dict):
+    for value in sorted(set(column.data[:])):
         if value in terms:
             entity_id, entity_uri = terms[value]
             herd.add_ref(container=column, key=value, entity_id=entity_id, entity_uri=entity_uri)
 
 
-def write_herd(nwbfile_path) -> Path:
-    """Annotate the species, electrode locations, unit regions and cell types of a written file."""
-    herd_path = herd_path_for(nwbfile_path)
-    with NWBHDF5IO(str(nwbfile_path), "r") as io:
-        nwbfile = io.read()
-        herd = HERD()
-        subject = nwbfile.subject
-        if subject is not None and subject.species in SPECIES:
-            entity_id, entity_uri = SPECIES[subject.species]
-            herd.add_ref(container=subject, attribute="species", entity_id=entity_id, entity_uri=entity_uri)
-        for group in nwbfile.electrode_groups.values():
-            if group.location in LOCATIONS:
-                entity_id, entity_uri = LOCATIONS[group.location]
-                herd.add_ref(container=group, attribute="location", entity_id=entity_id, entity_uri=entity_uri)
+def add_external_resources(nwbfile: NWBFile):
+    """Annotate the species, electrode locations, unit regions and cell types of an NWB file before it is written."""
+    herd = nwbfile.get_external_resources()
+    subject = nwbfile.subject
+    if subject is not None and subject.species in SPECIES:
+        entity_id, entity_uri = SPECIES[subject.species]
+        herd.add_ref(container=subject, attribute="species", entity_id=entity_id, entity_uri=entity_uri)
+    for group in nwbfile.electrode_groups.values():
+        if group.location in LOCATIONS:
+            entity_id, entity_uri = LOCATIONS[group.location]
+            herd.add_ref(container=group, attribute="location", entity_id=entity_id, entity_uri=entity_uri)
+    if nwbfile.electrodes is not None:
         _add_column_terms(herd, nwbfile.electrodes["location"], LOCATIONS)
-        if nwbfile.units is not None:
-            for name, terms in (("region", REGIONS), ("cell_type", CELL_TYPES)):
-                if name in nwbfile.units.colnames:
-                    _add_column_terms(herd, nwbfile.units[name], terms)
-        to_zip(herd, herd_path)
-    return herd_path
+    if nwbfile.units is not None:
+        for name, terms in (("region", REGIONS), ("cell_type", CELL_TYPES)):
+            if name in nwbfile.units.colnames:
+                _add_column_terms(herd, nwbfile.units[name], terms)

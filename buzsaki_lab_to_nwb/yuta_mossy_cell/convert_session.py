@@ -9,7 +9,7 @@ from neuroconv.tools.nwb_helpers import configure_and_write_nwbfile, get_default
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from buzsaki_lab_to_nwb.yuta_mossy_cell import SenzaiNWBConverter
-from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiherd import write_herd
+from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiherd import add_external_resources
 
 # Chunk sizes before compression, to give stored chunks of tens of MB for streaming from S3
 CHUNK_MB = 32
@@ -91,12 +91,12 @@ def session_to_nwb(
     metadata = dict_deep_update(converter.get_metadata(), load_dict_from_file(Path(__file__).parent / "metadata.yml"))
     conversion_options = dict(Ecephys=dict(stub_test=stub_test), Sorting=dict(stub_test=stub_test))
     nwbfile = converter.create_nwbfile(metadata=metadata, conversion_options=conversion_options)
+    add_external_resources(nwbfile)
     backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
     set_streaming_chunks(backend_configuration)
     configure_and_write_nwbfile(
         nwbfile=nwbfile, nwbfile_path=str(nwbfile_path), backend_configuration=backend_configuration
     )
-    write_herd(nwbfile_path)
 
 
 if __name__ == "__main__":
