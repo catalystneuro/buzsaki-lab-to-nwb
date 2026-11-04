@@ -54,6 +54,8 @@ class FujisawaBehaviorInterface(BaseDataInterface):
         leds[leds < 0] = np.nan  # -1 marks frames where an LED was not tracked
         position = Position(name="Position")
         for index in range(2):
+            if not np.any(leds[:, 2 * index : 2 * index + 2] > 0):
+                continue  # the second LED is 0 in every frame of the sessions checked
             position.add_spatial_series(
                 SpatialSeries(
                     name=f"led_{index + 1}",
