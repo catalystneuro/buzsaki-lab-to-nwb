@@ -38,3 +38,5 @@ tables:
         meaning: a lap toward increasing linearized position (the lab's in_eps)
       out:
         meaning: a lap toward decreasing linearized position (the lab's out_eps)
+      unlabelled:
+        meaning: a lap the lab marked neither in nor out in position_info.mat
