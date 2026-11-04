@@ -1,84 +1,65 @@
-"""Authors: Cody Baker and Ben Dichter."""
+"""Conversion of the Girardeau et al. 2017 sessions (DANDI:000061)."""
 
-from datetime import datetime
+import uuid
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import (
-    NeuroscopeRecordingInterface,
-    NeuroscopeLFPInterface,
-)
-from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
+from neuroconv import NWBConverter
 
-from ..mpgdatainterface import MPGInterface
-from .girardeaumiscdatainterface import GirardeauMiscInterface
+from .girardeaubehaviorinterface import GirardeauBehaviorInterface
+from .girardeauecephysinterface import GirardeauEcephysInterface
+from .girardeausortinginterface import GirardeauSortingInterface
+from .girardeauutils import load_mat, split_session_id
 
 
 class GirardeauNWBConverter(NWBConverter):
-    """Primary conversion class for the GirardeauG dataset."""
+    """Primary conversion class for the Girardeau et al. 2017 sessions."""
 
+    # Ecephys first: it creates the electrodes that the units refer to
     data_interface_classes = dict(
-        NeuroscopeRecording=NeuroscopeRecordingInterface,
-        NeuroscopeLFP=NeuroscopeLFPInterface,
-        CellExplorerSorting=CellExplorerSortingInterface,
-        GirardeauMisc=GirardeauMiscInterface,
-        MPG=MPGInterface,
+        Ecephys=GirardeauEcephysInterface,
+        Sorting=GirardeauSortingInterface,
+        Behavior=GirardeauBehaviorInterface,
     )
 
     def get_metadata(self):
-        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
-        session_id = lfp_file_path.stem
-        session_start = datetime.strptime(session_id[6:], "%Y%m%d")
-
-        paper_descr = (
-            "The consolidation of context-dependent emotional memory requires communication between the hippocampus"
-            "and the basolateral amygdala (BLA), but the mechanisms of this process are unknown. We recorded neuronal"
-            "ensembles in the hippocampus and BLA while rats learned the location of an aversive air puff on a linear"
-            "track, as well as during sleep before and after training. We found coordinated reactivations between the"
-            "hippocampus and the BLA during non-REM sleep following training. These reactivations peaked during"
-            "hippocampal sharp wave-ripples (SPW-Rs) and involved a subgroup of BLA cells positively modulated during"
-            "hippocampal SPW-Rs. Notably, reactivation was stronger for the hippocampus-BLA correlation patterns"
-            "representing the run direction that involved the air puff than for the 'safe' direction. These findings"
-            "suggest that consolidation of contextual emotional memory occurs during ripple-reactivation of"
-            "hippocampus-amygdala circuits."
-        )
-        paper_info = [
-            "Reactivations of emotional memory in the hippocampus-amygdala system during sleep."
-            "Girardeau G, Inema I, Buzsáki G. Nature Neuroscience, 2017."
-        ]
-        device_descr = (
-            "Three silicon probes (2 with 8 shanks, 1 with 4 shanks, 160 recording channels total, NeuroNexus H32 and )"
-            "H62, A-style, Buzsaki32 and 64 layout) mounted on individual movable microdrives51 were implanted above "
-            "the amygdalae bilaterally (AP −2.5 mm ML ± 3.6 to 5.5 mm from bregma) and in the dorsal hippocampus (left "
-            "or right, CA1, AP −3.5 mm, ML ± 2.5 mm). The drives were secured to the skull using dental cement. Skull "
-            "screws above the cerebellum were used as ground and reference. The drives and probes were protected by a "
-            "cement-covered copper-mesh Faraday cage on which the probe connectors were attached."
-        )
-
         metadata = super().get_metadata()
-        metadata["NWBFile"].update(
-            session_start_time=session_start.astimezone(),
-            session_id=session_id,
-            institution="NYU",
-            lab="Buzsaki",
-            experimenter="Gabrielle Girardeau",
-            session_description=paper_descr,
-            related_publications=paper_info,
-        )
-        metadata.update(
-            Subject=dict(
-                species="Rattus norvegicus domestica - Long Evans",
-                sex="Male",
-                genotype="Wild type",
-                weight="300g",
-                age="3 months",
+        session_path = Path(self.data_interface_objects["Behavior"].source_data["folder_path"])
+        session_id = session_path.name
+        rat, date = split_session_id(session_id)
+
+        subject = dict(subject_id=rat, species="Rattus norvegicus", strain="Long-Evans", genotype="wild type")
+        description = "Rat implanted with silicon probes in the amygdala on both sides and in the dorsal hippocampus."
+        session_mat_path = session_path / f"{session_id}.session.mat"
+        if session_mat_path.is_file():
+            animal = load_mat(session_mat_path)["session"].animal
+            sex = {"Male": "M", "Female": "F"}.get(str(animal.sex), "U")
+            subject.update(sex=sex)
+            description += (
+                f" The lab's session.mat gives sex '{animal.sex}', strain '{animal.strain}' and genetic line "
+                f"'{animal.geneticLine}'."
             )
+        else:
+            subject.update(sex="U")
+        # The earlier DANDI files give every rat an age of 3 months (and 300 g); the lab's files on the share give no
+        # age, so that value is kept, as the paper's
+        subject.update(age="P3M")
+        description += (
+            " Age: 3 months, the value of the earlier DANDI:000061 files, not found in the lab's files (the source of "
+            "that value is not known); weight is not given per rat."
         )
-
-        if "Ecephys" not in metadata:  # If NeuroscopeRecording was not in source_data
-            session_path = lfp_file_path.parent
-            xml_file_path = str(session_path / f"{session_id}.xml")
-            metadata.update(NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
-        metadata["Ecephys"]["Device"][0].update(description=device_descr)
-
+        subject.update(description=description)
+        metadata["Subject"].update(subject)
+        metadata["NWBFile"].update(
+            session_id=session_id,
+            identifier=str(uuid.uuid4()),
+            # The source gives only the date
+            session_start_time=date.replace(tzinfo=ZoneInfo("America/New_York")),
+            session_description=(
+                "One recording day: linear track running before training (prerun), home-cage sleep (presleep), "
+                "training on the linear track with an air puff in one running direction (run), home-cage sleep "
+                "(postsleep) and running after training (postrun), recorded as one concatenated session. The start "
+                "time of the day is not in the source, so session_start_time is midnight of the recording date."
+            ),
+        )
         return metadata
