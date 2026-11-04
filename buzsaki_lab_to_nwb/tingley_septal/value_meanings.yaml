@@ -1,0 +1,37 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 with hedtools.
+hed_schema_version: 8.4.0
+tables:
+  sleep_states:
+    label:
+      WAKE:
+        meaning: wake, scored by the lab with buzcode's SleepScoreMaster (SleepState.states.mat)
+        hed: Awake
+      NREM:
+        meaning: non-REM sleep, scored by the lab with buzcode's SleepScoreMaster (SleepState.states.mat)
+        hed: Asleep
+      REM:
+        meaning: REM sleep, scored by the lab with buzcode's SleepScoreMaster (SleepState.states.mat)
+        hed: Asleep
+      MA:
+        meaning: microarousal, a short waking state within sleep, scored with buzcode's SleepScoreMaster
+  trials:
+    direction:
+      clockwise:
+        meaning: the rat ran clockwise around the circular maze (the lab's label; the view it is seen from is not stated)
+      counter-clockwise:
+        meaning: >-
+          the rat ran counter-clockwise around the circular maze (the lab's label; the view it is seen from is not
+          stated)
+    trial_type:
+      central alternation:
+        meaning: an alternation task on the circular maze (the lab's label; the source does not define it further)
+      wheel alternation:
+        meaning: an alternation task on the circular maze (the lab's label; the source does not define it further)
+    condition_type:
+      central:
+        meaning: a condition of the 'central alternation' task (the lab's conditionType)
+      wheel:
+        meaning: a condition of the 'wheel alternation' task (the lab's conditionType)
+      linear:
+        meaning: a run along the linear track (the lab's conditionType)
