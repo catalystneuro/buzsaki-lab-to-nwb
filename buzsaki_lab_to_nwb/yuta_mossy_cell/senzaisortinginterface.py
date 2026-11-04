@@ -10,7 +10,6 @@ from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile
 from pynwb.misc import Units
 
-from .senzaiecephysinterface import VOLTS_PER_STEP
 from .senzaiutils import FINE_CELL_TYPES, REGIONS, read_session_xml, read_unit_summary
 
 # .spk spikes whose samples are all 0 or reach beyond 20,000 steps (7.6 mV) are damaged blocks of the lab's file
@@ -127,17 +126,21 @@ class SenzaiSortingInterface(BaseDataInterface):
             description=(
                 "units sorted with KlustaKwik and curated in Klusters (clusters 2 and up of the .clu files); spike "
                 "waveforms are 32 samples (1.6 ms at 20 kHz) on each channel of the unit's shank, as stored in the "
-                "lab's .spk files, scaled to volts; spikes whose stored waveform is damaged (every sample 0, or a sample beyond "
-                "20,000 steps, 7.6 mV) have NaN waveforms, counted in damaged_waveforms"
+                "lab's .spk files, as the lab's int16 steps (multiply by 0.3815 uV, the Amplipex system's 10 V over 16 "
+                "bits at x400, for volts); some spikes' stored waveforms are damaged (every sample 0, or a sample beyond "
+                "20,000 steps, 7.6 mV) and are kept as stored, counted in damaged_waveforms"
             ),
             resolution=1 / sampling_rate,
             waveform_rate=sampling_rate,
-            waveform_unit="volts",
+            waveform_unit="int16 steps of 0.3815 uV",
         )
         nwbfile.add_unit_column(name="shank", description="1-indexed shank the unit was detected on")
         nwbfile.add_unit_column(
             name="damaged_waveforms",
-            description="number of the unit's spikes whose stored waveform is damaged and written as NaN",
+            description=(
+                "number of the unit's spikes whose stored waveform is damaged (every sample 0, or a sample beyond "
+                "20,000 steps); their waveforms are kept as stored"
+            ),
         )
         nwbfile.add_unit_column(name="cluster_id", description="cluster number in the .clu file of the shank")
         nwbfile.add_unit_column(
@@ -194,11 +197,10 @@ class SenzaiSortingInterface(BaseDataInterface):
             unit_waveforms, n_damaged = None, 0
             if waveforms is not None:
                 steps = waveforms[(shank, cluster)]
-                unit_waveforms = (steps * VOLTS_PER_STEP).astype(np.float32)
+                unit_waveforms = np.asarray(steps, dtype=np.int16)
                 damaged = (steps == 0).all(axis=(1, 2)) | (np.abs(steps.astype(np.int32)) > DAMAGED_STEPS).any(
                     axis=(1, 2)
                 )
-                unit_waveforms[damaged] = np.nan
                 n_damaged = int(damaged.sum())
             nwbfile.add_unit(
                 spike_times=unit_samples / sampling_rate,
