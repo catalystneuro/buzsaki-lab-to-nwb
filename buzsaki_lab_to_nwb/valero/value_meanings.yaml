@@ -91,3 +91,5 @@ tables:
         meaning: putative interneuron with a narrow waveform (CellExplorer classification)
       Wide Interneuron:
         meaning: putative interneuron with a wide waveform (CellExplorer classification)
+      Unknown:
+        meaning: not classified by CellExplorer

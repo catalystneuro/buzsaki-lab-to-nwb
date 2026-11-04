@@ -8,19 +8,20 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "project_root_path", type=Path, help="the ValeroM folder (Drive copy, or unindexedSubjets on Globus)"
-    )
+    parser.add_argument("project_root_path", type=Path, help="the Globus ValeroM/unindexedSubjets folder")
     parser.add_argument("output_dir_path", type=Path)
+    parser.add_argument("--signals-root", type=Path, help="root with <session>/<session>.lfp and .dat (2023 copy)")
     parser.add_argument("--no-raw", action="store_true", help="leave out the wide-band signal (.dat)")
     args = parser.parse_args()
 
     for subject in ["fCamk1", "fCamk2", "fCamk3", "fCamk5"]:
-        # Session folders hold <session>.session.mat; on Drive, fCamk3 sess13 is nested in the sess12 folder
-        session_files = sorted((args.project_root_path / subject).glob("**/*.session.mat"))
-        for session_dir_path in [path.parent for path in session_files if path.stem == path.parent.name + ".session"]:
-            if any(part in ("NonUsed", "NotUsed") for part in session_dir_path.parts):
-                continue
+        for session_dir_path in sorted(path for path in (args.project_root_path / subject).iterdir() if path.is_dir()):
+            if not (session_dir_path / f"{session_dir_path.name}.session.mat").is_file():
+                continue  # e.g. NonUsed/ and NotUsed/
             session_to_nwbfile(
-                session_dir_path, args.output_dir_path, write_electrical_series=not args.no_raw, verbose=True
+                session_dir_path,
+                args.output_dir_path,
+                write_electrical_series=not args.no_raw,
+                signals_folder_path=args.signals_root / session_dir_path.name if args.signals_root else None,
+                verbose=True,
             )

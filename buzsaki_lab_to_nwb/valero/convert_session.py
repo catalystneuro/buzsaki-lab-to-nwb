@@ -32,15 +32,15 @@ def session_to_nwbfile(
     stub_test: bool = False,
     write_electrical_series: bool = True,
     write_lfp: bool = True,
+    signals_folder_path=None,
     verbose: bool = False,
 ) -> Path:
-    """Convert a session folder of the lab's ValeroM copy.
+    """Convert a session folder of the Globus share (ValeroM/unindexedSubjets/<mouse>/<session>).
 
-    The tested source is the copy the 2023 conversion used (Google Drive, ValeroM/<mouse>/<session>; fCamk3 sess13 is
-    nested in the sess12 folder there), which matches the published units and ripples. The Globus share
-    (ValeroM/unindexedSubjets) has later versions of some files (e.g. a 48-unit re-sorting of fCamk3 sess13).
-
-    With `write_electrical_series=False` the wide-band signal is left out and the file is named `<session>_no_raw_data`.
+    `signals_folder_path` is a folder with <session>.lfp and <session>.dat from the 2023 source copy (Google Drive,
+    ValeroM/<mouse>/<session>), used for the LFP and wide-band signal when the session folder lacks them; everything
+    else comes from the session folder. With `write_electrical_series=False` the wide-band signal is left out and the
+    file is named `<session>_no_raw_data`.
     """
     session_dir_path = Path(session_dir_path)
     output_dir_path = Path(output_dir_path) / ("nwb_stub" if stub_test else "")
@@ -49,6 +49,8 @@ def session_to_nwbfile(
     nwbfile_path = output_dir_path / f"{session_id}{'' if write_electrical_series else '_no_raw_data'}.nwb"
 
     source_data = {name: dict(folder_path=str(session_dir_path)) for name in FOLDER_INTERFACES}
+    if signals_folder_path is not None:
+        source_data["Ecephys"]["signals_folder_path"] = str(signals_folder_path)
     converter = ValeroNWBConverter(source_data=source_data, session_folder_path=str(session_dir_path), verbose=verbose)
     metadata = converter.get_metadata()
     conversion_options = {name: dict(stub_test=stub_test) for name in FOLDER_INTERFACES}
@@ -77,6 +79,11 @@ if __name__ == "__main__":
     parser.add_argument("--stub", action="store_true")
     parser.add_argument("--no-raw", action="store_true", help="leave out the wide-band signal (.dat)")
     parser.add_argument("--no-lfp", action="store_true", help="leave out the LFP (.lfp)")
+    parser.add_argument(
+        "--signals-folder",
+        type=Path,
+        help="folder with <session>.lfp / <session>.dat from the 2023 source copy, for sessions that lack them",
+    )
     args = parser.parse_args()
     session_to_nwbfile(
         args.session_dir_path,
@@ -84,5 +91,6 @@ if __name__ == "__main__":
         stub_test=args.stub,
         write_electrical_series=not args.no_raw,
         write_lfp=not args.no_lfp,
+        signals_folder_path=args.signals_folder,
         verbose=True,
     )
