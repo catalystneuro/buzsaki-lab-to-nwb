@@ -1,134 +1,100 @@
-import json
-import warnings
+"""Position and rewards on the linear track of a Valero session (DANDI:000568)."""
+
 from pathlib import Path
 
 import numpy as np
-from hdmf.backends.hdf5.h5_utils import H5DataIO
-from ndx_events import LabeledEvents
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
-from neuroconv.utils.json_schema import FolderPathType
+from pydantic import DirectoryPath
 from pymatreader import read_mat
 from pynwb.behavior import Position, SpatialSeries
-from pynwb.file import NWBFile, TimeIntervals, TimeSeries
+from pynwb.event import EventsTable
+from pynwb.file import NWBFile
+
+# The lab's tracking is in cm (the linearized position runs from 0 to 110 cm, the length of the track)
+METERS_PER_CM = 0.01
+TRACK = "a PVC linear track 110 cm long and 6.35 cm wide"
 
 
-class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
-    def __init__(self, folder_path: FolderPathType):
-        super().__init__(folder_path=folder_path)
-
-    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
-        self.session_path = Path(self.source_data["folder_path"])
-        self.session_id = self.session_path.stem
-
-        file_path = self.session_path / f"{self.session_id}.Behavior.mat"
-        if not file_path.is_file():
-            warnings.warn(f"Behavior file not found: {file_path}. Skipping rewards interface. \n")
-            return nwbfile
-
-        mat_file = read_mat(file_path)
-
-        events_data = mat_file["behavior"]["events"]
-
-        # Extract timestamps and create labels for rewards
-        reward_r_timestamps = events_data["rReward"]
-        reward_l_timestamps = events_data["lReward"]
-        label_reward_r = np.ones(reward_r_timestamps.shape[0], dtype=int)
-        label_reward_l = np.zeros(reward_l_timestamps.shape[0], dtype=int)
-
-        # Create a structure to concatenate timestamps and sort by them
-        reward_r = np.vstack((reward_r_timestamps, label_reward_r))
-        reward_l = np.vstack((reward_l_timestamps, label_reward_l))
-        rewards = np.concatenate((reward_r, reward_l), axis=1)
-
-        timestamps_both_rewards = rewards[0, :]
-        rewards = rewards[:, timestamps_both_rewards.argsort()]
-
-        timestamps = rewards[0, :]
-        data = rewards[1, :].astype("int8")
-
-        assert np.all(np.diff(timestamps) > 0)
-
-        events = LabeledEvents(
-            name="RewardEventsLinearTrack",
-            description="rewards in the linear track",
-            timestamps=timestamps,
-            data=data,
-            labels=["right_reward", "left_reward"],
-        )
-
-        # Create behavior module
-        behavior_description = "Tracking data obtained from positional tracking in video"
-        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=behavior_description)
-
-        processing_module.add(events)
+def read_position(session_path: Path):
+    """(timestamps, position dict, source file name) from Behavior.mat, or from Tracking.Behavior.mat if absent."""
+    session_id = session_path.name
+    for suffix, key in ((".Behavior.mat", "behavior"), (".Tracking.Behavior.mat", "tracking")):
+        file_path = session_path / f"{session_id}{suffix}"
+        if file_path.is_file():
+            data = read_mat(str(file_path), variable_names=[key])[key]
+            return data, file_path.name
+    return None, None
 
 
 class ValeroBehaviorLinearTrackInterface(BaseDataInterface):
-    """Behavior interface"""
+    """Position on the linear track: camera (x, y) and linearized position."""
 
-    def __init__(self, folder_path: FolderPathType):
-        super().__init__(folder_path=folder_path)
+    def __init__(self, folder_path: DirectoryPath, verbose: bool = False):
+        super().__init__(folder_path=folder_path, verbose=verbose)
+        self.session_path = Path(folder_path)
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
-        self.session_path = Path(self.source_data["folder_path"])
-        self.session_id = self.session_path.stem
-
-        file_path = self.session_path / f"{self.session_id}.Behavior.mat"
-        if file_path.is_file():
-            mat_file = read_mat(file_path)
-            behavior_data = mat_file["behavior"]
-            timestamps = behavior_data["timestamps"]
-            position = behavior_data["position"]
-        else:
-            warnings.warn(f"\n Behavior file {file_path} not found. Trying `Tracking.Behavior.mat` file instead \n")
-            file_path = self.session_path / f"{self.session_id}.Tracking.Behavior.mat"
-
-            mat_file = read_mat(file_path)
-            tracking_data = mat_file["tracking"]
-            position = tracking_data["position"]
-            timestamps = tracking_data["timestamps"]
-
-            if not file_path.is_file():
-                warnings.warn(f" \n Tracking behavior file {file_path} not found. Skipping behavior interface \n")
-                return nwbfile
-
-        x = position["x"]
-        y = position["y"]
-        data = np.column_stack((x, y))
-
-        unit = "cm"
-        conversion = 100.0  # cm to m
-        reference_frame = "Arbitrary, camera"
-        position_container = Position(name="LinearMazePositionTracking")
-
-        spatial_series_xy = SpatialSeries(
-            name="SpatialSeriesRaw",
-            description="(x,y) coordinates tracking subject movement from above with camera on a PVC linear track (110 cm long, 6.35 cm wide)",
-            data=H5DataIO(data=data, compression="gzip"),
-            reference_frame=reference_frame,
-            unit=unit,
-            timestamps=timestamps,
-            resolution=np.nan,
-        )
-
-        position_container.add_spatial_series(spatial_series_xy)
-
-        if "lin" in position:
-            lin = position["lin"]
-            spatial_series_linear = SpatialSeries(
-                name="SpatiaLSeriesLinearized",
-                description="Linearized position of the subject on the track.",
-                data=H5DataIO(data=lin, compression="gzip"),
-                unit=unit,
+        data, file_name = read_position(self.session_path)
+        if data is None:
+            return
+        timestamps = np.asarray(data["timestamps"], dtype=float)
+        position = data["position"]
+        container = Position(name="LinearMazePositionTracking")
+        container.add_spatial_series(
+            SpatialSeries(
+                name="SpatialSeriesRaw",
+                description=f"(x, y) position of the mouse on {TRACK}, tracked from above with a Basler camera, in "
+                f"cm (from {file_name})",
+                data=np.column_stack((position["x"], position["y"])),
+                reference_frame="camera coordinates, in cm",
+                unit="meters",
+                conversion=METERS_PER_CM,
                 timestamps=timestamps,
-                conversion=conversion,
-                resolution=np.nan,
-                reference_frame=reference_frame,
             )
-            position_container.add_spatial_series(spatial_series_linear)
+        )
+        if "lin" in position:
+            container.add_spatial_series(
+                SpatialSeries(
+                    name="SpatialSeriesLinearized",
+                    description=f"linearized position of the mouse on the track, 0 to 110 cm (from {file_name})",
+                    data=np.asarray(position["lin"], dtype=float),
+                    reference_frame="0 is one end of the track",
+                    unit="meters",
+                    conversion=METERS_PER_CM,
+                    timestamps=nwbfile_timestamps_link(container),
+                )
+            )
+        get_module(nwbfile, "behavior", "behavior and brain states").add(container)
 
-        # Create behavior module
-        behavior_description = "Tracking data obtained from positional tracking in video"
-        processing_module = get_module(nwbfile=nwbfile, name="behavior", description=behavior_description)
-        processing_module.add_data_interface(position_container)
+
+def nwbfile_timestamps_link(container: Position):
+    """Share the timestamps of the raw position series."""
+    return container.spatial_series["SpatialSeriesRaw"]
+
+
+class ValeroBehaviorLinearTrackRewardsInterface(BaseDataInterface):
+    """Water rewards at the two ends of the linear track (Behavior.mat events)."""
+
+    def __init__(self, folder_path: DirectoryPath, verbose: bool = False):
+        super().__init__(folder_path=folder_path, verbose=verbose)
+        self.session_path = Path(folder_path)
+
+    def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        file_path = self.session_path / f"{self.session_path.name}.Behavior.mat"
+        if not file_path.is_file():
+            return
+        events = read_mat(str(file_path), variable_names=["behavior"])["behavior"]["events"]
+        rows = [(float(time), "left") for time in np.atleast_1d(events["lReward"])]
+        rows += [(float(time), "right") for time in np.atleast_1d(events["rReward"])]
+        rows = sorted(row for row in rows if np.isfinite(row[0]))
+        if not rows:
+            return
+        table = EventsTable(
+            name="rewards",
+            description="water rewards at the ends of the linear track (Behavior.mat events.lReward and rReward)",
+        )
+        table.add_column(name="side", description="end of the track with the reward: left (lReward) or right (rReward)")
+        for time, side in rows:
+            table.add_row(timestamp=time, side=side)
+        nwbfile.add_events_table(table)
