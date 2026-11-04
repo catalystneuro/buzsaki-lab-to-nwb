@@ -1,0 +1,71 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 with hedtools.
+hed_schema_version: 8.4.0
+tables:
+  SleepStates:
+    label:
+      Awake:
+        meaning: wake, scored by the lab (SleepState.states.mat WAKEstate)
+        hed: Awake
+      Non-REM:
+        meaning: non-REM sleep, scored by the lab (SleepState.states.mat NREMstate)
+        hed: Asleep
+      REM:
+        meaning: REM sleep, scored by the lab (SleepState.states.mat REMstate)
+        hed: Asleep
+  trials:
+    visited_arm:
+      left:
+        meaning: the mouse ran into the left arm of the maze (visitedArm 0)
+      right:
+        meaning: the mouse ran into the right arm of the maze (visitedArm 1)
+      none:
+        meaning: no arm recorded (visitedArm NaN)
+    expected_arm:
+      left:
+        meaning: the alternation rule called for the left arm (expectedArm 0)
+      right:
+        meaning: the alternation rule called for the right arm (expectedArm 1)
+      none:
+        meaning: undefined (expectedArm NaN)
+  RewardEvents:
+    arm:
+      left:
+        meaning: an lReward event of Behavior.mat, at the left reward corner
+      right:
+        meaning: an rReward event of Behavior.mat, at the right reward corner
+  epochs:
+    environment:
+      figure-8 maze:
+        meaning: the 79 x 79 cm figure-8 maze of the spatial alternation task (the paper's maze; the session has no maze_info.mat)
+      tmaze_familiar:
+        meaning: the familiar figure-8 maze of the spatial alternation task (maze_info.mat)
+      tmaze_ipshita:
+        meaning: a novel T-maze; the lab's name in maze_info.mat
+      linear_manu:
+        meaning: a novel linear track; the lab's name in maze_info.mat
+      linear_thomas:
+        meaning: a novel linear track; the lab's name in maze_info.mat
+      openField_coolbox:
+        meaning: a novel open field; the lab's name in maze_info.mat
+      openField_gergo:
+        meaning: a novel open field; the lab's name in maze_info.mat
+      openField_thomas:
+        meaning: a novel open field; the lab's name in maze_info.mat
+      none:
+        meaning: a sub-session without tracking
+    task:
+      alternation:
+        meaning: spatial alternation task (Behavior.mat description)
+      linearMaze:
+        meaning: running on a linear track (Behavior.mat description)
+      none:
+        meaning: a sub-session that Behavior.mat does not cover
+  units:
+    putative_cell_type:
+      Pyramidal Cell:
+        meaning: putative pyramidal cell (CellExplorer classification)
+      Narrow Interneuron:
+        meaning: putative interneuron with a narrow waveform (CellExplorer classification)
+      Wide Interneuron:
+        meaning: putative interneuron with a wide waveform (CellExplorer classification)
