@@ -1,0 +1,25 @@
+NWBFile:
+  experiment_description:
+    Internally organized mechanisms of the head direction sense. Silicon probe recordings in the anterior thalamus
+    (mainly the anterodorsal nucleus, ADn) of 7 mice and, in 3 of them, also in the post-subiculum (PoS), during
+    foraging in an open field (53 x 46 cm) and sleep in the home cage before and after it (42 sessions, 720 thalamic
+    and 357 PoS neurons). The four mice implanted only in the thalamus also had wires in the CA1 pyramidal layer for
+    the hippocampal LFP. Signals were recorded at 20 kHz on a 256-channel Amplipex system and down-sampled to 1250 Hz
+    for the LFP; two head-stage LEDs were filmed at 30 frames per second. Three mice expressed channelrhodopsin in
+    parvalbumin- or CaMKII-positive neurons (which mice the paper does not say); the light stimulation is not part of
+    the paper and is not converted. The data are also on CRCNS.org as th-1 (doi:10.6080/K0G15XS1).
+  related_publications:
+    - https://doi.org/10.1038/nn.3968
+    - https://doi.org/10.6080/K0G15XS1
+  experimenter:
+    - Peyrache, Adrien
+    - Lacroix, Marie M.
+  institution: New York University
+  lab: Buzsaki
+  keywords:
+    - head direction
+    - anterodorsal thalamic nucleus
+    - post-subiculum
+    - sleep
+    - attractor
+    - silicon probe

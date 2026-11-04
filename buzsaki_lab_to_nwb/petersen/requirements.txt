@@ -1,0 +1,7 @@
+neuroconv>=0.10.2
+pymatreader
+lxml
+h5py
+pandas
+pynwb>=4.2
+ndx-hed>=0.3.0

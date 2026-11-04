@@ -1,0 +1,29 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 with hedtools.
+hed_schema_version: 8.4.0
+tables:
+  trials:
+    side:
+      left:
+        meaning: the rat ran to the left side arm and was rewarded there (the lab's code 2)
+        hed: (Run, Leftward)
+      right:
+        meaning: the rat ran to the right side arm and was rewarded there (the lab's code 1)
+        hed: (Run, Rightward)
+  units:
+    region:
+      mPFC:
+        meaning: medial prefrontal cortex (shanks 1 to 8, the Buzsaki64 probe)
+      CA1:
+        meaning: CA1 of the intermediate hippocampus (shanks 9 to 12, the Buzsaki32 probe)
+    cell_type:
+      pyramidal cell:
+        meaning: putative pyramidal cell in the lab's CellsInfo (code 1)
+      interneuron:
+        meaning: putative interneuron in the lab's CellsInfo (code 2)
+      unknown:
+        meaning: cell type not determined in the lab's CellsInfo (code 3)
+      not used in the paper:
+        meaning: a unit that is not in the lab's CellsInfo for this session
+      not classified in the source:
+        meaning: the session has no per-region behavior files, so the source gives no cell types
