@@ -1,0 +1,26 @@
+NWBFile:
+  experiment_description:
+    Rats with silicon probes in the CA1 pyramidal layer of both dorsal hippocampi and a cooling probe in the medial
+    septum ran a spatial alternation task on the theta maze while the medial septum was cooled. Cooling the
+    medial septum slows theta oscillations and increases choice errors without affecting the spatial features of
+    pyramidal cells; it affects distance-time but not distance-theta phase compression, revealing that cell assemblies
+    are organized by theta phase and not by external (clock) time.
+  related_publications:
+    - https://doi.org/10.1016/j.neuron.2020.05.023
+  experimenter:
+    - Petersen, Peter C.
+  institution: NYU
+  lab: Buzsaki
+  keywords:
+    - medial septum
+    - cooling
+    - theta oscillation
+    - hippocampus
+    - CA1
+    - phase precession
+    - silicon probe
+Subject:
+  species: Rattus norvegicus
+  strain: Long Evans
+  sex: M
+  age: P3M/P6M
