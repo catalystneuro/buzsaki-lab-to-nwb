@@ -41,6 +41,7 @@ class GrosmarkNWBConverter(NWBConverter):
             species="Rattus norvegicus",
             strain="Long-Evans",
             sex="M",
+            age="/",  # not in the source
             genotype="wild type",
             description=(
                 "Male Long-Evans rat, 250-350 g, implanted with two silicon probes in the dorsal CA1 of both "
