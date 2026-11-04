@@ -26,7 +26,8 @@ GAIN_NOTE = (
 class HuszarEcephysInterface(BaseDataInterface):
     """Electrodes from session.mat and chanMap.mat; LFP from the .lfp file and wide-band signal from the .dat file.
 
-    The Globus copy of the source has a .lfp file for one session (e13_26m1_211119) and no .dat files.
+    The Globus copy of the source has a .lfp file for one session (e13_26m1_211119) and no .dat files; the 2023 copy
+    on Google Drive has them for most sessions.
     """
 
     def __init__(

@@ -20,7 +20,7 @@ from .ripplesinterface import HuszarProcessingRipplesEventsInterface
 from .sortinginterface import HuszarSortingInterface
 from .trialsinterface import HuszarTrialsInterface
 
-# Files of the 2023 conversion source that the Globus copy may lack, with what the earlier DANDI version had
+# Files that some source copies lack (the Globus share has few of them; the 2023 copy on Drive has them), with what the earlier DANDI version had
 SOURCE_GAPS = {
     "ripples.events.mat": "the lab's ripple detections (ripples.events.mat), which the 2023 version of this file has",
     "spikes.cellinfo.mat": "the lab's spike sorting (spikes.cellinfo.mat)",
@@ -75,8 +75,7 @@ class HuzsarNWBConverter(NWBConverter):
         ]
         if missing:
             notes.append(
-                "Converted from the Buzsaki lab's Globus share (HuszarR/optotagCA1), which differs from the copy "
-                "converted in 2023. Not in that source for this session: " + "; ".join(missing) + "."
+                "Not in the source copy of HuszarR/optotagCA1 used for this conversion: " + "; ".join(missing) + "."
             )
         if (
             not (self.session_folder_path / f"{self.session_id}.cell_metrics.cellinfo.mat").is_file()
