@@ -1,7 +1,7 @@
 # Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
-# Each HED string was validated against HED 8.4.0 with hedtools. The uLED pulses have meanings only: no base HED tag
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools. The uLED pulses have meanings only: no base HED tag
 # describes optogenetic stimulation.
-hed_schema_version: 8.4.0
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
 tables:
   SleepStates:
     label:
@@ -13,7 +13,7 @@ tables:
         hed: Asleep
       REMstate:
         meaning: REM sleep, scored by the lab's SleepScoreMaster from the LFP and the EMG estimated from the LFP
-        hed: Asleep
+        hed: Asleep, sc:Sleep-stage-REM
       WAKEtheta:
         meaning: wake with theta (the lab's SleepScoreMaster)
         hed: Awake
@@ -25,7 +25,7 @@ tables:
         hed: Awake
       REMtheta_ThDt:
         meaning: REM sleep with theta, scored with a higher theta/delta ratio threshold; overlaps the other states
-        hed: Asleep
+        hed: Asleep, sc:Sleep-stage-REM
       QWake_ThDt:
         meaning: quiet wake, scored with a higher theta/delta ratio threshold; overlaps the other states
         hed: Awake
