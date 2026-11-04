@@ -2,6 +2,8 @@
 
 from pynwb import NWBFile
 
+from buzsaki_lab_to_nwb.utils.identifiers import add_identifier_refs
+
 
 def obo(curie: str) -> tuple:
     """The CURIE and its OBO PURL."""
@@ -28,6 +30,7 @@ def _add_column_terms(herd, column, terms: dict):
 def add_external_resources(nwbfile: NWBFile):
     """Annotate the species, sex, electrode locations, unit regions and cell types before the file is written."""
     herd = nwbfile.get_external_resources()
+    add_identifier_refs(nwbfile)
     subject = nwbfile.subject
     if subject is not None:
         for attribute, terms in (("species", SPECIES), ("sex", SEX)):
