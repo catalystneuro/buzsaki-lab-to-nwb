@@ -251,17 +251,19 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             description=(
                 "the lab's lap label from position_info.mat: 'in' (pos_inf.in_eps) laps run toward increasing "
                 "linearized position and 'out' (pos_inf.out_eps) laps toward decreasing linearized position; which "
-                "end of the track is which in the room is not documented"
+                "end of the track is which in the room is not documented; 'unlabelled' for laps the lab marked neither in "
+                "nor out"
             ),
         )
         for lap_times, is_in, is_out in zip(laps["ts_ep"], laps["in_eps"], laps["out_eps"]):
             lap_times = np.atleast_1d(lap_times)
-            if bool(is_in) == bool(is_out):
-                raise ValueError(f"A lap of {laps_file_path} is marked both or neither in and out")
+            if bool(is_in) and bool(is_out):
+                raise ValueError(f"A lap of {laps_file_path} is marked both in and out")
+            direction = "in" if is_in else "out" if is_out else "unlabelled"
             lap_linear = linear[np.searchsorted(times, lap_times[0]) : np.searchsorted(times, lap_times[-1]) + 1]
             lap_linear = lap_linear[np.isfinite(lap_linear)]
-            if len(lap_linear) > 1 and (lap_linear[-1] > lap_linear[0]) != bool(is_in):
-                raise ValueError(f"An {'in' if is_in else 'out'} lap of {laps_file_path} runs the other way")
-            nwbfile.add_trial(
-                start_time=float(lap_times[0]), stop_time=float(lap_times[-1]), direction="in" if is_in else "out"
-            )
+            # A lap that ends where it starts has no direction to check against its label
+            moved = len(lap_linear) > 1 and lap_linear[-1] != lap_linear[0]
+            if direction != "unlabelled" and moved and (lap_linear[-1] > lap_linear[0]) != (direction == "in"):
+                raise ValueError(f"An {direction} lap of {laps_file_path} runs the other way")
+            nwbfile.add_trial(start_time=float(lap_times[0]), stop_time=float(lap_times[-1]), direction=direction)
