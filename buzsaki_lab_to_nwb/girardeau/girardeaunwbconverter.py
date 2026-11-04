@@ -41,13 +41,9 @@ class GirardeauNWBConverter(NWBConverter):
             )
         else:
             subject.update(sex="U")
-        # The earlier DANDI files give every rat an age of 3 months (and 300 g); the lab's files on the share give no
-        # age, so that value is kept, as the paper's
-        subject.update(age="P3M")
-        description += (
-            " Age: 3 months, the value of the earlier DANDI:000061 files, not found in the lab's files (the source of "
-            "that value is not known); weight is not given per rat."
-        )
+        # The lab's files give no age; the earlier DANDI files' 3 months has no known source
+        subject.update(age="/")
+        description += " Age: not recorded in the lab's files; weight is not given per rat."
         subject.update(description=description)
         metadata["Subject"].update(subject)
         metadata["NWBFile"].update(
