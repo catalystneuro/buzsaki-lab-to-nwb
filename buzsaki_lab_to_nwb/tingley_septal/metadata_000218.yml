@@ -1,0 +1,19 @@
+NWBFile:
+  experiment_description:
+    Routing of hippocampal ripples to subcortical structures via the lateral septum. Silicon probe recordings in the
+    lateral septum (LS) and the dorsal hippocampus (CA1 or CA3) of freely moving rats in the home cage and on a maze,
+    with the lab's detections of hippocampal sharp-wave ripples and LS high-frequency oscillations (HFOs).
+  related_publications:
+    - https://doi.org/10.1016/j.neuron.2019.10.012
+    - https://doi.org/10.1016/j.neuron.2018.04.028
+  experimenter:
+    - Tingley, David
+  institution: New York University
+  lab: Buzsaki
+  keywords:
+    - lateral septum
+    - hippocampus
+    - sharp-wave ripples
+    - high-frequency oscillations
+    - sleep
+    - silicon probe
