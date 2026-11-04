@@ -22,7 +22,7 @@ The `.mpg` files in the session folder are written as external files and hard-li
 
 | NWB | Source |
 |---|---|
-| electrodes, electrode groups | one group per `.xml` anatomical group of channels 0 to 159 (shank N = anatomical group N = `.clu.N`); `region` = the lab's code for the shank in `RecordingLocations.mat` (`shankInfo`, unchanged), `location` = the name the code stands for (probably Paxinos), HERD to UBERON where one term matches |
+| electrodes, electrode groups | one group per `.xml` anatomical group that is not an auxiliary input (shank N = anatomical group N = `.clu.N`; Rat10's "Hippo wires", channels 160 to 165, are group `wires21`, region `hpc` from the `.xml` description; groups with no spike group and only channels from 160 up that the `.xml` does not name are left out, e.g. Rat11's groups 21 and 22); `region` = the lab's code for the shank in `RecordingLocations.mat` (`shankInfo`, unchanged), `location` = the name the code stands for (probably Paxinos), HERD to UBERON where one term matches |
 | `units` | clusters 2 and up of every `.clu.N`/`.res.N` (sorted, resolution 1/20000 s), with `shank`, `cluster_id`, `region` (as the electrodes); checked against `spikes.cellinfo.mat` where it exists |
 | `processing/ecephys/LFP` | `.lfp` (or `.eeg`) of the session, or the published LFP (its columns are channels 0 to 159 in order, checked against the `.dat`), 0.3815 µV per step |
 | `acquisition/ElectricalSeries` | `.dat`, or the published wide-band signal; optional (`--no-wideband`) |
@@ -72,8 +72,13 @@ The `.mpg` files in the session folder are written as external files and hard-li
   0713, 0717, 0718, 0722; Rat09-20140326, 0404, 0407; Rat10-20140701, 0704, 0705; Rat11-20150316, 0328, 0331, 0403).
 - Rat11: no `session.mat` channelTags, and the `.xml` description (copied from Rat10) puts the auxiliary inputs on
   channels 166 to 171 of a 166-channel recording, so they are not converted for any Rat11 session.
-- Rat10: 172 channels, with "Hippo wires" on 160 to 165 by its `.xml`; the converter takes channels 0 to 159 as the
-  probe electrodes, so those wires are not written (not yet tested on a Rat10 session).
+- Rat10: 172 channels: probes on 0 to 159, "Hippo wires" on 160 to 165 (electrodes, region from the `.xml`
+  description since RecordingLocations.mat does not place them), auxiliary inputs on 166 to 171 (from the `.xml`
+  description; checked against the events in Rat10-20140626). Rat10 has no `sessions.mat`: the session order is read
+  from `Rat10-SessionList`. Rat10-20140626 has no `-Laps.mat`, `-LapType.mat`, `-States.mat` or `-TrackRunTimes.mat`
+  on the share, so it has no laps, running bouts or lab sleep states (only the buzcode `SleepState.states.mat`).
+- Rat11: groups 21 and 22 (channels 160 to 165, 3 + 3) are not identified by the source (its `session.mat` marks
+  channels 161 to 166, 1-indexed, as "Bad" and "no_label"); they are left out.
 - Rat09's `session.mat` channelTags are the same as Rat08's (even the ripple channel); the air-puff and reward lines
   were checked against the events in Rat09-20140402.
 - Cell types: the lab's `RatNN-finalType.mat` covers all sessions of a rat with no session index; not converted.

@@ -14,7 +14,7 @@ from scipy.io import loadmat
 VOLTS_PER_STEP = 0.3815e-6
 # The .whl files: LED positions resampled by the lab to 1250 / 32 Hz, the rate given in the .xml files
 WHL_RATE = 1250 / 32
-# The paper's 160 recording channels; the .xml files put the accelerometer, air-puff and reward inputs on 160 to 165
+# The paper's 160 recording channels (Rat10 also has 6 hippocampal wires, on 160 to 165)
 N_PROBE_CHANNELS = 160
 
 # The lab's region codes of RecordingLocations.mat (shankInfo). The codes look like the abbreviations of Paxinos and
@@ -96,26 +96,63 @@ def read_session_xml(xml_file_path: Path) -> dict:
     )
 
 
-def shank_channels(xml_info: dict) -> list:
-    """Channels of each probe shank: the .xml anatomical groups of the 160 probe channels (0 to 159).
+def wire_groups(description: str) -> dict:
+    """Recording wires named in an .xml description: {channels: region code or None}.
+
+    Rat10's .xml says "Hippo wires -  160-165" (0-indexed channels, like its "Amygdala Right - voies 0-63").
+    """
+    wires = {}
+    for line in description.splitlines():
+        match = re.search(r"wires\s*-\s*(\d+)\s*-\s*(\d+)", line, flags=re.IGNORECASE)
+        if match:
+            channels = tuple(range(int(match.group(1)), int(match.group(2)) + 1))
+            wires[channels] = "hpc" if re.search(r"hippo", line, flags=re.IGNORECASE) else None
+    return wires
+
+
+def electrode_groups(xml_info: dict, auxiliary_channels: set) -> list:
+    """The .xml anatomical groups that are electrodes, as (group number, channels, kind).
 
     Anatomical group N is shank N: the shank numbering of RecordingLocations.mat and of the .clu.N/.res.N files, whose
     spike group N holds the channels of anatomical group N (checked), sometimes without a channel the lab left out of
-    spike detection (Rat09: channel 123 of shank 16). Rat09 has anatomical groups 17 to 20 (channels 128 to 159, a
-    4-shank probe) with no spike groups. The groups of channels 160 to 165 are auxiliary inputs, not electrodes.
+    spike detection (Rat09: channel 123 of shank 16). A group is left out when it holds auxiliary inputs (the session's
+    channel tags), or when it has no spike group and only channels from 160 up (beyond the paper's 160 probe
+    channels) and the .xml description does not name it as recording wires (Rat11: groups 21 and 22, channels 160 to
+    165, which the source does not identify). Kept without spike groups: Rat09's groups 17 to 20 (channels 128 to 159,
+    a 4-shank probe) and Rat10's group 21 (channels 160 to 165, "Hippo wires" in its .xml). kind is "shank" or "wires".
     """
-    shanks = [list(group) for group in xml_info["anatomical_groups"] if max(group) < N_PROBE_CHANNELS]
+    wires = {frozenset(channels) for channels in wire_groups(xml_info["description"])}
+    groups = []
+    for number, channels in enumerate(xml_info["anatomical_groups"], start=1):
+        if set(channels) & auxiliary_channels:
+            continue
+        has_spike_group = number <= len(xml_info["spike_groups"])
+        if frozenset(channels) in wires:
+            groups.append((number, list(channels), "wires"))
+        elif has_spike_group or min(channels) < N_PROBE_CHANNELS:
+            groups.append((number, list(channels), "shank"))
     for index, spike_group in enumerate(xml_info["spike_groups"]):
-        if not set(spike_group) <= set(shanks[index]):
+        if not set(spike_group) <= set(groups[index][1]) or groups[index][0] != index + 1:
             raise ValueError(f"Spike group {index + 1} is not within anatomical group {index + 1}")
-    return shanks
+    return groups
+
+
+def read_session_list(subject_path: Path, rat: str) -> list:
+    """The rat's session names in order: sessions.mat or Sessions.mat, else the text file RatNN-SessionList (Rat10)."""
+    for name in ("sessions.mat", "Sessions.mat"):
+        if (subject_path / name).is_file():
+            mat = loadmat(str(subject_path / name), squeeze_me=True)
+            paths = np.atleast_1d(next(v for k, v in mat.items() if not k.startswith("__")))
+            return [Path(str(path)).name for path in paths]
+    lines = (subject_path / f"{rat}-SessionList").read_text().split()
+    return [Path(line).name for line in lines]
 
 
 def read_recording_locations(subject_path: Path, session_id: str) -> dict:
     """Region codes of each shank of a session, from the lab's RecordingLocations.mat (shankInfo).
 
     shankInfo has a row of region codes and, for each of the rats in its last row, one row of (session, shank) pairs
-    per code; the session is the 1-indexed position of the session in the rat's sessions.mat (Sessions.mat) list.
+    per code; the session is the 1-indexed position of the session in the rat's sessions.mat (Sessions.mat, or RatNN-SessionList) list.
     Returns {shank: [codes]}; shanks absent from the file have no codes.
     """
     rat, _ = split_session_id(session_id)
@@ -125,13 +162,7 @@ def read_recording_locations(subject_path: Path, session_id: str) -> dict:
     rats = [int(np.asarray(shank_info[row, rat_column]).ravel()[0]) for row in range(1, shank_info.shape[0])]
     row = 1 + rats.index(int(rat.removeprefix("Rat")))
 
-    session_list_path = next(
-        path for name in ("sessions.mat", "Sessions.mat") if (path := subject_path / name).is_file()
-    )
-    mat = loadmat(str(session_list_path), squeeze_me=True)
-    sessions = [
-        Path(str(path)).name for path in np.atleast_1d(next(v for k, v in mat.items() if not k.startswith("__")))
-    ]
+    sessions = read_session_list(subject_path, rat)
     session_index = sessions.index(session_id) + 1
 
     regions = {}

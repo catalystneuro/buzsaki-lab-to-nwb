@@ -23,7 +23,8 @@ from .girardeauutils import (
     read_recording_locations,
     read_session_xml,
     region_location,
-    shank_channels,
+    electrode_groups,
+    wire_groups,
 )
 
 STUB_SAMPLES = 100_000
@@ -98,30 +99,42 @@ class GirardeauEcephysInterface(BaseDataInterface):
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
-        self.shanks = shank_channels(self.xml_info)
-        self.channels = np.sort(np.concatenate(self.shanks))
+        self.tags, self.tags_origin = self.channel_tags()
+        auxiliary_channels = {channel for channels in self.tags.values() for channel in channels}
+        self.groups = electrode_groups(self.xml_info, auxiliary_channels)
+        self.channels = np.sort(np.concatenate([channels for _, channels, _ in self.groups]))
         if not np.array_equal(self.channels, np.arange(len(self.channels))):
-            raise ValueError(f"The probe channels of {self.session_id} are not 0 to n-1")
+            raise ValueError(f"The electrode channels of {self.session_id} are not 0 to n-1")
         self.regions = read_recording_locations(Path(subject_folder_path), self.session_id)
+        self.wire_regions = {
+            frozenset(channels): code for channels, code in wire_groups(self.xml_info["description"]).items()
+        }
 
-    def shank_region(self, shank: int) -> str:
-        codes = self.regions.get(shank)
-        return "/".join(codes) if codes else UNKNOWN_REGION
+    def group_region(self, number: int, channels: list) -> tuple:
+        """(region, source) of an electrode group: RecordingLocations.mat, else the .xml description for wires."""
+        codes = self.regions.get(number)
+        if codes:
+            return "/".join(codes), "the lab's RecordingLocations.mat"
+        code = self.wire_regions.get(frozenset(channels))
+        if code:
+            return code, "the .xml description ('Hippo wires'); RecordingLocations.mat does not place this group"
+        return UNKNOWN_REGION, "neither RecordingLocations.mat nor the .xml description places this group"
 
     def add_electrodes(self, nwbfile: NWBFile):
         description = DEVICE_DESCRIPTION
         if self.xml_info["description"]:
             description += " The session's .xml file says: " + " ".join(self.xml_info["description"].split())
         device = nwbfile.create_device(name="silicon_probes", description=description, manufacturer="NeuroNexus")
-        codes = {code for shank in range(1, len(self.shanks) + 1) for code in self.shank_region(shank).split("/")}
-        for shank, _ in enumerate(self.shanks, start=1):
-            region = self.shank_region(shank)
+        codes = {
+            code for number, channels, _ in self.groups for code in self.group_region(number, channels)[0].split("/")
+        }
+        for number, channels, kind in self.groups:
+            region, source = self.group_region(number, channels)
+            name = f"shank{number}" if kind == "shank" else f"wires{number}"
+            what = f"shank {number}" if kind == "shank" else f"recording wires ({len(channels)} channels)"
             nwbfile.create_electrode_group(
-                name=f"shank{shank}",
-                description=(
-                    f"shank {shank} (anatomical group {shank} of the .xml file); region code '{region}' from the "
-                    "lab's RecordingLocations.mat"
-                ),
+                name=name,
+                description=f"{what}, anatomical group {number} of the .xml file; region code '{region}' from {source}",
                 location=region_location(region),
                 device=device,
             )
@@ -129,7 +142,10 @@ class GirardeauEcephysInterface(BaseDataInterface):
         nwbfile.add_electrode_column(
             name="channel_id", description="channel number in the lab's .xml, .dat and .lfp files"
         )
-        nwbfile.add_electrode_column(name="shank", description="shank number (the N of the .clu.N/.res.N files)")
+        nwbfile.add_electrode_column(
+            name="shank",
+            description="anatomical group number in the .xml file: the shank number (the N of the .clu.N/.res.N files), or the group of recording wires",
+        )
         nwbfile.add_electrode_column(
             name="shank_electrode_number",
             description="0-indexed position of the channel in its shank's channel list in the .xml file",
@@ -137,7 +153,7 @@ class GirardeauEcephysInterface(BaseDataInterface):
         nwbfile.add_electrode_column(
             name="region",
             description=(
-                "the lab's region code of the shank in RecordingLocations.mat (shankInfo), unchanged; 'unknown' for "
+                "the lab's region code of the shank in RecordingLocations.mat (shankInfo), unchanged (for recording wires it does not place: from the .xml description); 'unknown' for "
                 "shanks the file does not place. The codes look like Paxinos and Watson abbreviations (not confirmed "
                 "by the lab): " + describe_region_codes(codes)
             ),
@@ -146,22 +162,23 @@ class GirardeauEcephysInterface(BaseDataInterface):
             name="in_spike_detection",
             description="the channel is in its shank's spike group of the .xml file (used for spike sorting)",
         )
-        channel_to_shank = {
-            channel: (shank, site)
-            for shank, channels in enumerate(self.shanks, start=1)
+        channel_to_group = {
+            channel: (number, kind, site)
+            for number, channels, kind in self.groups
             for site, channel in enumerate(channels)
         }
+        group_channels = {number: channels for number, channels, _ in self.groups}
         for channel in self.channels:
-            shank, site = channel_to_shank[channel]
-            group = nwbfile.electrode_groups[f"shank{shank}"]
+            number, kind, site = channel_to_group[channel]
+            group = nwbfile.electrode_groups[f"shank{number}" if kind == "shank" else f"wires{number}"]
             nwbfile.add_electrode(
                 group=group,
                 group_name=group.name,
                 location=group.location,
                 channel_id=int(channel),
-                shank=shank,
+                shank=number,
                 shank_electrode_number=site,
-                region=self.shank_region(shank),
+                region=self.group_region(number, group_channels[number])[0],
                 in_spike_detection=bool(channel in spike_channels),
             )
 
@@ -323,7 +340,7 @@ class GirardeauEcephysInterface(BaseDataInterface):
 
     def add_auxiliary_inputs(self, nwbfile: NWBFile, stub_test: bool = False):
         """Accelerometer, air-puff and reward inputs (see channel_tags), in the system's raw int16 steps."""
-        tags, origin = self.channel_tags()
+        tags, origin = self.tags, self.tags_origin
         if not tags:
             return
         samples, rate, source = self.auxiliary_source()
