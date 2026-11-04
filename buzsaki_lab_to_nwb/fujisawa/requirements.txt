@@ -1,0 +1,6 @@
+neuroconv>=0.10.2
+pynwb>=4.2
+ndx-hed>=0.3.0
+scipy
+lxml
+h5py

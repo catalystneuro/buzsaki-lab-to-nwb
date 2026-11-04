@@ -1,0 +1,18 @@
+NWBFile:
+  experiment_description:
+    Behavior-dependent short-term assembly dynamics in the medial prefrontal cortex. Simultaneous silicon probe
+    recordings in the medial prefrontal cortex (64 channels) and the intermediate CA1 of the hippocampus (32 channels)
+    of three rats in a working memory task, a spontaneous alternation task and sleep. Data set CRCNS pfc-2
+    (https://doi.org/10.6080/K01V5BWK).
+  related_publications:
+    - https://doi.org/10.1038/nn.2134
+    - https://doi.org/10.6080/K01V5BWK
+  experimenter:
+    - Fujisawa, Shigeyoshi
+  institution: NYU
+  lab: Buzsaki
+  keywords:
+    - medial prefrontal cortex
+    - CA1
+    - working memory
+    - silicon probe
