@@ -1,0 +1,31 @@
+NWBFile:
+  experiment_description:
+    Eight bilateral silicon-probe recordings from hippocampal area CA1 of four male Long-Evans rats in the Buzsaki
+    lab at NYU, made to assess the effect of novel spatial learning on CA1 neural firing and LFP patterns in naive
+    animals. Each session consisted of a long (~4 hour) PRE rest/sleep epoch recorded in the home cage in a familiar
+    room, followed by a novel MAZE running epoch (~45 minutes) in which the animals were transferred to a novel room
+    and water-rewarded to run on a novel maze, either a wooden 1.6 m linear platform, a wooden 1 m diameter circular
+    platform or a 2 m metal linear platform. Animals were rewarded either at both ends of the linear platform, or at a
+    predetermined location on the circular platform, on which they were gently encouraged to run unidirectionally.
+    After the MAZE epoch the animals were transferred back to their home cage in the familiar room, where a long
+    (~4 hour) POST rest/sleep epoch was recorded. Each session was concatenated from its PRE, MAZE and POST
+    recordings. In addition to the hippocampal recordings, neck EMG and head-mounted accelerometer signals were
+    recorded, and the animal's position during the MAZE epoch was tracked with head-mounted LEDs. The data were also
+    released as CRCNS hc-11 (https://doi.org/10.6080/K0862DC5), whose data description documents the source files.
+  related_publications:
+    - https://doi.org/10.1126/science.aad1935
+    - https://doi.org/10.1038/srep32193
+    - https://doi.org/10.6080/K0862DC5
+  experimenter:
+    - Grosmark, Andres D.
+  institution: NYU
+  lab: Buzsaki
+  keywords:
+    - hippocampus
+    - CA1
+    - novelty
+    - spatial learning
+    - sleep
+    - hippocampal sequences
+    - place cells
+    - silicon probe
