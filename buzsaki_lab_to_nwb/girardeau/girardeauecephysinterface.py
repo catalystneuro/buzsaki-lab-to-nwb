@@ -369,7 +369,7 @@ class GirardeauEcephysInterface(BaseDataInterface):
                     name="air_puff_input",
                     description=(
                         f"air-puff input, channel {channel} ('Airpuff' in {origin}: {as_in_source([channel])}); the "
-                        f"events of the .puf.evt file are its rising edges; {common}"
+                        f"events of the .puf.evt file fall on its rising edges (checked in Rat09-20140402); {common}"
                     ),
                     data=columns[channel],
                     unit="a.u.",
