@@ -1,0 +1,44 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools.
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
+tables:
+  sleep_states:
+    label:
+      wake:
+        meaning: >-
+          the open-field exploration epoch, which the paper's analyses use as wake (the lab's .states.Wake, equal to
+          its wakeEp)
+        hed: Awake
+      SWS:
+        meaning: slow-wave sleep, scored by the lab from the hippocampal or post-subicular LFP spectrum and movement
+        hed: Asleep
+      REM:
+        meaning: REM sleep, scored by the lab from the hippocampal or post-subicular LFP spectrum and movement
+        hed: Asleep, sc:Sleep-stage-REM
+  sleep_states_buzcode:
+    label:
+      WAKEstate:
+        meaning: wake, scored by the lab's 2019 buzcode SleepScoreMaster (all waking, not only the open field)
+        hed: Awake
+      NREMstate:
+        meaning: non-REM sleep, scored by the lab's 2019 buzcode SleepScoreMaster
+        hed: Asleep
+      REMstate:
+        meaning: REM sleep, scored by the lab's 2019 buzcode SleepScoreMaster
+        hed: Asleep, sc:Sleep-stage-REM
+  epochs:
+    lab_epoch:
+      sleepPreEp:
+        meaning: rest and sleep in the home cage before the open-field exploration
+      wakeEp:
+        meaning: exploration of the open field (53 x 46 cm), the epoch of the paper's wake analyses
+      sleepPostEp:
+        meaning: rest and sleep in the home cage after the open-field exploration
+      radEp:
+        meaning: exploration of a second, larger environment (the paper names a radial maze in one session)
+      radRestEp:
+        meaning: rest after the second environment
+      wakeOptoEp:
+        meaning: wake with optogenetic stimulation
+      restOptoEp:
+        meaning: rest with optogenetic stimulation
