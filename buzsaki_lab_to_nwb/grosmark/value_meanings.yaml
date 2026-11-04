@@ -1,6 +1,6 @@
 # Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
-# Each HED string was validated against HED 8.4.0 with hedtools.
-hed_schema_version: 8.4.0
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools.
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
 tables:
   sleep_states:
     label:
@@ -20,7 +20,7 @@ tables:
         hed: Asleep
       REM:
         meaning: REM sleep, scored by the lab (high theta/delta ratio and very low movement/EMG activity)
-        hed: Asleep
+        hed: Asleep, sc:Sleep-stage-REM
   sleep_states_buzcode:
     label:
       WAKE:
@@ -31,7 +31,7 @@ tables:
         hed: Asleep
       REM:
         meaning: REM sleep, from buzcode's automatic SleepScoreMaster (2019)
-        hed: Asleep
+        hed: Asleep, sc:Sleep-stage-REM
   trials:
     direction:
       in:
