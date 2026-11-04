@@ -83,6 +83,7 @@ class TingleyNWBConverter(NWBConverter):
             species="Rattus norvegicus",
             strain="Long-Evans",
             sex="U",
+            age="/",  # not in the source or the papers
             description=(
                 "Adult Long-Evans rat (Charles River). The rats of the papers were 3 males and 2 females, but the source "
                 "does not say which rat had which sex, nor their age or weight."
