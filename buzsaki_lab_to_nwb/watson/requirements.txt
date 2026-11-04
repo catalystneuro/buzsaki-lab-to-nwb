@@ -1,0 +1,5 @@
+neuroconv>=0.10.2
+pymatreader>=1.0
+lxml
+scipy
+h5py
