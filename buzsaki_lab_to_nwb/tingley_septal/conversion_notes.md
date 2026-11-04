@@ -40,7 +40,10 @@ python -m buzsaki_lab_to_nwb.tingley_septal.convert_session TingleyD/DT8/2017020
   are kept, and the description says how many.
 - Position: x, y, z from the source (2 columns for the LED rat DT2, whose z is empty); `unit` "meters" with
   conversion 1 or 0.001 for the source's `m`/`mm`; pixels stay pixels with conversion 1 (no scale in the source).
-  Orientation quaternions are a TimeSeries with unit "dimensionless"; DT2's yaw is a CompassDirection in radians.
+  Orientation quaternions are a TimeSeries with unit "dimensionless"; DT2's yaw is a CompassDirection in radians
+  (its values lie in 0..pi). In DT2 0304 the yaw has 4(n-1)+1 values for n frames, so it is written at 4 times the
+  frame rate, as interpolated by the lab between the first and last frame. OptiTrack timestamps that are regular at
+  120 Hz (within 1 us) are written as a starting time and rate; others are kept as timestamps.
   `error_per_marker` has the position's unit (its values scale with it: ~1e-4 in m sessions, 0.1-11 in mm sessions).
 - DT2 timestamps: every stored value equals round(i / 30 Hz, 5 significant digits), so they are rebuilt as i / 30 Hz
   (the Basler camera's rate in the paper). The lab's `samplingRate` (30.000331 for 0221, 29.999391 for 0304) is the
@@ -61,7 +64,8 @@ python -m buzsaki_lab_to_nwb.tingley_septal.convert_session TingleyD/DT8/2017020
 - Sleep states: `processing/behavior/sleep_states` with labels WAKE, NREM, REM, MA; MeaningsTables with HED (`Awake`,
   `Asleep`; MA has a meaning only). Trial directions are clockwise/counter-clockwise, not left/right runs, so they have
   meanings and no HED.
-- Subject: sex "U": the papers had 3 male and 2 female Long-Evans rats but do not say which was which.
+- Subject: sex "U": the papers had 3 male and 2 female Long-Evans rats but do not say which was which. No age: the
+  papers say only "adult", so nwbinspector reports the missing age as its one critical issue.
 - Not converted: the lab's derived maps (placeFields, firingMaps, phaseMaps, olypherInfo, assemblies), `cat.evt`
   (Intan file-type boundaries, not epochs), and the DT2 `behav.mat`/`.pos`/`.led` files (the same rounded times).
 
@@ -76,4 +80,6 @@ python -m buzsaki_lab_to_nwb.tingley_septal.convert_session TingleyD/DT8/2017020
 - ripplesALL.event.mat of DT5 1007 stores NREM `restrict` intervals although its events span the whole session.
 - The detection parameters stored with the events differ from the papers' methods (120-200 Hz, 2/5 SD, 15-250 ms).
 - The units of `rawWaveform`; whether the >50 Hz clusters are multi-unit; the paper's unit inclusion criteria.
-- The sex of each rat; the hardware reference; the position of the 4-site groups; the source of position outliers.
+- DT5 1007 SleepState.states.mat scores 5-7419 s as REM (50 REM bouts against 19 NREM), which looks like a scoring
+  error; kept as stored.
+- The sex and age of each rat; the hardware reference; the position of the 4-site groups; the source of position outliers.
