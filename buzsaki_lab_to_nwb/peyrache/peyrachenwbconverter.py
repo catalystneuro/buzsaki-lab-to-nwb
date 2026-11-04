@@ -1,58 +1,63 @@
-"""Authors: Cody Baker and Ben Dichter."""
+"""Conversion of the Peyrache et al. 2015 sessions (DANDI:000056, CRCNS th-1)."""
 
-from dateutil.parser import parse as dateparse
-from pathlib import Path
+import uuid
+from zoneinfo import ZoneInfo
 
-from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import (
-    NeuroscopeMultiRecordingTimeInterface,
-    NeuroscopeLFPInterface,
-    NeuroscopeRecordingInterface,
-    NeuroscopeSortingInterface,
-)
-from nwb_conversion_tools.datainterfaces.cellexplorerdatainterface import CellExplorerSortingInterface
+from neuroconv import NWBConverter
 
-from .peyrachemiscdatainterface import PeyracheMiscInterface
+from .peyracheecephysinterface import PeyracheEcephysInterface
+from .peyrachebehaviorinterface import PeyracheBehaviorInterface
+from .peyrachesortinginterface import PeyracheSortingInterface
+from .peyracheutils import read_session_xml, split_session_id
+
+# Sessions with a note in their description; the data are kept as the lab gives them
+SESSION_NOTES = {
+    "Mouse12-120808": (
+        " The lab left this session out of its list of AD sessions (datasets_Adn.list). Its position and spikes do not "
+        "share a clock in sub-recording 03 (see the position series), and its 'wake' epoch is the second "
+        "environment (see the epochs)."
+    ),
+    "Mouse32-140820": " This session is not in the CRCNS th-1 session table nor in the lab's session lists.",
+}
 
 
 class PeyracheNWBConverter(NWBConverter):
-    """Primary conversion class for the PeyracheA dataset."""
+    """Primary conversion class for the Peyrache et al. 2015 sessions."""
 
+    # Ecephys first: it creates the electrodes that the units refer to
     data_interface_classes = dict(
-        NeuroscopeRecording=NeuroscopeMultiRecordingTimeInterface,
-        NeuroscopeSorting=NeuroscopeSortingInterface,
-        NeuroscopeLFP=NeuroscopeLFPInterface,
-        PeyracheMisc=PeyracheMiscInterface,
+        Ecephys=PeyracheEcephysInterface,
+        Sorting=PeyracheSortingInterface,
+        Behavior=PeyracheBehaviorInterface,
     )
 
     def get_metadata(self):
-        """Auto-fill all relevant metadata used in run_conversion."""
-        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
-        session_path = lfp_file_path.parent
-        session_id = lfp_file_path.stem
-        if "-" in session_id:
-            subject_id, date_text = session_id.split("-")
-        session_start = dateparse(date_text[-4:] + date_text[:-4])
-
         metadata = super().get_metadata()
-        metadata["NWBFile"].update(
-            session_start_time=session_start.astimezone(), session_id=session_id, institution="NYU", lab="Buzsaki"
+        ecephys = self.data_interface_objects["Ecephys"]
+        session_id = ecephys.session_id
+        mouse, date = split_session_id(session_id)
+        xml_info = read_session_xml(ecephys.session_path / f"{session_id}.xml")
+        regions = set(ecephys.regions.values())
+        sites = "the anterior thalamus and the post-subiculum" if "postsub" in regions else "the anterior thalamus"
+        session_description = (
+            f"Recording from {sites} of a freely moving mouse: sleep in the home cage before and after foraging for "
+            "food in an open field (53 x 46 cm)."
+        ) + SESSION_NOTES.get(session_id, "")
+        metadata["Subject"].update(
+            subject_id=mouse,
+            species="Mus musculus",
+            sex="U",
+            age="/",  # not in the source or the paper
+            description=(
+                "Adult mouse (27-50 g). The paper used five male and two female mice but does not say which mouse is "
+                "which, so the sex of each is not known."
+            ),
         )
-        metadata.update(Subject=dict(species="Mus musculus", genotype="Wild type", weight="27-50g"))
-
-        # Unit metadata retrieved from CellExplorer format
-        # But still using Neuroscope for waveforms
-        spikes_matfile_path = session_path / f"{session_id}.spikes.cellinfo.mat"
-        if spikes_matfile_path.is_file():
-            sorting_metadata_interface = CellExplorerSortingInterface(spikes_matfile_path=str(spikes_matfile_path))
-            sorting_metadata = sorting_metadata_interface.get_metadata()["UnitProperties"]
-            n_units = len(self.data_interface_objects["NeuroscopeSorting"].sorting_extractor.get_unit_ids())
-            if len(sorting_metadata[0]) == n_units:
-                print(f"Updating UnitProperties for session {session_id}!")
-                metadata["UnitProperties"] = sorting_metadata_interface["UnitProperties"]
-
-        if "Ecephys" not in metadata:  # If NeuroscopeRecording was not in source_data
-            xml_file_path = str(session_path / f"{session_id}.xml")
-            metadata.update(NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
-
+        metadata["NWBFile"].update(
+            session_id=session_id,
+            identifier=str(uuid.uuid4()),
+            session_start_time=date.replace(tzinfo=ZoneInfo("America/New_York")),
+            session_description=session_description,
+            notes="Description of the recording in the session's .xml file (by the lab):\n" + xml_info["description"],
+        )
         return metadata
