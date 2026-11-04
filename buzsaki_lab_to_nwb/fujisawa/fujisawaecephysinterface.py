@@ -5,7 +5,6 @@ from typing import Optional
 
 import h5py
 import numpy as np
-from lxml import etree
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.hdmf import SliceableDataChunkIterator
 from neuroconv.tools.nwb_helpers import get_module
@@ -16,19 +15,10 @@ from pynwb.ecephys import LFP, ElectricalSeries
 from .fujisawautils import AUXILIARY_CHANNELS, read_channel_groups, region_of_shank, subject_of
 
 STUB_SAMPLES = 75_000
+# Amplipex: 10 V range over 16 bits at x400 gain, as in the lab's other recordings of this period (Ben's decision); the
+# .xml files give 20 V and x1000 (0.305 uV per step), and the recording system is not documented for this dataset
+VOLTS_PER_STEP = 10 / 2**16 / 400
 LOCATIONS = {"mPFC": "medial prefrontal cortex", "CA1": "CA1 field of hippocampus", "none": "none"}
-
-
-def volts_per_step(xml_file_path: Path) -> float:
-    """The scaling of the .xml file: voltage range over 2^nBits at the amplification.
-
-    The recording system and its gain are not documented elsewhere in the source or the CRCNS description.
-    """
-    acquisition = etree.parse(str(xml_file_path)).getroot().find("acquisitionSystem")
-    voltage_range = float(acquisition.find("voltageRange").text)
-    n_bits = int(acquisition.find("nBits").text)
-    amplification = float(acquisition.find("amplification").text)
-    return voltage_range / 2**n_bits / amplification
 
 
 class FujisawaEcephysInterface(BaseDataInterface):
@@ -61,7 +51,7 @@ class FujisawaEcephysInterface(BaseDataInterface):
             if path.is_file()
         )
         self.channel_groups = read_channel_groups(xml_file_path)
-        self.conversion = volts_per_step(xml_file_path)
+        self.conversion = VOLTS_PER_STEP
 
     def add_electrodes(self, nwbfile: NWBFile):
         probes = dict(
@@ -125,8 +115,8 @@ class FujisawaEcephysInterface(BaseDataInterface):
             region=list(range(n_channels)), description="all channels of the recording"
         )
         scaling = (
-            f"; scaled to volts with the .xml file's {self.conversion * 1e6:.4g} uV per step (the recording system's "
-            "gain is not documented elsewhere)"
+            f"; scaled to volts with {self.conversion * 1e6:.4g} uV per step, the Amplipex system's 10 V over 16 bits at "
+            "x400 (the .xml files give 20 V and x1000; the recording system is not documented for this dataset)"
         )
 
         def select(data):

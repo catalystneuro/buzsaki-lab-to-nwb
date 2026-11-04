@@ -12,8 +12,8 @@ from .fujisawasortinginterface import FujisawaSortingInterface
 from .fujisawautils import SESSIONS, subject_of
 
 # Recording years: the raw EE.dat of EE.188 is dated 2006-07-14, six days after its folder date (07/08). The year of
-# rats FF and GG is not recorded in the source; theirs is kept as in the earlier conversion.
-YEARS = {"EE": 2006, "FF": 2008, "GG": 2008}
+# rats FF and GG is not recorded in the source; 2006 is assumed for them too.
+YEARS = {"EE": 2006, "FF": 2006, "GG": 2006}
 SESSION_DESCRIPTIONS = {
     "sleep": "Sleep in the home cage.",
     "test": "A short test recording.",
@@ -48,7 +48,12 @@ class FujisawaNWBConverter(NWBConverter):
             session_description=(
                 f"{SESSION_DESCRIPTIONS[state]} Session {session_id} of rat {subject}, recorded on {day[2:4]}/{day[4:6]} "
                 f"({duration} min). The time of day is not recorded in the source, so the start time is midnight of "
-                "the recording day."
+                "the recording day"
+                + (
+                    " (the year, 2006, is assumed: the source does not record it for this rat)."
+                    if subject != "EE"
+                    else "."
+                )
             ),
         )
         metadata["Subject"] = dict(
