@@ -4,8 +4,8 @@ Girardeau G, Inema I, Buzsáki G (2017) Reactivations of emotional memory in the
 sleep. Nature Neuroscience 20:1634–1642, https://doi.org/10.1038/nn.4637.
 
 Source: the Buzsaki lab share `GirardeauG/RatNN/RatNN-YYYYMMDD/`, with the rat folder `GirardeauG/RatNN/`
-(`RecordingLocations.mat`, `sessions.mat` or `Sessions.mat`). Where the share has no `.lfp` file for a session (all of
-Rat08), the LFP is taken from the session's file in DANDI:000061 version 0.250624.0426, a local copy or its S3 URL
+(`RecordingLocations.mat`, `sessions.mat` or `Sessions.mat`). Where the share has no `.lfp` file for a session (16 of
+the 40 sessions, for example Rat08-20130710), the LFP is taken from the session's file in DANDI:000061 version 0.250624.0426, a local copy or its S3 URL
 (streamed). Triage of the earlier conversion:
 [issue 79](https://github.com/catalystneuro/buzsaki-lab-to-nwb/issues/79).
 
@@ -33,6 +33,7 @@ The `.mpg` files in the session folder are written as external files and hard-li
 | `processing/behavior/sleep_states` | `-States.mat` (`wake`, `drowsy`, `sws`, `Rem`, whole seconds); `sleep_states_buzcode` from the 2019 `SleepState.states.mat` where present |
 | `processing/ecephys/ripples`, `beta_events` | `.rip.evt`, `.bet.evt` start/peak/stop, with the number of the labels as `channel` ("probably the detection channel") |
 | `events/rewards`, `events/air_puffs` | `.lrw.evt`/`.rrw.evt` (with `side`), `.puf.evt` |
+| `acquisition/accelerometer`, `air_puff_input`, `left_reward_input`, `right_reward_input` | auxiliary inputs in raw int16 steps ("a.u."), from the `.lfp` (1250 Hz; or a published series or a `.dat` under 20 GB that holds all channels); channels from the `session.mat` channelTags (Rat08, Rat09; 1-indexed there) or the `.xml` description (Rat10; 0-indexed there); accelerometer columns are "axis 1 to 3" (no axis names in the source); the reward side of each line is found from its step at the `.lrw.evt`/`.rrw.evt` events |
 | `acquisition/video_*` | the epoch's `.mpg` if it is in the session folder (only some are on the share), external file; frame times approximate: the frames (lines of the epoch's `.tsp`) spread evenly over the epoch |
 | MeaningsTables + HED | `value_meanings.yaml`: sleep states (Awake / Drowsy / Asleep), lap direction (`(Run, Rightward)` / `(Run, Leftward)`), lap type and reward side (meaning only) |
 
@@ -66,5 +67,13 @@ The `.mpg` files in the session folder are written as external files and hard-li
 - `-Laps.mat` `leftLimit`/`rightLimit` are not documented (they are not the pixel x of the track ends).
 - The `06-water` epoch of some Rat08 sessions is not described in the paper.
 - Age: 3 months, kept from the earlier files (not found in the lab's files); weight not converted.
-- Auxiliary inputs (accelerometer, air-puff and reward lines, channels 160 to 165) are not converted.
+- Auxiliary inputs cannot be converted for the 16 sessions with no `.lfp` on the share: their published files hold only
+  the probe channels (160, 128 or 127 columns) and their `.dat` files are over 20 GB or missing (Rat08-20130710, 0711,
+  0713, 0717, 0718, 0722; Rat09-20140326, 0404, 0407; Rat10-20140701, 0704, 0705; Rat11-20150316, 0328, 0331, 0403).
+- Rat11: no `session.mat` channelTags, and the `.xml` description (copied from Rat10) puts the auxiliary inputs on
+  channels 166 to 171 of a 166-channel recording, so they are not converted for any Rat11 session.
+- Rat10: 172 channels, with "Hippo wires" on 160 to 165 by its `.xml`; the converter takes channels 0 to 159 as the
+  probe electrodes, so those wires are not written (not yet tested on a Rat10 session).
+- Rat09's `session.mat` channelTags are the same as Rat08's (even the ripple channel); the air-puff and reward lines
+  were checked against the events in Rat09-20140402.
 - Cell types: the lab's `RatNN-finalType.mat` covers all sessions of a rat with no session index; not converted.

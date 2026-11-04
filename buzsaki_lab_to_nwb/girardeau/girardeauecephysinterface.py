@@ -1,5 +1,7 @@
 """Electrodes, LFP and wide-band signal of a Girardeau session (DANDI:000061)."""
 
+import re
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -9,13 +11,15 @@ from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.hdmf import SliceableDataChunkIterator
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath
-from pynwb import NWBFile
+from pynwb import NWBFile, TimeSeries
 from pynwb.ecephys import LFP, ElectricalSeries
 
 from .girardeauutils import (
     UNKNOWN_REGION,
     VOLTS_PER_STEP,
     describe_region_codes,
+    load_mat,
+    read_evt,
     read_recording_locations,
     read_session_xml,
     region_location,
@@ -29,6 +33,11 @@ DEVICE_DESCRIPTION = (
     "3.6 to 5.5 mm from bregma) and in the dorsal hippocampus (CA1, AP -3.5 mm, ML 2.5 mm), as given in the paper; "
     "recorded at 20 kHz on an Amplipex KJE-1001 system (the lab's session.mat)."
 )
+
+
+# A .dat file is read for the auxiliary inputs only below this size (it is read in full)
+MAX_DAT_BYTES = 20e9
+AUXILIARY_TAGS = ("Accelerometer", "Airpuff", "Rewards")
 
 
 class FirstColumns:
@@ -209,6 +218,8 @@ class GirardeauEcephysInterface(BaseDataInterface):
             ecephys = get_module(nwbfile, "ecephys", "processed extracellular electrophysiology data")
             ecephys.add(LFP(electrical_series=lfp_series))
 
+        self.add_auxiliary_inputs(nwbfile, stub_test=stub_test)
+
         if not self.source_data["include_wideband"]:
             return
         wideband = self.local_signal([".dat"])
@@ -230,3 +241,165 @@ class GirardeauEcephysInterface(BaseDataInterface):
                     conversion=VOLTS_PER_STEP,
                 )
             )
+
+    def channel_tags(self) -> tuple:
+        """The auxiliary channels as 0-indexed channels, {tag: [channels]}, and where they come from.
+
+        Rat08 and Rat09: the session.mat channelTags (1-indexed). Rat10 and Rat11 have no such tags; their .xml
+        description lists them 0-indexed ("Behavior : accelerometer : 166 167 168", "Airpuff : 169", "Water rewards :
+        170 171", next to "Amygdala Right - voies 0-63"). Channels beyond the file's channel count are refused.
+        """
+        tags, origin = {}, ""
+        session_mat_path = self.session_path / f"{self.session_id}.session.mat"
+        if session_mat_path.is_file():
+            channel_tags = load_mat(session_mat_path)["session"].channelTags
+            tags = {
+                tag: [int(channel) - 1 for channel in np.atleast_1d(getattr(channel_tags, tag).channels)]
+                for tag in AUXILIARY_TAGS
+                if tag in channel_tags._fieldnames
+            }
+            origin = "the session.mat channelTags, 1-indexed there"
+        if not tags:
+            text = self.xml_info["description"]
+            for tag, pattern in (
+                ("Accelerometer", r"accelerometer\s*:\s*([\d ]+)"),
+                ("Airpuff", r"Airpuff\s*:\s*([\d ]+)"),
+                ("Rewards", r"Water rewards\s*:\s*([\d ]+)"),
+            ):
+                match = re.search(pattern, text, flags=re.IGNORECASE)
+                if match:
+                    tags[tag] = [int(channel) for channel in match.group(1).split()]
+            origin = "the .xml description, 0-indexed there"
+        out_of_range = [c for channels in tags.values() for c in channels if c >= self.xml_info["n_channels"]]
+        if out_of_range:
+            warnings.warn(
+                f"{self.session_id}: auxiliary channels {out_of_range} from {origin} are beyond the "
+                f"{self.xml_info['n_channels']} channels of the recording; auxiliary inputs not converted"
+            )
+            return {}, origin
+        return tags, origin
+
+    def auxiliary_source(self) -> tuple:
+        """(samples, rate, description) of a source holding all channels, or (None, None, reason)."""
+        lfp = self.local_signal([".lfp", ".eeg"])
+        if lfp is not None:
+            return lfp, self.xml_info["lfp_sampling_rate"], "the lab's .lfp file (all channels down-sampled by the lab)"
+        published = self.published()
+        n_channels = self.xml_info["n_channels"]
+        if published is not None:
+            for location, rate in (
+                ("processing/ecephys/LFP/LFP/data", self.xml_info["lfp_sampling_rate"]),
+                ("acquisition/ElectricalSeries/data", self.xml_info["sampling_rate"]),
+            ):
+                if location in published and published[location].shape[1] == n_channels:
+                    return published[location], rate, "the session's file in DANDI:000061 version 0.250624.0426"
+        dat_path = self.session_path / f"{self.session_id}.dat"
+        if dat_path.is_file() and dat_path.stat().st_size < MAX_DAT_BYTES:
+            return self.local_signal([".dat"]), self.xml_info["sampling_rate"], "the lab's .dat file"
+        return None, None, "no .lfp file, no published series with the auxiliary channels, and no .dat under 20 GB"
+
+    def reward_sides(self, samples, rate: float, channels: list) -> dict:
+        """Side of each reward line, from its step at the times of the .lrw.evt and .rrw.evt events."""
+        steps = {}
+        for side, suffix in (("left", ".lrw.evt"), ("right", ".rrw.evt")):
+            evt_path = self.session_path / f"{self.session_id}{suffix}"
+            if not evt_path.is_file() or evt_path.stat().st_size == 0:
+                return {}
+            indices = (read_evt(evt_path).ms.to_numpy() / 1000 * rate).astype(int)
+            indices = indices[(indices > rate) & (indices < samples.shape[0] - rate)]
+            before = np.array(
+                [np.asarray(samples[i - int(0.1 * rate) : i - int(0.01 * rate), channels]).mean(0) for i in indices]
+            )
+            after = np.array([np.asarray(samples[i : i + int(0.05 * rate), channels]).mean(0) for i in indices])
+            steps[side] = (after - before).mean(0)
+        sides = {}
+        for index, channel in enumerate(channels):
+            left, right = steps["left"][index], steps["right"][index]
+            if left > 10 * max(abs(right), 1):
+                sides[channel] = ("left", left, right)
+            elif right > 10 * max(abs(left), 1):
+                sides[channel] = ("right", left, right)
+        return sides
+
+    def add_auxiliary_inputs(self, nwbfile: NWBFile, stub_test: bool = False):
+        """Accelerometer, air-puff and reward inputs (see channel_tags), in the system's raw int16 steps."""
+        tags, origin = self.channel_tags()
+        if not tags:
+            return
+        samples, rate, source = self.auxiliary_source()
+        if samples is None:
+            warnings.warn(f"{self.session_id}: auxiliary inputs not converted: {source}")
+            return
+        rows = min(STUB_SAMPLES, samples.shape[0]) if stub_test else samples.shape[0]
+        all_channels = sorted(channel for channels in tags.values() for channel in channels)
+        if isinstance(samples, h5py.Dataset):
+            block = samples[:rows, all_channels]
+        else:
+            block = np.asarray(samples[:rows, all_channels])
+        columns = {channel: block[:, index] for index, channel in enumerate(all_channels)}
+        common = (
+            f"{rate:g} Hz, from {source}; in the recording system's raw int16 steps, as the scaling of these inputs "
+            "is not documented (the 0.3815 uV of the probe channels does not apply to them). Channel numbers are "
+            f"0-indexed here (from {origin})"
+        )
+
+        def as_in_source(channels):
+            offset = 1 if origin.startswith("the session.mat") else 0
+            return ", ".join(str(channel + offset) for channel in channels)
+
+        if "Accelerometer" in tags:
+            channels = tags["Accelerometer"]
+            nwbfile.add_acquisition(
+                TimeSeries(
+                    name="accelerometer",
+                    description=(
+                        f"head-stage accelerometer, channels {channels} ('Accelerometer' in {origin}: "
+                        f"{as_in_source(channels)}); columns are axis 1 to 3 in channel order, as the source does not say "
+                        f"which axis is which; {common}"
+                    ),
+                    data=np.column_stack([columns[channel] for channel in channels]),
+                    unit="a.u.",
+                    rate=float(rate),
+                )
+            )
+        if "Airpuff" in tags:
+            (channel,) = tags["Airpuff"]
+            nwbfile.add_acquisition(
+                TimeSeries(
+                    name="air_puff_input",
+                    description=(
+                        f"air-puff input, channel {channel} ('Airpuff' in {origin}: {as_in_source([channel])}); the "
+                        f"events of the .puf.evt file are its rising edges; {common}"
+                    ),
+                    data=columns[channel],
+                    unit="a.u.",
+                    rate=float(rate),
+                )
+            )
+        if "Rewards" in tags:
+            channels = tags["Rewards"]
+            sides = self.reward_sides(samples, rate, channels) if not stub_test else {}
+            for channel in channels:
+                if channel in sides:
+                    side, left, right = sides[channel]
+                    name = f"{side}_reward_input"
+                    side_text = (
+                        f"the {side} reward line: at the .{side[0]}rw.evt events it steps up by {max(left, right):.0f} "
+                        f"steps on average, and by {min(left, right):.0f} at the other side's events (the source does "
+                        "not say which channel is which side)"
+                    )
+                else:
+                    name = f"reward_input_ch{channel}"
+                    side_text = "the side could not be told from the .lrw.evt and .rrw.evt events"
+                nwbfile.add_acquisition(
+                    TimeSeries(
+                        name=name,
+                        description=(
+                            f"water-reward input, channel {channel} ('Rewards' in {origin}: "
+                            f"{as_in_source(channels)}); {side_text}; {common}"
+                        ),
+                        data=columns[channel],
+                        unit="a.u.",
+                        rate=float(rate),
+                    )
+                )
