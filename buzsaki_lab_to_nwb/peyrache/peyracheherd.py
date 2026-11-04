@@ -6,6 +6,8 @@ The terms are stored in the NWB file's ``external_resources`` group (NWB 2.11), 
 
 from pynwb import NWBFile
 
+from buzsaki_lab_to_nwb.utils.identifiers import add_identifier_refs
+
 
 def obo(curie: str) -> tuple:
     """The CURIE and its OBO PURL."""
@@ -36,6 +38,7 @@ def _add_column_terms(herd, column, terms: dict):
 def add_external_resources(nwbfile: NWBFile):
     """Annotate the species, electrode locations and unit regions of an NWB file before it is written."""
     herd = nwbfile.get_external_resources()
+    add_identifier_refs(nwbfile)
     subject = nwbfile.subject
     if subject is not None and subject.species in SPECIES:
         entity_id, entity_uri = SPECIES[subject.species]
