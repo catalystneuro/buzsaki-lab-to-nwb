@@ -1,0 +1,46 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools.
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
+tables:
+  trials:
+    cooling_state:
+      Pre:
+        meaning: trial before the cooling of the medial septum (the lab's code 1, state label Pre)
+      Cooling:
+        meaning: trial during the cooling of the medial septum (the lab's code 2, state label Cooling)
+      Post:
+        meaning: trial after the cooling of the medial septum (the lab's code 3, state label Post)
+      transition (excluded):
+        meaning: >-
+          transition trial that the lab left out of every cooling state (code 0), between the cooling onset and the
+          start of the cooling interval or between the cooling offset and the start of the next no-cooling interval
+      not labelled:
+        meaning: trial without a cooling code in the lab's trials file
+    condition:
+      Left:
+        meaning: >-
+          trial whose side arm is the left one in the lab's trials file; the rat runs to it in correct trials and to the
+          other side arm in error trials
+      Right:
+        meaning: >-
+          trial whose side arm is the right one in the lab's trials file; the rat runs to it in correct trials and to the
+          other side arm in error trials
+  cooling:
+    label:
+      cooling:
+        meaning: the lab's cooling interval of the medial septum (cooling.manipulation.mat, cooling)
+      nocooling:
+        meaning: the lab's no-cooling interval (cooling.manipulation.mat, nocooling)
+      transition (excluded):
+        meaning: gap between a cooling onset or offset and the next interval, which the lab left out of every state
+  sleep_states:
+    label:
+      WAKE:
+        meaning: wake, scored by the lab with SleepScoreMaster (buzcode)
+        hed: Awake
+      NREM:
+        meaning: non-REM sleep, scored by the lab with SleepScoreMaster (buzcode)
+        hed: Asleep
+      REM:
+        meaning: REM sleep, scored by the lab with SleepScoreMaster (buzcode)
+        hed: Asleep, sc:Sleep-stage-REM
