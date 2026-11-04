@@ -1,51 +1,66 @@
-"""Authors: Cody Baker and Ben Dichter."""
+"""Conversion of the Fujisawa et al. 2008 sessions (DANDI:000067)."""
 
-from pathlib import Path
+import uuid
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from nwb_conversion_tools import NWBConverter
-from nwb_conversion_tools.datainterfaces.neuroscopedatainterface import (
-    NeuroscopeRecordingInterface,
-    NeuroscopeLFPInterface,
-    NeuroscopeSortingInterface,
-)
+from neuroconv import NWBConverter
 
-from .fujisawamiscdatainterface import FujisawaMiscInterface
+from .fujisawabehaviorinterface import FujisawaBehaviorInterface
+from .fujisawaecephysinterface import FujisawaEcephysInterface
+from .fujisawasortinginterface import FujisawaSortingInterface
+from .fujisawautils import SESSIONS, subject_of
+
+# Recording years: the raw EE.dat of EE.188 is dated 2006-07-14, six days after its folder date (07/08). The year of
+# rats FF and GG is not recorded in the source; 2006 is assumed for them too.
+YEARS = {"EE": 2006, "FF": 2006, "GG": 2006}
+SESSION_DESCRIPTIONS = {
+    "sleep": "Sleep in the home cage.",
+    "test": "A short test recording.",
+    "spontaneous alternation task": "Spontaneous alternation task in the maze, with a running wheel.",
+    "working memory task": (
+        "Working memory task in the maze: each trial starts with nose pokes in the start area and ends with the reward "
+        "in the left or right side arm."
+    ),
+}
 
 
 class FujisawaNWBConverter(NWBConverter):
-    """Primary conversion class for the FujisawaS dataset."""
+    """Primary conversion class for the Fujisawa et al. 2008 sessions."""
 
+    # Ecephys first: it creates the electrode groups the units refer to
     data_interface_classes = dict(
-        NeuroscopeRecording=NeuroscopeRecordingInterface,
-        NeuroscopeLFP=NeuroscopeLFPInterface,
-        NeuroscopeSorting=NeuroscopeSortingInterface,
-        Misc=FujisawaMiscInterface,
+        Ecephys=FujisawaEcephysInterface,
+        Sorting=FujisawaSortingInterface,
+        Behavior=FujisawaBehaviorInterface,
     )
 
     def get_metadata(self):
-        lfp_file_path = Path(self.data_interface_objects["NeuroscopeLFP"].source_data["file_path"])
-        session_id = lfp_file_path.parent.name
-        subject_id, _ = lfp_file_path.stem.split(".")
-        datetime_string = "2008" + lfp_file_path.parent.parent.name[2:6]
-        session_start = datetime.strptime(datetime_string, "%Y%m%d")
-
         metadata = super().get_metadata()
+        session_id = self.data_interface_objects["Ecephys"].session_id
+        subject = subject_of(session_id)
+        day, state, duration = SESSIONS[session_id]
+        date = datetime(YEARS[subject], int(day[2:4]), int(day[4:6]), tzinfo=ZoneInfo("America/New_York"))
         metadata["NWBFile"].update(
-            session_start_time=session_start.astimezone(), session_id=session_id, institution="NYU", lab="Buzsaki"
+            session_id=session_id,
+            identifier=str(uuid.uuid5(uuid.NAMESPACE_URL, f"DANDI:000067/{session_id}")),
+            session_start_time=date,
+            session_description=(
+                f"{SESSION_DESCRIPTIONS[state]} Session {session_id} of rat {subject}, recorded on {day[2:4]}/{day[4:6]} "
+                f"({duration} min). The time of day is not recorded in the source, so the start time is midnight of "
+                "the recording day"
+                + (
+                    " (the year, 2006, is assumed: the source does not record it for this rat)."
+                    if subject != "EE"
+                    else "."
+                )
+            ),
         )
-        metadata.update(
-            Subject=dict(
-                subject_id=lfp_file_path.parent.parent.parent.name,
-                species="Rattus norvegicus domestica",
-                sex="Male",
-                age="3-5 months",
-            )
+        metadata["Subject"] = dict(
+            subject_id=subject,
+            species="Rattus norvegicus",
+            sex="M",
+            age="P3M/P5M",
+            description="male rat, 3 to 5 months old (as in the earlier conversion)",
         )
-
-        if "Ecephys" not in metadata:  # If NeuroscopeRecording was not in source_data
-            session_path = lfp_file_path.parent
-            xml_file_path = str(session_path / f"{session_id}.xml")
-            metadata.update(NeuroscopeRecordingInterface.get_ecephys_metadata(xml_file_path=xml_file_path))
-
         return metadata
