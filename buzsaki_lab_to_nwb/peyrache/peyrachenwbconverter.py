@@ -47,6 +47,7 @@ class PeyracheNWBConverter(NWBConverter):
             subject_id=mouse,
             species="Mus musculus",
             sex="U",
+            age="/",  # not in the source or the paper
             description=(
                 "Adult mouse (27-50 g). The paper used five male and two female mice but does not say which mouse is "
                 "which, so the sex of each is not known."
