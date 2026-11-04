@@ -1,0 +1,32 @@
+NWBFile:
+  session_description:
+    Data was recorded using silicon probe electrodes in the frontal cortices of male Long Evans rats between 3-7
+    months of age. The design was to have no specific behavior, task or stimulus, rather the animal was left alone
+    in its home cage (which it lives in at all times).
+  experiment_description:
+    Network Homeostasis and State Dynamics of Neocortical Sleep. Watson BO, Levenstein D, Greene JP, Gelinas JN,
+    Buzsáki G. Neuron. 2016 Apr 27.
+  related_publications:
+    - https://doi.org/10.1016/j.neuron.2016.03.036
+  experimenter:
+    - Watson, Brendon O.
+  keywords:
+    - sleep
+    - neocortex
+    - frontal cortex
+    - slow oscillation
+    - UP/DOWN states
+    - silicon probe
+  institution: NYU
+  lab: Buzsaki
+Subject:
+  species: Rattus norvegicus
+  strain: Long Evans
+  genotype: Wild type
+  sex: M
+  age: P3M/P7M
+  description: Male Long Evans rat, 3-7 months old and weighing 250-500 g at the time of the recordings.
+Devices:
+  implant:
+    name: implant
+    description: silicon probe electrodes; see the session's .xml or .sessionInfo.mat file for more information
