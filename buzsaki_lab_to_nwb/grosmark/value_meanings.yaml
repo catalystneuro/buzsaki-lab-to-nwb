@@ -1,0 +1,40 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools.
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
+tables:
+  sleep_states:
+    label:
+      Wake:
+        meaning: active waking, scored by the lab (high theta/delta ratio and active movement/EMG activity)
+        hed: Awake
+      Drowsy:
+        meaning: >-
+          drowsy wake/light sleep, scored by the lab (low overall spectral power and low movement/EMG activity)
+      NREM:
+        meaning: non-REM sleep, scored by the lab (high delta/theta ratio and very low movement/EMG activity)
+        hed: Asleep
+      Intermediate:
+        meaning: >-
+          intermediate sleep, scored by the lab: short (~30 s) states at the NREM to REM transition with elevated
+          12-20 Hz spindle power, which the lab describes as a sub-type of NREM sleep
+        hed: Asleep
+      REM:
+        meaning: REM sleep, scored by the lab (high theta/delta ratio and very low movement/EMG activity)
+        hed: Asleep, sc:Sleep-stage-REM
+  sleep_states_buzcode:
+    label:
+      WAKE:
+        meaning: wake, from buzcode's automatic SleepScoreMaster (2019)
+        hed: Awake
+      NREM:
+        meaning: non-REM sleep, from buzcode's automatic SleepScoreMaster (2019)
+        hed: Asleep
+      REM:
+        meaning: REM sleep, from buzcode's automatic SleepScoreMaster (2019)
+        hed: Asleep, sc:Sleep-stage-REM
+  trials:
+    direction:
+      in:
+        meaning: a lap toward increasing linearized position (the lab's in_eps)
+      out:
+        meaning: a lap toward decreasing linearized position (the lab's out_eps)
