@@ -172,7 +172,9 @@ class PeyracheSortingInterface(BaseDataInterface):
                 if "lab_mean_waveform" in values[key] and "buzcode_mean_waveform" in values[key]:
                     channels = self.xml_info["spike_groups"][key[0] - 1]
                     row = values[key]["lab_mean_waveform"][channels.index(values[key]["max_waveform_channel"])]
-                    if np.corrcoef(row, values[key]["buzcode_mean_waveform"])[0, 1] < 0.99:
+                    # The two are computed from different spike samples, so they match closely but not always
+                    # exactly; a correlation this low would mean the units were matched to the wrong waveforms
+                    if np.corrcoef(row, values[key]["buzcode_mean_waveform"])[0, 1] < 0.8:
                         raise ValueError(f"{self.session_id}: the two mean waveforms of {key} differ")
 
             class_file_path = self.session_path / f"{self.session_id}.CellClass.cellinfo.mat"
