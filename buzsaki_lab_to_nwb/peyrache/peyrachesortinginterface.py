@@ -158,6 +158,7 @@ class PeyracheSortingInterface(BaseDataInterface):
             regions = np.atleast_1d(getattr(cellinfo, "region", np.array([""] * len(cellinfo_keys), dtype=object)))
             raw_waveforms = list(np.atleast_1d(cellinfo.rawWaveform)) if hasattr(cellinfo, "rawWaveform") else []
             max_channels = np.atleast_1d(getattr(cellinfo, "maxWaveformCh", []))
+            correlations = []
             for index, (key, times, region) in enumerate(zip(cellinfo_keys, np.atleast_1d(cellinfo.times), regions)):
                 if key not in units or not np.allclose(
                     np.sort(np.atleast_1d(times)), units[key] / SAMPLING_RATE, atol=0.6 / SAMPLING_RATE
@@ -172,10 +173,14 @@ class PeyracheSortingInterface(BaseDataInterface):
                 if "lab_mean_waveform" in values[key] and "buzcode_mean_waveform" in values[key]:
                     channels = self.xml_info["spike_groups"][key[0] - 1]
                     row = values[key]["lab_mean_waveform"][channels.index(values[key]["max_waveform_channel"])]
-                    # The two are computed from different spike samples, so they match closely but not always
-                    # exactly; a correlation this low would mean the units were matched to the wrong waveforms
-                    if np.corrcoef(row, values[key]["buzcode_mean_waveform"])[0, 1] < 0.8:
-                        raise ValueError(f"{self.session_id}: the two mean waveforms of {key} differ")
+                    correlations.append(np.corrcoef(row, values[key]["buzcode_mean_waveform"])[0, 1])
+            # The two mean waveforms come from different spike samples, so a unit's pair can differ a little (one
+            # unit of Mouse17-130204 correlates at 0.79), but nearly all are equal; a low median would mean the
+            # units were matched to the wrong waveforms
+            if correlations and np.median(correlations) < 0.99:
+                raise ValueError(
+                    f"{self.session_id}: the two mean waveforms differ (median correlation {np.median(correlations):.2f})"
+                )
 
             class_file_path = self.session_path / f"{self.session_id}.CellClass.cellinfo.mat"
             if class_file_path.is_file():
