@@ -6,6 +6,7 @@ import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
 from pydantic import DirectoryPath
 from pynwb import NWBFile
+from neuroconv.tools.nwb_helpers import get_module
 from pynwb.misc import Units
 from scipy.io import loadmat
 
@@ -46,6 +47,9 @@ class FujisawaSortingInterface(BaseDataInterface):
         return info
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
+        if not any((self.session_path / f"{self.session_id}.clu.{shank}").is_file() for shank in [*PFC_SHANKS, *CA1_SHANKS]):
+            self.add_uncurated_units(nwbfile, stub_test=stub_test)
+            return
         cell_info = self.read_cell_info()
         has_cell_types = bool(cell_info)
         nwbfile.units = Units(
@@ -93,3 +97,67 @@ class FujisawaSortingInterface(BaseDataInterface):
                 )
                 if stub_test and len(nwbfile.units) >= STUB_UNITS:
                     return
+
+    def session_slice(self, day_samples: np.ndarray, samples: np.ndarray) -> tuple:
+        """Index and sample offset of the session's spikes in the spikes of the whole day's recording."""
+        n = len(samples)
+        lead = min(n - 1, 50)
+        day_diff, diff = np.diff(day_samples), np.diff(samples[: lead + 1])
+        candidates = np.flatnonzero(day_diff[: len(day_samples) - n + 1] == diff[0]) if lead else np.arange(len(day_samples) - n + 1)
+        for k in range(1, lead):
+            candidates = candidates[day_diff[candidates + k] == diff[k]]
+        for start in candidates:
+            offset = day_samples[start] - samples[0]
+            if np.array_equal(day_samples[start : start + n] - offset, samples):
+                return int(start), int(offset)
+        raise ValueError(f"{self.session_id}: spikes not found in the day's automatic clustering")
+
+    def add_uncurated_units(self, nwbfile: NWBFile, stub_test: bool = False):
+        """The session's spikes in the automatic clustering of the whole day's recording (the unsorted folder)."""
+        day = self.session_path.parent.name
+        unsorted = self.session_path.parent / "unsorted"
+        shanks = [
+            shank
+            for shank in [*PFC_SHANKS, *CA1_SHANKS]
+            if (unsorted / f"{day}.clu.{shank}").is_file() and (self.session_path / f"{self.session_id}.res.{shank}").is_file()
+        ]
+        if not shanks:
+            return
+        units = Units(
+            name="uncurated_units",
+            description=(
+                f"UNCURATED automatic clusters. The lab did not sort the spikes of this session by hand. These units are "
+                f"KlustaKwik's automatic clusters of the whole day's recording ({day}, in its 'unsorted' folder), cut to "
+                f"this session: the clusters numbered 2 and up of {day}.clu.N, for the session's spikes in its "
+                f"{self.session_id}.res.N files (20 kHz samples). Clusters 0 and 1 are left out. They have not been "
+                f"checked by a person and may merge or split neurons; cluster numbers are those of the day's automatic "
+                f"clustering and match no curated units (of the day's sessions only EE.049 was sorted by hand)."
+            ),
+            resolution=1 / SAMPLING_RATE,
+        )
+        units.add_column(name="shank", description="shank number (1 to 8 mPFC, 9 to 12 CA1)")
+        units.add_column(name="cluster_id", description=f"cluster number in the automatic {day}.clu file of the shank")
+        units.add_column(name="region", description="region of the shank: mPFC or CA1")
+        groups = nwbfile.electrode_groups
+        for shank in shanks:
+            samples = np.loadtxt(self.session_path / f"{self.session_id}.res.{shank}", dtype=np.int64, ndmin=1)
+            if len(samples) == 0:
+                continue
+            day_clusters = np.loadtxt(unsorted / f"{day}.clu.{shank}", dtype=np.int64, ndmin=1)[1:]
+            day_samples = np.loadtxt(unsorted / f"{day}.res.{shank}", dtype=np.int64, ndmin=1)
+            if len(day_clusters) != len(day_samples):
+                raise ValueError(f"{day} shank {shank}: {len(day_clusters)} clusters for {len(day_samples)} spikes")
+            start, _ = self.session_slice(day_samples, samples)
+            clusters = day_clusters[start : start + len(samples)]
+            for cluster in np.unique(clusters[clusters >= 2]):
+                units.add_unit(
+                    spike_times=np.sort(samples[clusters == cluster]) / SAMPLING_RATE,
+                    electrode_group=groups[f"shank{shank}"],
+                    shank=shank,
+                    cluster_id=int(cluster),
+                    region=region_of_shank(shank),
+                )
+                if stub_test and len(units) >= STUB_UNITS:
+                    break
+        if len(units):
+            get_module(nwbfile, "ecephys", "processed extracellular electrophysiology data").add(units)
