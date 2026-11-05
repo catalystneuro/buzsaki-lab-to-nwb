@@ -47,7 +47,9 @@ class FujisawaSortingInterface(BaseDataInterface):
         return info
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
-        if not any((self.session_path / f"{self.session_id}.clu.{shank}").is_file() for shank in [*PFC_SHANKS, *CA1_SHANKS]):
+        if not any(
+            (self.session_path / f"{self.session_id}.clu.{shank}").is_file() for shank in [*PFC_SHANKS, *CA1_SHANKS]
+        ):
             self.add_uncurated_units(nwbfile, stub_test=stub_test)
             return
         cell_info = self.read_cell_info()
@@ -103,7 +105,11 @@ class FujisawaSortingInterface(BaseDataInterface):
         n = len(samples)
         lead = min(n - 1, 50)
         day_diff, diff = np.diff(day_samples), np.diff(samples[: lead + 1])
-        candidates = np.flatnonzero(day_diff[: len(day_samples) - n + 1] == diff[0]) if lead else np.arange(len(day_samples) - n + 1)
+        candidates = (
+            np.flatnonzero(day_diff[: len(day_samples) - n + 1] == diff[0])
+            if lead
+            else np.arange(len(day_samples) - n + 1)
+        )
         for k in range(1, lead):
             candidates = candidates[day_diff[candidates + k] == diff[k]]
         for start in candidates:
@@ -119,7 +125,8 @@ class FujisawaSortingInterface(BaseDataInterface):
         shanks = [
             shank
             for shank in [*PFC_SHANKS, *CA1_SHANKS]
-            if (unsorted / f"{day}.clu.{shank}").is_file() and (self.session_path / f"{self.session_id}.res.{shank}").is_file()
+            if (unsorted / f"{day}.clu.{shank}").is_file()
+            and (self.session_path / f"{self.session_id}.res.{shank}").is_file()
         ]
         if not shanks:
             return
