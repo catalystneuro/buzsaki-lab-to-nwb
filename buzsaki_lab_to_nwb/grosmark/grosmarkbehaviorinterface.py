@@ -255,6 +255,7 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
                 "nor out"
             ),
         )
+        track_length = np.nanmax(linear) - np.nanmin(linear)
         for lap_times, is_in, is_out in zip(laps["ts_ep"], laps["in_eps"], laps["out_eps"]):
             lap_times = np.atleast_1d(lap_times)
             if bool(is_in) and bool(is_out):
@@ -262,8 +263,8 @@ class GrosmarkBehaviorInterface(BaseDataInterface):
             direction = "in" if is_in else "out" if is_out else "unlabelled"
             lap_linear = linear[np.searchsorted(times, lap_times[0]) : np.searchsorted(times, lap_times[-1]) + 1]
             lap_linear = lap_linear[np.isfinite(lap_linear)]
-            # A lap that ends where it starts has no direction to check against its label
-            moved = len(lap_linear) > 1 and lap_linear[-1] != lap_linear[0]
+            # A lap that ends (nearly) where it starts has no direction to check against its label
+            moved = len(lap_linear) > 1 and abs(lap_linear[-1] - lap_linear[0]) > 0.05 * track_length
             if direction != "unlabelled" and moved and (lap_linear[-1] > lap_linear[0]) != (direction == "in"):
                 raise ValueError(f"An {direction} lap of {laps_file_path} runs the other way")
             nwbfile.add_trial(start_time=float(lap_times[0]), stop_time=float(lap_times[-1]), direction=direction)
