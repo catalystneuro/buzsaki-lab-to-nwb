@@ -57,6 +57,8 @@ class SenzaiSortingInterface(BaseDataInterface):
             clusters = np.loadtxt(clu_file_path, dtype=np.int64, ndmin=1)[
                 1:
             ]  # the first line is the number of clusters
+            if not np.any(clusters > 1):
+                continue  # only artifact and noise clusters (YutaMouse33-150223 shank 8, whose .res is not on the share)
             samples = np.loadtxt(self.session_path / f"{self.session_id}.res.{shank}", dtype=np.int64, ndmin=1)
             for cluster in np.unique(clusters[clusters > 1]):
                 units[(shank, int(cluster))] = samples[clusters == cluster]
