@@ -83,14 +83,20 @@ class SenzaiSortingInterface(BaseDataInterface):
             ends = published["spike_times_index"][:]
             starts = np.concatenate([[0], ends[:-1]])
             spike_times = published["spike_times"][:]
-            if np.array_equal(np.rint(spike_times * sampling_rate).astype(np.int64), np.concatenate(list(units.values()))):
+            if np.array_equal(
+                np.rint(spike_times * sampling_rate).astype(np.int64), np.concatenate(list(units.values()))
+            ):
                 return units  # every shank's sorting is the earlier file's
             shank_ids = published["shank_id"][:]
         replaced = {}
-        for shank in sorted({key[0] for key in units} | {int(g.removeprefix("shank")) for g in groups if g.startswith("shank")}):
+        for shank in sorted(
+            {key[0] for key in units} | {int(g.removeprefix("shank")) for g in groups if g.startswith("shank")}
+        ):
             rows = [row for row, group in enumerate(groups) if group == f"shank{shank}"]
             published_units = {
-                (shank, int(shank_ids[row]) + 2): np.rint(spike_times[starts[row] : ends[row]] * sampling_rate).astype(np.int64)
+                (shank, int(shank_ids[row]) + 2): np.rint(spike_times[starts[row] : ends[row]] * sampling_rate).astype(
+                    np.int64
+                )
                 for row in rows
             }
             ours = {key: value for key, value in units.items() if key[0] == shank}
