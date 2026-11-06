@@ -57,10 +57,56 @@ class SenzaiSortingInterface(BaseDataInterface):
             clusters = np.loadtxt(clu_file_path, dtype=np.int64, ndmin=1)[
                 1:
             ]  # the first line is the number of clusters
+            if not np.any(clusters > 1):
+                continue  # only artifact and noise clusters (YutaMouse33-150223 shank 8, whose .res is not on the share)
             samples = np.loadtxt(self.session_path / f"{self.session_id}.res.{shank}", dtype=np.int64, ndmin=1)
             for cluster in np.unique(clusters[clusters > 1]):
                 units[(shank, int(cluster))] = samples[clusters == cluster]
-        return units
+        return self.replace_resorted_shanks(units)
+
+    def replace_resorted_shanks(self, units: dict) -> dict:
+        """Take a shank's units from the earlier DANDI file when the lab's share holds a later sorting of it.
+
+        The earlier file holds each shank's clusters 2 and up in cluster order (its shank_id is the cluster number
+        minus 2). Where a shank's spikes there differ from those of the .clu/.res files on the share, the share's files
+        are a later re-sorting (the session folder keeps dated earlier .clu files), and the earlier file's units of
+        that shank are used, so that the units are those the lab's unit summary and the earlier file describe.
+        """
+        self.shanks_from_published_file = []
+        published_nwb_file_path = self.source_data["published_nwb_file_path"]
+        if published_nwb_file_path is None:
+            return units
+        sampling_rate = self.xml_info["sampling_rate"]
+        with h5py.File(published_nwb_file_path, "r") as file:
+            published = file["units"]
+            groups = [file[reference].name.rsplit("/", 1)[-1] for reference in published["electrode_group"][:]]
+            ends = published["spike_times_index"][:]
+            starts = np.concatenate([[0], ends[:-1]])
+            spike_times = published["spike_times"][:]
+            if np.array_equal(
+                np.rint(spike_times * sampling_rate).astype(np.int64), np.concatenate(list(units.values()))
+            ):
+                return units  # every shank's sorting is the earlier file's
+            shank_ids = published["shank_id"][:]
+        replaced = {}
+        for shank in sorted(
+            {key[0] for key in units} | {int(g.removeprefix("shank")) for g in groups if g.startswith("shank")}
+        ):
+            rows = [row for row, group in enumerate(groups) if group == f"shank{shank}"]
+            published_units = {
+                (shank, int(shank_ids[row]) + 2): np.rint(spike_times[starts[row] : ends[row]] * sampling_rate).astype(
+                    np.int64
+                )
+                for row in rows
+            }
+            ours = {key: value for key, value in units.items() if key[0] == shank}
+            same = list(ours) == list(published_units) and all(
+                np.array_equal(ours[key], published_units[key]) for key in ours
+            )
+            if not same and rows:
+                self.shanks_from_published_file.append(shank)
+            replaced.update(ours if same or not rows else published_units)
+        return replaced
 
     def read_published_waveforms(self, units: dict):
         """Per-unit waveforms from the earlier DANDI file, after checking that its spikes are these spikes."""
@@ -129,6 +175,15 @@ class SenzaiSortingInterface(BaseDataInterface):
                 "lab's .spk files, as the lab's int16 steps (multiply by 0.3815 uV, the Amplipex system's 10 V over 16 "
                 "bits at x400, for volts); some spikes' stored waveforms are damaged (every sample 0, or a sample beyond "
                 "20,000 steps, 7.6 mV) and are kept as stored, counted in damaged_waveforms"
+                + (
+                    ". The .clu/.res files of shank(s) "
+                    + ", ".join(map(str, self.shanks_from_published_file))
+                    + " on the lab's share are a later re-sorting that differs from the units of the lab's unit summary "
+                    "and of the earlier DANDI file (DANDI:000003 version 0.260218.2052), so those shanks' units, spike "
+                    "times and waveforms are taken from the earlier file"
+                    if self.shanks_from_published_file
+                    else ""
+                )
             ),
             resolution=1 / sampling_rate,
             waveform_rate=sampling_rate,

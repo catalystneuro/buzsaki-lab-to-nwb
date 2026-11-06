@@ -80,6 +80,8 @@ class SenzaiNWBConverter(NWBConverter):
         birth = sheet.get("DOB")
         if isinstance(birth, pd.Timestamp) or hasattr(birth, "year"):
             subject["age"] = f"P{(date - pd.Timestamp(birth).to_pydatetime()).days}D"
+        else:
+            subject["age"] = "/"  # ISO 8601 for an unknown interval: the experiment sheet has no date of birth
         metadata["Subject"].update(subject)
 
         session_description = (
