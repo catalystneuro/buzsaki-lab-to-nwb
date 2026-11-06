@@ -1,141 +1,87 @@
-"""Primary script to run to convert an entire session of data using the NWBConverter."""
+"""Convert one Huszar et al. 2022 session (DANDI:000552) to NWB."""
 
-from neuroconv.utils import load_dict_from_file, dict_deep_update
-from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics import HuzsarNWBConverter
 from pathlib import Path
-import warnings
+
+from neuroconv.tools.nwb_helpers import configure_and_write_nwbfile, get_default_backend_configuration
+from neuroconv.utils import dict_deep_update, load_dict_from_file
+
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.converter import HuzsarNWBConverter
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.huszarherd import add_external_resources
+from buzsaki_lab_to_nwb.huszar_hippocampus_dynamics.value_meanings import add_value_meanings
+from buzsaki_lab_to_nwb.yuta_mossy_cell.convert_session import set_streaming_chunks
 
 
-def session_to_nwbfile(session_dir_path, output_dir_path, stub_test=False, write_electrical_series=True, verbose=False):
-    if verbose:
-        print("---------------------")
-        print("conversion for:")
-        print(f"{session_dir_path=}")
-
+def session_to_nwbfile(
+    session_dir_path,
+    output_dir_path,
+    stub_test: bool = False,
+    write_lfp: bool = True,
+    write_raw: bool = True,
+    verbose: bool = False,
+) -> Path:
+    """Convert one session folder of HuszarR/optotagCA1 (e.g. e13/e13_1m1/e13_1m1_200220); returns the file path."""
     session_dir_path = Path(session_dir_path)
     output_dir_path = Path(output_dir_path)
     if stub_test:
         output_dir_path = output_dir_path / "nwb_stub"
     output_dir_path.mkdir(parents=True, exist_ok=True)
-
-    session_id = session_dir_path.stem
+    session_id = session_dir_path.name
     nwbfile_path = output_dir_path / f"{session_id}.nwb"
 
-    source_data = dict()
-    conversion_options = dict()
+    def has(suffix):
+        return (session_dir_path / f"{session_id}.{suffix}").is_file()
 
-    # Add Recordings
-    file_path = session_dir_path / f"{session_id}.dat"
-    xml_file_path = session_dir_path / f"{session_id}.xml"
-    raw_recording_file_available = file_path.is_file()
-
-    if file_path.is_file():
-        size_in_GB = file_path.stat().st_size / 1000
-        if size_in_GB:
-            if verbose:
-                print(f"The size of {file_path.name} is {size_in_GB} GB")
-            source_data.update(Recording=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
-            conversion_options.update(
-                Recording=dict(stub_test=stub_test, write_electrical_series=write_electrical_series)
-            )
-        elif verbose:
-            print(f"Skipping recording interface for {session_id} because the file {file_path} does not have any data.")
-
-    elif verbose:
-        print(f"Skipping recording interface for {session_id} because the file {file_path} does not exist.")
-
-    # Add LFP
-    file_path = session_dir_path / f"{session_id}.lfp"
-    folder_path = session_dir_path
-    lfp_file_available = file_path.is_file()
-
-    if file_path.is_file():
-        size_in_GB = file_path.stat().st_size / 1000**3
-
-        if size_in_GB:
-            if verbose:
-                print(f"The size of {file_path.name} is {size_in_GB} GB")
-
-            source_data.update(LFP=dict(file_path=str(file_path), xml_file_path=str(xml_file_path)))
-            conversion_options.update(LFP=dict(stub_test=stub_test, write_electrical_series=write_electrical_series))
-
-        elif verbose:
-            warnings.warn(
-                f"Skipping LFP interface for {session_id} because the file {file_path} does not have any data."
-            )
-
-    elif verbose:
-        warnings.warn(f"Skipping LFP interface for {session_id} because the file {file_path} does not exist.")
-
-    # Add behavior data
-    file_path = session_dir_path / f"{session_id}.Behavior.mat"
-    if file_path.is_file():
-        write_ecephys_metadata = (not raw_recording_file_available) and (not lfp_file_available)
-
-        # Add sorter
-        file_path = session_dir_path / f"{session_id}.spikes.cellinfo.mat"
-        source_data.update(Sorting=dict(file_path=str(file_path), verbose=verbose))
-        conversion_options.update(Sorting=dict(write_ecephys_metadata=write_ecephys_metadata))
-
-        # Add linear track behavior
-        source_data.update(Behavior8Maze=dict(folder_path=str(session_dir_path)))
-        conversion_options.update(Behavior8Maze=dict(stub_test=stub_test))
-
-        # Add reward events in linear track
-        source_data.update(BehaviorRewards=dict(folder_path=str(session_dir_path)))
-
-        # Add trials
-        source_data.update(Trials=dict(folder_path=str(session_dir_path)))
-
-    elif verbose:
-        warnings.warn(
-            f"Behavior file not found: {file_path}. Skipping sorting, rewards, maze, and trials interfaces. \n"
-        )
-
-    # Add sleep data
-    source_data.update(BehaviorSleep=dict(folder_path=str(session_dir_path)))
-
-    # Add epochs
-    source_data.update(Epochs=dict(folder_path=str(session_dir_path)))
-
-    # Add ripple events
-    source_data.update(RippleEvents=dict(folder_path=str(session_dir_path)))
-
-    # Build the converter
-    converter = HuzsarNWBConverter(source_data=source_data, verbose=verbose)
-
-    # Session start time (missing time, only the date part)
-    metadata = converter.get_metadata()
-
-    # Update default metadata with the one in the editable yaml file in this directory
-    editable_metadata_path = Path(__file__).parent / "metadata.yml"
-    editable_metadata = load_dict_from_file(editable_metadata_path)
-    metadata = dict_deep_update(metadata, editable_metadata)
-
-    # Run conversion
-    nwbfile = converter.run_conversion(
-        nwbfile_path=nwbfile_path,
-        metadata=metadata,
-        conversion_options=conversion_options,
-        overwrite=True,
+    folder = dict(folder_path=str(session_dir_path))
+    source_data = dict(
+        Ecephys=dict(folder_path=str(session_dir_path), write_lfp=write_lfp, write_raw=write_raw),
+        Epochs=folder,
+        OptogeneticPulses=folder,
     )
+    if has("spikes.cellinfo.mat"):
+        source_data.update(Sorting=folder)
+    if has("Behavior.mat") or has("Tracking.Behavior.mat"):
+        source_data.update(Position=folder)
+    if has("Behavior.mat"):
+        source_data.update(BehaviorRewards=folder, Trials=folder)
+    if has("SleepState.states.mat"):
+        source_data.update(BehaviorSleep=folder)
+    if has("ripples.events.mat"):
+        source_data.update(RippleEvents=folder)
+    if not has("pulses.events.mat"):
+        source_data.pop("OptogeneticPulses")
 
-    return nwbfile
+    converter = HuzsarNWBConverter(source_data=source_data, verbose=verbose)
+    metadata = dict_deep_update(converter.get_metadata(), load_dict_from_file(Path(__file__).parent / "metadata.yml"))
+    conversion_options = dict(Ecephys=dict(stub_test=stub_test))
+    nwbfile = converter.create_nwbfile(metadata=metadata, conversion_options=conversion_options)
+    add_external_resources(nwbfile)
+    add_value_meanings(nwbfile, load_dict_from_file(Path(__file__).parent / "value_meanings.yaml"))
+    backend_configuration = get_default_backend_configuration(nwbfile=nwbfile, backend="hdf5")
+    set_streaming_chunks(backend_configuration)
+    configure_and_write_nwbfile(
+        nwbfile=nwbfile, nwbfile_path=str(nwbfile_path), backend_configuration=backend_configuration
+    )
+    return nwbfile_path
 
 
 if __name__ == "__main__":
-    # Parameters for conversion
-    stub_test = True  # Converts a only a stub of the data for quick iteration and testing
-    verbose = True
-    output_dir_path = Path.home() / "conversion_nwb"
-    project_root = Path("/shared/catalystneuro/HuszarR/optotagCA1")
+    import argparse
 
-    # # Still session error
-    session_dir_path = project_root / "e14" / "e14_2m3" / "e14_2m3_201208"
-
-    # # strptime() argument 1 must be str, not numpy.ndarray
-    # session_dir_path = project_root / "e13" / "e13_26m1" / "e13_26m1_211116"
-
-    # session_dir_path = project_root / "e13" / "e13_26m1" / "e13_26m1_211119"
-    assert session_dir_path.is_dir()
-    nwbfile = session_to_nwbfile(session_dir_path, output_dir_path, stub_test=stub_test, verbose=verbose)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "session_dir_path", type=Path, help="session folder, e.g. optotagCA1/e13/e13_1m1/e13_1m1_200220"
+    )
+    parser.add_argument("output_dir_path", type=Path)
+    parser.add_argument("--stub", action="store_true", help="only the first samples of the LFP and wide-band signal")
+    parser.add_argument("--no-lfp", action="store_true", help="leave out the .lfp file")
+    parser.add_argument("--no-raw", action="store_true", help="leave out the wide-band .dat file")
+    args = parser.parse_args()
+    print(
+        session_to_nwbfile(
+            args.session_dir_path,
+            args.output_dir_path,
+            stub_test=args.stub,
+            write_lfp=not args.no_lfp,
+            write_raw=not args.no_raw,
+        )
+    )
