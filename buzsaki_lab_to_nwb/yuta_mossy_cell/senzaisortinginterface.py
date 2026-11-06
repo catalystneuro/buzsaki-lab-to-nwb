@@ -79,6 +79,8 @@ class SenzaiSortingInterface(BaseDataInterface):
         sampling_rate = self.xml_info["sampling_rate"]
         with h5py.File(published_nwb_file_path, "r") as file:
             published = file["units"]
+            if "waveforms" not in published or "electrode_group" not in published or "shank_id" not in published:
+                return units  # an earlier file without waveforms or shanks gives nothing to compare or take
             groups = [file[reference].name.rsplit("/", 1)[-1] for reference in published["electrode_group"][:]]
             ends = published["spike_times_index"][:]
             starts = np.concatenate([[0], ends[:-1]])
