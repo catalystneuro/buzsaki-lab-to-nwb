@@ -17,6 +17,7 @@ from .petersenutils import (
     as_list,
     intervals,
     read_mat,
+    read_session_mat,
     trial_states,
 )
 
@@ -49,7 +50,7 @@ class PetersenBehaviorInterface(BaseDataInterface):
         super().__init__(folder_path=folder_path, verbose=verbose)
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
-        self.session = read_mat(self.file(".session.mat"))["session"]
+        self.session = read_session_mat(self.session_path, self.session_id)
         self.choose_behavior_files()
 
     def file(self, suffix: str) -> Path:
@@ -58,7 +59,8 @@ class PetersenBehaviorInterface(BaseDataInterface):
     def choose_behavior_files(self):
         """The buzcode files (<session>.animal.behavior.mat, <session>.trials.behavior.mat), else animal.mat/trials.mat.
 
-        A pair is used only if the trials' sample indices fall within the tracking samples.
+        A pair is used only if the trials' sample indices fall within the tracking samples and the trials file has the
+        side labels and errors (the newer buzcode layout, with stateNames and states, does not).
         """
         self.animal = self.trials = None
         pairs = [
@@ -71,6 +73,9 @@ class PetersenBehaviorInterface(BaseDataInterface):
             animal = read_mat(animal_path)["animal"]
             trials = read_mat(trials_path)["trials"] if trials_path.is_file() else None
             if trials is not None and np.max(trials["end"]) > len(animal["time"]):
+                continue
+            # The newer buzcode trials layout (stateNames/states) lacks the side labels and errors read here
+            if trials is not None and not {"labels", "stat", "error"} <= set(trials):
                 continue
             self.animal, self.trials = animal, trials
             self.animal_file, self.trials_file = animal_path.name, trials_path.name if trials is not None else None
@@ -262,9 +267,8 @@ class PetersenBehaviorInterface(BaseDataInterface):
         onsets, offsets = as_list(cooling["onsets"]), as_list(cooling["offsets"])
         rows = [(start, stop, "nocooling") for start, stop in intervals(cooling["nocooling"])]
         rows += [(start, stop, "cooling") for start, stop in intervals(cooling["cooling"])]
-        for start, stop, _ in rows:
-            if not start < stop:
-                raise ValueError(f"Unexpected interval {start, stop} in {file_path.name}")
+        reversed_rows = [(start, stop, label) for start, stop, label in rows if not start < stop]
+        rows = [row for row in rows if row not in reversed_rows]
         # The gaps the lab left between the onset and the cooling interval and between the offset and the no-cooling one
         transitions = []
         for onset in onsets:
@@ -285,6 +289,10 @@ class PetersenBehaviorInterface(BaseDataInterface):
                 + " s; 'cooling' is the lab's cooling interval, 'nocooling' its no-cooling intervals (before and after), "
                 f"and '{TRANSITION_LABEL}' the gaps between them that the lab left out of every state"
                 + (FLAT_TEMPERATURE_NOTE if self.session_id in FLAT_TEMPERATURE_SESSIONS else "")
+                + "".join(
+                    f"; the lab's {label} interval [{start:.3f}, {stop:.3f}] s ends before it starts and is left out"
+                    for start, stop, label in reversed_rows
+                )
             ),
         )
         table.add_column(name="label", description=f"nocooling, cooling or {TRANSITION_LABEL}")
@@ -302,6 +310,8 @@ class PetersenBehaviorInterface(BaseDataInterface):
         description = "the recordings (epochs) of the concatenated session, from the lab's session.mat"
         if skipped:
             description += f"; left out because session.mat gives no start or stop time: {', '.join(skipped)}"
+        if len(skipped) == len(epochs):
+            return
         nwbfile.epochs = TimeIntervals(name="epochs", description=description)
         for name, description in (
             ("recording", "name of the recording (subfolder) of the concatenated session"),
