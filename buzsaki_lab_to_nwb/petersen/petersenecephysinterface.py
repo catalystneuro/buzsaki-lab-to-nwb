@@ -12,7 +12,7 @@ from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile
 from pynwb.ecephys import LFP, ElectricalSeries
 
-from .petersenutils import as_list, read_mat, read_session_xml
+from .petersenutils import as_dict, as_list, read_mat, read_session_mat, read_session_xml
 
 STUB_SAMPLES = 75_000
 
@@ -43,27 +43,32 @@ class PetersenEcephysInterface(BaseDataInterface):
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
-        self.session = read_mat(self.session_path / f"{self.session_id}.session.mat")["session"]
+        self.session = read_session_mat(self.session_path, self.session_id)
         self.channels = np.sort(np.concatenate(self.xml_info["groups"]))
         if not np.array_equal(self.channels, np.arange(self.xml_info["n_channels"])):
             raise ValueError(f"The .xml electrode groups of {self.session_id} do not hold channels 0 to n-1 once each")
 
     def channel_tag(self, name: str) -> set:
         """0-based channels of one of the lab's channelTags (stored 1-based)."""
-        tag = self.session.get("channelTags", {}).get(name, {})
+        tag = as_dict(as_dict(self.session.get("channelTags")).get(name))
         return {int(channel) - 1 for channel in as_list(tag.get("channels"))}
 
     def channel_regions(self) -> dict:
         """0-based channel to the lab's brain region (session.brainRegions, stored 1-based)."""
         regions = {}
-        for region, entry in self.session.get("brainRegions", {}).items():
+        for region, entry in as_dict(self.session.get("brainRegions")).items():
             for channel in as_list(entry.get("channels")):
                 regions[int(channel) - 1] = region
         return regions
 
     def add_devices(self, nwbfile: NWBFile) -> list:
         """One device per silicon probe of session.extracellular.electrodes; returns (device, first, last channel)."""
-        electrodes = self.session["extracellular"]["electrodes"]
+        electrodes = as_dict(self.session["extracellular"].get("electrodes"))
+        if not electrodes:  # the session.mat files list no probes
+            device = nwbfile.create_device(
+                name="probe", description="silicon probe; the lab's session.mat files of this session list no probe model"
+            )
+            return [(device, 0, self.xml_info["n_channels"] - 1)]
         names = as_list(electrodes["siliconProbes"])
         companies = as_list(electrodes["company"])
         n_channels = [int(n) for n in as_list(electrodes["nChannels"])]
@@ -157,7 +162,11 @@ class PetersenEcephysInterface(BaseDataInterface):
             region=[int(channel) for channel in order],  # rows are in channel order
             description="the probe channels 0 to n-1, in the column order of the data",
         )
-        volts_per_step = float(self.session["extracellular"]["leastSignificantBit"]) * 1e-6
+        lsb = self.session["extracellular"].get("leastSignificantBit")
+        if lsb is None:  # not in the session.mat files: the scaling of the earlier file's LFP
+            volts_per_step = float(published["processing/ecephys/LFP/LFP/data"].attrs["conversion"])
+        else:
+            volts_per_step = float(lsb) * 1e-6
 
         def series(path: str, name: str, description: str) -> ElectricalSeries:
             source = published[path]

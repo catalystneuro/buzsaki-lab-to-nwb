@@ -31,13 +31,20 @@ def split_session_id(session_id: str) -> tuple:
 
 
 def read_session_xml(xml_file_path: Path) -> dict:
-    """Acquisition settings and electrode (spike) groups, as 0-based channels, from a Neuroscope .xml file."""
+    """Acquisition settings and electrode (spike) groups, as 0-based channels, from a Neuroscope .xml file.
+
+    Some sessions' .xml files have no spike groups (an empty spikeDetection section); their anatomical groups are used.
+    """
     root = etree.parse(str(xml_file_path)).getroot()
     acquisition = root.find("acquisitionSystem")
-    groups = [
-        [int(channel.text) for channel in group.find("channels")]
-        for group in root.find("spikeDetection").find("channelGroups").findall("group")
-    ]
+    spike_groups = root.find("spikeDetection/channelGroups")
+    if spike_groups is not None and len(spike_groups.findall("group")):
+        groups = [[int(channel.text) for channel in group.find("channels")] for group in spike_groups.findall("group")]
+    else:
+        groups = [
+            [int(channel.text) for channel in group.findall("channel")]
+            for group in root.find("anatomicalDescription/channelGroups").findall("group")
+        ]
     return dict(
         n_channels=int(acquisition.find("nChannels").text),
         sampling_rate=float(acquisition.find("samplingRate").text),
@@ -89,3 +96,27 @@ def intervals(array) -> list:
     if array.shape[0] != 2:
         array = array.T
     return [tuple(column) for column in array.T]
+
+
+def read_session_mat(session_path: Path, session_id: str) -> dict:
+    """The lab's CellExplorer session struct: <session>.session.mat, or the older session.mat of the folder.
+
+    Where the first lacks the gain (extracellular.leastSignificantBit) or the probe list (extracellular.electrodes)
+    and the older file has them, they are taken from the older file.
+    """
+    named, plain = session_path / f"{session_id}.session.mat", session_path / "session.mat"
+    if not named.is_file():
+        return read_mat(plain)["session"]
+    session = read_mat(named)["session"]
+    if plain.is_file():
+        older = read_mat(plain)["session"].get("extracellular", {})
+        extracellular = session.setdefault("extracellular", {})
+        for key in ("leastSignificantBit", "electrodes"):
+            if key not in extracellular and key in older:
+                extracellular[key] = older[key]
+    return session
+
+
+def as_dict(value) -> dict:
+    """A MATLAB struct as a dict; an empty array (an empty struct field) as {}."""
+    return value if isinstance(value, dict) else {}

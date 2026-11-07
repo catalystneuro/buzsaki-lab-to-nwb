@@ -36,7 +36,18 @@ def session_to_nwb(
     )
     phy_folders = sorted(path for path in session_path.glob("Kilosort_*") if (path / "spike_times.npy").is_file())
     if len(phy_folders) > 1:
-        raise ValueError(f"{session_id} has more than one Kilosort folder: {[path.name for path in phy_folders]}")
+        # Sorted more than once: the sorting the lab's cell metrics were computed from (general.clusteringpath)
+        from buzsaki_lab_to_nwb.petersen.petersenutils import read_mat
+
+        metrics_file_path = session_path / f"{session_id}.cell_metrics.cellinfo.mat"
+        used = None
+        if metrics_file_path.is_file():
+            general = read_mat(metrics_file_path)["cell_metrics"].get("general", {})
+            used = Path(str(general.get("clusteringpath", ""))).name if isinstance(general, dict) else None
+        chosen = [path for path in phy_folders if path.name == used]
+        if not chosen:
+            raise ValueError(f"{session_id} has more than one Kilosort folder: {[path.name for path in phy_folders]}")
+        phy_folders = chosen
     if phy_folders:
         source_data.update(Sorting=dict(folder_path=str(session_path), phy_folder_path=str(phy_folders[0])))
 
