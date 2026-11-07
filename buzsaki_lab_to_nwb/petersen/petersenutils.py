@@ -33,20 +33,24 @@ def split_session_id(session_id: str) -> tuple:
 def read_session_xml(xml_file_path: Path) -> dict:
     """Acquisition settings and electrode (spike) groups, as 0-based channels, from a Neuroscope .xml file.
 
-    Some sessions' .xml files have no spike groups (an empty spikeDetection section); their anatomical groups are used.
+    Where the spike groups are missing or leave channels out, the anatomical groups are used.
     """
     root = etree.parse(str(xml_file_path)).getroot()
     acquisition = root.find("acquisitionSystem")
+    n_channels = int(acquisition.find("nChannels").text)
     spike_groups = root.find("spikeDetection/channelGroups")
-    if spike_groups is not None and len(spike_groups.findall("group")):
+    groups = []
+    if spike_groups is not None:
         groups = [[int(channel.text) for channel in group.find("channels")] for group in spike_groups.findall("group")]
-    else:
+    if sorted(sum(groups, [])) != list(range(n_channels)):
+        # No spike groups, or spike groups that leave channels out (Peter_MS10_170314_163038: 47 of 64): the anatomical
+        # groups, which hold every channel
         groups = [
             [int(channel.text) for channel in group.findall("channel")]
             for group in root.find("anatomicalDescription/channelGroups").findall("group")
         ]
     return dict(
-        n_channels=int(acquisition.find("nChannels").text),
+        n_channels=n_channels,
         sampling_rate=float(acquisition.find("samplingRate").text),
         lfp_sampling_rate=float(root.find("fieldPotentials").find("lfpSamplingRate").text),
         groups=groups,
