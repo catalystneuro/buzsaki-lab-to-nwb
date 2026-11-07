@@ -247,7 +247,9 @@ class TingleyEcephysInterface(BaseDataInterface):
                 f"({', '.join(map(str, self.ungrouped_channels))}), so they are not in this series."
             )
         else:
-            raise ValueError(f"The earlier file of {self.session_id} holds neither all channels nor those of the spike groups")
+            raise ValueError(
+                f"The earlier file of {self.session_id} holds neither all channels nor those of the spike groups"
+            )
         all_electrodes = nwbfile.create_electrode_table_region(region=recorded, description=region_description)
         n_samples = STUB_SAMPLES if stub_test else None
 
