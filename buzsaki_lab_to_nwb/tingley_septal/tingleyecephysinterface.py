@@ -91,7 +91,9 @@ class TingleyEcephysInterface(BaseDataInterface):
                 return regions
             # One label per channel in a spike group, in channel order; the channels in no spike group get 'unknown'
             grouped = iter(regions)
-            return ["unknown" if channel in self.ungrouped_channels else next(grouped) for channel in range(self.n_channels)]
+            return [
+                "unknown" if channel in self.ungrouped_channels else next(grouped) for channel in range(self.n_channels)
+            ]
         return ["unknown"] * self.n_channels
 
     def probes(self) -> list:
