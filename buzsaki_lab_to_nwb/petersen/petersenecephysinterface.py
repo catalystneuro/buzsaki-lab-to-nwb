@@ -70,8 +70,8 @@ class PetersenEcephysInterface(BaseDataInterface):
             )
             return [(device, 0, self.xml_info["n_channels"] - 1)]
         names = as_list(electrodes["siliconProbes"])
-        companies = as_list(electrodes["company"])
-        n_channels = [int(n) for n in as_list(electrodes["nChannels"])]
+        companies = as_list(electrodes.get("company")) or [""] * len(names)  # not in the older session.mat
+        n_channels = [int(n) for n in as_list(electrodes.get("nChannels", electrodes.get("channels")))]  # older: channels
         unique_names = str(electrodes.get("uniqueName", "")).split(", MS")
         devices = []
         first = 0
@@ -88,7 +88,7 @@ class PetersenEcephysInterface(BaseDataInterface):
                         else ""
                     )
                 ),
-                manufacturer=company,
+                manufacturer=company or None,
             )
             devices.append((device, first, first + count - 1))
             first += count

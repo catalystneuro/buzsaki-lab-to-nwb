@@ -59,7 +59,8 @@ class PetersenBehaviorInterface(BaseDataInterface):
     def choose_behavior_files(self):
         """The buzcode files (<session>.animal.behavior.mat, <session>.trials.behavior.mat), else animal.mat/trials.mat.
 
-        A pair is used only if the trials' sample indices fall within the tracking samples.
+        A pair is used only if the trials' sample indices fall within the tracking samples and the trials file has the
+        side labels and errors (the newer buzcode layout, with stateNames and states, does not).
         """
         self.animal = self.trials = None
         pairs = [
@@ -72,6 +73,9 @@ class PetersenBehaviorInterface(BaseDataInterface):
             animal = read_mat(animal_path)["animal"]
             trials = read_mat(trials_path)["trials"] if trials_path.is_file() else None
             if trials is not None and np.max(trials["end"]) > len(animal["time"]):
+                continue
+            # The newer buzcode trials layout (stateNames/states) lacks the side labels and errors read here
+            if trials is not None and not {"labels", "stat", "error"} <= set(trials):
                 continue
             self.animal, self.trials = animal, trials
             self.animal_file, self.trials_file = animal_path.name, trials_path.name if trials is not None else None

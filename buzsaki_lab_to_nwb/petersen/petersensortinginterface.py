@@ -82,9 +82,25 @@ class PetersenSortingInterface(BaseDataInterface):
         missing = set(cells) - set(units)
         if missing:
             raise ValueError(f"cell_metrics of {self.session_id} lists clusters {sorted(missing)} without spikes")
-        for cluster, cell in cells.items():
-            if len(units[cluster][0]) != cell["spike_count"]:
+        # cell_metrics may have been computed from a slightly different spike set than the final Phy folder (in
+        # Peter_MS22_180629_110319_concat 115 of 151 clusters differ by 1 to 33 spikes, up to 0.3%); a difference of more
+        # than 1% would mean another sorting, and stops the conversion
+        count_note = ""
+        differences = {
+            cluster: (len(units[cluster][0]), cell["spike_count"])
+            for cluster, cell in cells.items()
+            if len(units[cluster][0]) != cell["spike_count"]
+        }
+        for cluster, (phy, metrics) in differences.items():
+            if abs(phy - metrics) > 0.01 * max(phy, metrics):
                 raise ValueError(f"Cluster {cluster} of {self.session_id} has another spike count in cell_metrics")
+        if differences:
+            largest = max(abs(phy - metrics) / max(phy, metrics) for phy, metrics in differences.values())
+            count_note = (
+                f" The spike counts of cell_metrics differ from the Phy folder's for {len(differences)} of {len(cells)} "
+                f"clusters, by at most {largest:.2%}: the lab's cell metrics were computed from a slightly different "
+                "spike set than the final Phy sorting. The spike times are the Phy folder's."
+            )
         if stub_test:
             units = dict(list(units.items())[:STUB_UNITS])
 
@@ -95,7 +111,8 @@ class PetersenSortingInterface(BaseDataInterface):
                 folder=self.phy_path.name,
                 cell_metrics=f"{self.session_id}.cell_metrics.cellinfo.mat",
                 sampling_rate=self.sampling_rate,
-            ),
+            )
+            + count_note,
             resolution=1 / self.sampling_rate,
         )
         nwbfile.add_unit_column(name="cluster_id", description="cluster id in the Phy folder")
