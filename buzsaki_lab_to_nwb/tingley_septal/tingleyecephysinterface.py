@@ -3,7 +3,7 @@
 from collections import Counter
 from itertools import groupby
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import h5py
 import numpy as np
@@ -39,10 +39,10 @@ class PublishedColumns:
 
     def __getitem__(self, selection):
         rows, columns = selection if isinstance(selection, tuple) else (selection, slice(None))
-        # Read only the published columns needed, in increasing order as h5py requires, then put them in order
+        # Read only the range of published columns needed (a long session's block of all columns can need >100 GiB)
         wanted = np.atleast_1d(self.column_order[columns])
-        needed = np.unique(wanted)
-        block = self.dataset[rows, needed.tolist()][:, np.searchsorted(needed, wanted)]
+        first, last = int(wanted.min()), int(wanted.max())
+        block = self.dataset[rows, first : last + 1][:, wanted - first]
         steps = np.rint(block)
         if not np.array_equal(steps, block) or steps.min(initial=0) < -(2**15) or steps.max(initial=0) >= 2**15:
             raise ValueError(f"{self.dataset.name} holds values that are not int16 steps")
@@ -57,7 +57,7 @@ class TingleyEcephysInterface(BaseDataInterface):
     def __init__(
         self,
         folder_path: DirectoryPath,
-        published_nwb_file_path: Optional[FilePath] = None,
+        published_nwb_file_path: Optional[Union[FilePath, str]] = None,  # a path, or a URL to stream
         include_wideband: bool = True,
         verbose: bool = False,
     ):
@@ -77,13 +77,17 @@ class TingleyEcephysInterface(BaseDataInterface):
             raise ValueError(f"The spike groups of {self.session_id} hold a channel twice or a channel above n-1")
         # Channels in no spike group (in DT1: two unused probe channels and two above the probe's 32)
         self.ungrouped_channels = sorted(set(range(self.n_channels)) - set(channels))
-        if self.session_info and self.session_info["region"] and len(self.session_info["region"]) != self.n_channels:
-            raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
+        if self.session_info and self.session_info["region"]:
+            labels = len(self.session_info["region"])
+            # DT1: 32 labels for the probe's channels; the channels above them are in no spike group
+            if labels > self.n_channels or any(channel not in self.ungrouped_channels for channel in range(labels, self.n_channels)):
+                raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
 
     def channel_regions(self) -> list:
         """The lab's region label of each channel (sessionInfo.region), or 'unknown'."""
         if self.session_info and self.session_info["region"]:
-            return self.session_info["region"]
+            regions = list(self.session_info["region"])
+            return regions + ["unknown"] * (self.n_channels - len(regions))
         return ["unknown"] * self.n_channels
 
     def probes(self) -> list:
@@ -217,7 +221,12 @@ class TingleyEcephysInterface(BaseDataInterface):
         if published_nwb_file_path is None:
             return
         # Kept open until the new file has been written
-        self._published_file = published = h5py.File(published_nwb_file_path, "r")
+        if str(published_nwb_file_path).startswith(("https://", "http://")):
+            import remfile  # stream the earlier file (some are larger than the disk of a cloud job)
+
+            self._published_file = published = h5py.File(remfile.File(str(published_nwb_file_path)), "r")
+        else:
+            self._published_file = published = h5py.File(published_nwb_file_path, "r")
         published_channels = published["general/extracellular_ephys/electrodes/id"][:]
         all_electrodes = nwbfile.create_electrode_table_region(
             region=list(range(self.n_channels)), description="all channels, in channel order"
