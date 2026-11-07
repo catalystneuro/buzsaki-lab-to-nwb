@@ -3,7 +3,7 @@
 from collections import Counter
 from itertools import groupby
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import h5py
 import numpy as np
@@ -39,10 +39,10 @@ class PublishedColumns:
 
     def __getitem__(self, selection):
         rows, columns = selection if isinstance(selection, tuple) else (selection, slice(None))
-        # Read only the published columns needed, in increasing order as h5py requires, then put them in order
+        # Read only the range of published columns needed (a long session's block of all columns can need >100 GiB)
         wanted = np.atleast_1d(self.column_order[columns])
-        needed = np.unique(wanted)
-        block = self.dataset[rows, needed.tolist()][:, np.searchsorted(needed, wanted)]
+        first, last = int(wanted.min()), int(wanted.max())
+        block = self.dataset[rows, first : last + 1][:, wanted - first]
         steps = np.rint(block)
         if not np.array_equal(steps, block) or steps.min(initial=0) < -(2**15) or steps.max(initial=0) >= 2**15:
             raise ValueError(f"{self.dataset.name} holds values that are not int16 steps")
@@ -57,7 +57,7 @@ class TingleyEcephysInterface(BaseDataInterface):
     def __init__(
         self,
         folder_path: DirectoryPath,
-        published_nwb_file_path: Optional[FilePath] = None,
+        published_nwb_file_path: Optional[Union[FilePath, str]] = None,  # a path, or a URL to stream
         include_wideband: bool = True,
         verbose: bool = False,
     ):
@@ -77,13 +77,23 @@ class TingleyEcephysInterface(BaseDataInterface):
             raise ValueError(f"The spike groups of {self.session_id} hold a channel twice or a channel above n-1")
         # Channels in no spike group (in DT1: two unused probe channels and two above the probe's 32)
         self.ungrouped_channels = sorted(set(range(self.n_channels)) - set(channels))
-        if self.session_info and self.session_info["region"] and len(self.session_info["region"]) != self.n_channels:
-            raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
+        if self.session_info and self.session_info["region"]:
+            labels = len(self.session_info["region"])
+            # DT1: one label per channel of the spike groups (30 of its 34 channels), in channel order
+            if labels not in (self.n_channels, self.n_channels - len(self.ungrouped_channels)):
+                raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
 
     def channel_regions(self) -> list:
         """The lab's region label of each channel (sessionInfo.region), or 'unknown'."""
         if self.session_info and self.session_info["region"]:
-            return self.session_info["region"]
+            regions = list(self.session_info["region"])
+            if len(regions) == self.n_channels:
+                return regions
+            # One label per channel in a spike group, in channel order; the channels in no spike group get 'unknown'
+            grouped = iter(regions)
+            return [
+                "unknown" if channel in self.ungrouped_channels else next(grouped) for channel in range(self.n_channels)
+            ]
         return ["unknown"] * self.n_channels
 
     def probes(self) -> list:
@@ -217,18 +227,35 @@ class TingleyEcephysInterface(BaseDataInterface):
         if published_nwb_file_path is None:
             return
         # Kept open until the new file has been written
-        self._published_file = published = h5py.File(published_nwb_file_path, "r")
+        if str(published_nwb_file_path).startswith(("https://", "http://")):
+            import remfile  # stream the earlier file (some are larger than the disk of a cloud job)
+
+            self._published_file = published = h5py.File(remfile.File(str(published_nwb_file_path)), "r")
+        else:
+            self._published_file = published = h5py.File(published_nwb_file_path, "r")
         published_channels = published["general/extracellular_ephys/electrodes/id"][:]
-        all_electrodes = nwbfile.create_electrode_table_region(
-            region=list(range(self.n_channels)), description="all channels, in channel order"
-        )
+        # The earlier file holds every channel, or (DT1) only the channels in spike groups
+        lfp_group = published["processing/ecephys/LFP"]
+        recorded = sorted(published_channels[lfp_group[next(iter(lfp_group))]["electrodes"][:]].tolist())
+        grouped = [channel for channel in range(self.n_channels) if channel not in self.ungrouped_channels]
+        if recorded == list(range(self.n_channels)):
+            region_description, missing_note = "all channels, in channel order", ""
+        elif recorded == grouped:
+            region_description = "the channels in spike groups, in channel order"
+            missing_note = (
+                f" The earlier file holds no data for the channels in no spike group "
+                f"({', '.join(map(str, self.ungrouped_channels))}), so they are not in this series."
+            )
+        else:
+            raise ValueError(
+                f"The earlier file of {self.session_id} holds neither all channels nor those of the spike groups"
+            )
+        all_electrodes = nwbfile.create_electrode_table_region(region=recorded, description=region_description)
         n_samples = STUB_SAMPLES if stub_test else None
 
         def wrap(series: h5py.Group):
             rows = series["electrodes"][:]
-            if series["data"].shape[1] != self.n_channels or sorted(published_channels[rows]) != list(
-                range(self.n_channels)
-            ):
+            if series["data"].shape[1] != len(recorded) or sorted(published_channels[rows]) != recorded:
                 raise ValueError(f"{series.name} of the earlier file does not hold each channel once")
             order = np.argsort(published_channels[rows])  # the published column of each channel
             if not np.isclose(series["data"].attrs["conversion"], VOLTS_PER_STEP):
@@ -237,14 +264,14 @@ class TingleyEcephysInterface(BaseDataInterface):
 
         source_note = (
             " Taken from the session's file in the earlier version of the dandiset (the lab's int16 values, written "
-            "there as float32 with the electrodes in spike-group order), reordered to channel order."
+            "there as float32 with the electrodes in spike-group order), reordered to channel order." + missing_note
         )
         lfp_group = published["processing/ecephys/LFP"]
         lfp = lfp_group[next(iter(lfp_group))]
         lfp_series = ElectricalSeries(
             name="lfp",
             description=(
-                "LFP of all channels: the wide-band signal low-pass filtered and down-sampled to 1250 Hz by the lab "
+                "LFP of the channels: the wide-band signal low-pass filtered and down-sampled to 1250 Hz by the lab "
                 "(the .lfp file)." + source_note
             ),
             data=wrap(lfp),
@@ -262,7 +289,7 @@ class TingleyEcephysInterface(BaseDataInterface):
             nwbfile.add_acquisition(
                 ElectricalSeries(
                     name="ElectricalSeries",
-                    description="wide-band signal of all channels at 20 kHz (the lab's .dat file)." + source_note,
+                    description="wide-band signal of the channels at 20 kHz (the lab's .dat file)." + source_note,
                     data=wrap(wideband),
                     electrodes=all_electrodes,
                     rate=float(wideband["starting_time"].attrs["rate"]),
