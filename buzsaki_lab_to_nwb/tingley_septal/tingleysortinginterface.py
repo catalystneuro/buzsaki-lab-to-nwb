@@ -82,7 +82,12 @@ class TingleySortingInterface(BaseDataInterface):
         metrics = read_mat(file_path)["isolationMetrics"]
         ids = [int(unit_id) for unit_id in np.ravel(metrics["UID"])]
         if not set(unit_ids) <= set(ids):
-            raise ValueError(f"{file_path.name} does not have the units of the cellinfo file")
+            # Computed for another sorting of the session: the metrics cannot be matched to these units
+            self.isolation_note = (
+                f" {file_path.name} lists other units than the spikes.cellinfo file (it was computed for another "
+                "sorting of the session), so no isolation metrics are given."
+            )
+            return None
         rows = {unit_id: index for index, unit_id in enumerate(ids)}
         return dict(
             isolation_distance=[float(np.ravel(metrics["isoDist_fet"])[rows[unit_id]]) for unit_id in unit_ids],
@@ -102,6 +107,7 @@ class TingleySortingInterface(BaseDataInterface):
         sampling_rate = self.xml_info["sampling_rate"]
         unsorted = [unit["unit_id"] for unit in units if np.any(np.diff(unit["spike_times"]) < 0)]
         from_cellinfo = source.endswith("cellinfo.mat")
+        self.isolation_note = ""
         metrics = self.read_isolation_metrics([unit["unit_id"] for unit in units]) if from_cellinfo else None
 
         description = (
@@ -120,7 +126,7 @@ class TingleySortingInterface(BaseDataInterface):
                 "order, their region is the region of their spike group's channels in sessionInfo.region, and no "
                 "waveforms are written (the lab's .spk files are not on the share)."
             )
-        nwbfile.units = Units(name="units", description=description, resolution=1 / sampling_rate)
+        nwbfile.units = Units(name="units", description=description + self.isolation_note, resolution=1 / sampling_rate)
         nwbfile.add_unit_column(name="unit_name", description="the lab's unit ID (spikes.cellinfo UID)")
         nwbfile.add_unit_column(name="shank", description="1-based spike group (shank) of the unit")
         nwbfile.add_unit_column(name="cluster", description="cluster number in the .clu file of the spike group")

@@ -39,7 +39,10 @@ class PublishedColumns:
 
     def __getitem__(self, selection):
         rows, columns = selection if isinstance(selection, tuple) else (selection, slice(None))
-        block = self.dataset[rows, :][:, self.column_order[columns]]
+        # Read only the published columns needed, in increasing order as h5py requires, then put them in order
+        wanted = np.atleast_1d(self.column_order[columns])
+        needed = np.unique(wanted)
+        block = self.dataset[rows, needed.tolist()][:, np.searchsorted(needed, wanted)]
         steps = np.rint(block)
         if not np.array_equal(steps, block) or steps.min(initial=0) < -(2**15) or steps.max(initial=0) >= 2**15:
             raise ValueError(f"{self.dataset.name} holds values that are not int16 steps")
@@ -69,9 +72,11 @@ class TingleyEcephysInterface(BaseDataInterface):
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
         self.session_info = read_session_info(self.session_path, self.session_id)
         self.n_channels = self.xml_info["n_channels"]
-        channels = sorted(channel for group in self.xml_info["shank_channels"] for channel in group)
-        if channels != list(range(self.n_channels)):
-            raise ValueError(f"The spike groups of {self.session_id} are not the channels 0 to n-1, once each")
+        channels = [channel for group in self.xml_info["shank_channels"] for channel in group]
+        if len(set(channels)) != len(channels) or not set(channels) <= set(range(self.n_channels)):
+            raise ValueError(f"The spike groups of {self.session_id} hold a channel twice or a channel above n-1")
+        # Channels in no spike group (in DT1: two unused probe channels and two above the probe's 32)
+        self.ungrouped_channels = sorted(set(range(self.n_channels)) - set(channels))
         if self.session_info and self.session_info["region"] and len(self.session_info["region"]) != self.n_channels:
             raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
 
@@ -147,11 +152,24 @@ class TingleyEcephysInterface(BaseDataInterface):
             for group, channels in enumerate(shank_channels, 1)
             for site, channel in enumerate(channels)
         }
+        if self.ungrouped_channels:
+            group_of_spike_group[0] = nwbfile.create_electrode_group(
+                name="no_spike_group",
+                description=(
+                    "channels of the recording that are in no spike group of the lab's .xml file (channels "
+                    f"{', '.join(map(str, self.ungrouped_channels))}): unused probe channels or inputs other than the "
+                    "probe; the source does not say which"
+                ),
+                location="unknown",
+                device=nwbfile.create_device(name="other_inputs", description="channels in no spike group of the .xml"),
+            )
+            position.update({channel: (0, -1) for channel in self.ungrouped_channels})
         columns = dict(
             channel_id="0-based channel number of the lab's .xml, .lfp and .dat files and of its sessionInfo and event files",
-            spike_group="1-based spike group (shank) of the lab's .xml file, .clu/.res files and units",
+            spike_group="1-based spike group (shank) of the lab's .xml file, .clu/.res files and units; 0 for a channel in no spike group",
             shank_electrode_number=(
-                "0-based position of the channel in its spike group's channel list in the .xml file. The lab's klusta "
+                "0-based position of the channel in its spike group's channel list in the .xml file (-1 for a channel in no "
+                "spike group). The lab's klusta "
                 ".prb files place the sites by this position with the same generic staggered layout for groups of 4, 8, "
                 "10 and 12 sites, so they do not give the probes' real geometry and no x/y positions are written"
             ),
