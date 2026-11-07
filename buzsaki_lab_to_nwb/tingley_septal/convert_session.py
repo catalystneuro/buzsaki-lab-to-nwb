@@ -64,7 +64,9 @@ if __name__ == "__main__":
     parser.add_argument("session_path", type=Path, help="session folder, e.g. TingleyD/DT8/20170207_144um_1944um_merge")
     parser.add_argument("nwbfile_path", type=Path)
     parser.add_argument("--dandiset", choices=DANDISETS, required=True)
-    parser.add_argument("--published", help="the session's file from the earlier dandiset version (LFP): a path or a URL")
+    parser.add_argument(
+        "--published", help="the session's file from the earlier dandiset version (LFP): a path or a URL"
+    )
     parser.add_argument("--no-wideband", action="store_true", help="leave out the 20 kHz signal")
     parser.add_argument("--stub", action="store_true")
     args = parser.parse_args()

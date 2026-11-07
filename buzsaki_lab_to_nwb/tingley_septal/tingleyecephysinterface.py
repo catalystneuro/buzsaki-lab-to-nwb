@@ -80,7 +80,9 @@ class TingleyEcephysInterface(BaseDataInterface):
         if self.session_info and self.session_info["region"]:
             labels = len(self.session_info["region"])
             # DT1: 32 labels for the probe's channels; the channels above them are in no spike group
-            if labels > self.n_channels or any(channel not in self.ungrouped_channels for channel in range(labels, self.n_channels)):
+            if labels > self.n_channels or any(
+                channel not in self.ungrouped_channels for channel in range(labels, self.n_channels)
+            ):
                 raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
 
     def channel_regions(self) -> list:
