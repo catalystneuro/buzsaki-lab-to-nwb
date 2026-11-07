@@ -234,16 +234,26 @@ class TingleyEcephysInterface(BaseDataInterface):
         else:
             self._published_file = published = h5py.File(published_nwb_file_path, "r")
         published_channels = published["general/extracellular_ephys/electrodes/id"][:]
-        all_electrodes = nwbfile.create_electrode_table_region(
-            region=list(range(self.n_channels)), description="all channels, in channel order"
-        )
+        # The earlier file holds every channel, or (DT1) only the channels in spike groups
+        lfp_group = published["processing/ecephys/LFP"]
+        recorded = sorted(published_channels[lfp_group[next(iter(lfp_group))]["electrodes"][:]].tolist())
+        grouped = [channel for channel in range(self.n_channels) if channel not in self.ungrouped_channels]
+        if recorded == list(range(self.n_channels)):
+            region_description, missing_note = "all channels, in channel order", ""
+        elif recorded == grouped:
+            region_description = "the channels in spike groups, in channel order"
+            missing_note = (
+                f" The earlier file holds no data for the channels in no spike group "
+                f"({', '.join(map(str, self.ungrouped_channels))}), so they are not in this series."
+            )
+        else:
+            raise ValueError(f"The earlier file of {self.session_id} holds neither all channels nor those of the spike groups")
+        all_electrodes = nwbfile.create_electrode_table_region(region=recorded, description=region_description)
         n_samples = STUB_SAMPLES if stub_test else None
 
         def wrap(series: h5py.Group):
             rows = series["electrodes"][:]
-            if series["data"].shape[1] != self.n_channels or sorted(published_channels[rows]) != list(
-                range(self.n_channels)
-            ):
+            if series["data"].shape[1] != len(recorded) or sorted(published_channels[rows]) != recorded:
                 raise ValueError(f"{series.name} of the earlier file does not hold each channel once")
             order = np.argsort(published_channels[rows])  # the published column of each channel
             if not np.isclose(series["data"].attrs["conversion"], VOLTS_PER_STEP):
@@ -252,14 +262,14 @@ class TingleyEcephysInterface(BaseDataInterface):
 
         source_note = (
             " Taken from the session's file in the earlier version of the dandiset (the lab's int16 values, written "
-            "there as float32 with the electrodes in spike-group order), reordered to channel order."
+            "there as float32 with the electrodes in spike-group order), reordered to channel order." + missing_note
         )
         lfp_group = published["processing/ecephys/LFP"]
         lfp = lfp_group[next(iter(lfp_group))]
         lfp_series = ElectricalSeries(
             name="lfp",
             description=(
-                "LFP of all channels: the wide-band signal low-pass filtered and down-sampled to 1250 Hz by the lab "
+                "LFP of the channels: the wide-band signal low-pass filtered and down-sampled to 1250 Hz by the lab "
                 "(the .lfp file)." + source_note
             ),
             data=wrap(lfp),
@@ -277,7 +287,7 @@ class TingleyEcephysInterface(BaseDataInterface):
             nwbfile.add_acquisition(
                 ElectricalSeries(
                     name="ElectricalSeries",
-                    description="wide-band signal of all channels at 20 kHz (the lab's .dat file)." + source_note,
+                    description="wide-band signal of the channels at 20 kHz (the lab's .dat file)." + source_note,
                     data=wrap(wideband),
                     electrodes=all_electrodes,
                     rate=float(wideband["starting_time"].attrs["rate"]),
