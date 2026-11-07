@@ -1,7 +1,7 @@
 """Electrodes, LFP, wide-band signal and auxiliary inputs of a Senzai session (DANDI:000003)."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import h5py
 import numpy as np
@@ -13,7 +13,7 @@ from pynwb import NWBFile, TimeSeries
 from pynwb.ecephys import LFP, ElectricalSeries
 from pynwb.misc import DecompositionSeries
 
-from .senzaiutils import read_session_xml
+from .senzaiutils import open_published, read_session_xml
 
 # The paper's Amplipex system: 10 V range over 16 bits at x400 gain. The .xml files give 20 V and x1000, which look
 # like template defaults: with 0.3815 uV per step, the faintest DS2 events in the LFP sit at the paper's 1.14 mV
@@ -47,7 +47,7 @@ class SenzaiEcephysInterface(BaseDataInterface):
     def __init__(
         self,
         folder_path: DirectoryPath,
-        published_nwb_file_path: Optional[FilePath] = None,
+        published_nwb_file_path: Optional[Union[FilePath, str]] = None,  # a path, or a URL to stream
         hilus_channel: Optional[int] = None,
         probe: Optional[str] = None,
         verbose: bool = False,
@@ -118,7 +118,7 @@ class SenzaiEcephysInterface(BaseDataInterface):
         if published_nwb_file_path is None:
             return
         # Kept open until the new file has been written
-        self._published_file = published = h5py.File(published_nwb_file_path, "r")
+        self._published_file = published = open_published(published_nwb_file_path)
         if not np.array_equal(self.channels, np.arange(len(self.channels))):
             raise ValueError(
                 f"The shank channels of {self.session_id} are not 0 to n-1, so the published columns cannot be mapped"

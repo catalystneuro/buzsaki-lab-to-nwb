@@ -80,3 +80,15 @@ def read_exp_sheet(exp_sheet_file_path: Path) -> dict:
     """Rows of the first column of a YM## exp_sheet and the values next to them."""
     df = pd.read_excel(exp_sheet_file_path, header=None)
     return {str(key).strip(): value for key, value in zip(df.iloc[:, 0], df.iloc[:, 1]) if isinstance(key, str)}
+
+
+def open_published(path) -> "h5py.File":
+    """The session's earlier DANDI file: a local path, or a URL streamed with remfile (some are too large to download
+    next to the output on a cloud job's disk)."""
+    import h5py
+
+    if str(path).startswith(("https://", "http://")):
+        import remfile
+
+        return h5py.File(remfile.File(str(path)), "r")
+    return h5py.File(path, "r")

@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("session_path", type=Path, help="session folder, e.g. SenzaiY/YutaMouse41/YutaMouse41-150829")
     parser.add_argument("project_path", type=Path, help="folder with the unit summary and experiment sheets")
     parser.add_argument("nwbfile_path", type=Path)
-    parser.add_argument("--published", type=Path, help="the session's file from DANDI:000003 version 0.260218.2052")
+    parser.add_argument("--published", help="the session's file from DANDI:000003 version 0.260218.2052: a path or a URL")
     parser.add_argument("--stub", action="store_true")
     args = parser.parse_args()
     session_to_nwb(args.session_path, args.project_path, args.nwbfile_path, args.published, args.stub)
