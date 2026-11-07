@@ -79,17 +79,19 @@ class TingleyEcephysInterface(BaseDataInterface):
         self.ungrouped_channels = sorted(set(range(self.n_channels)) - set(channels))
         if self.session_info and self.session_info["region"]:
             labels = len(self.session_info["region"])
-            # DT1: 32 labels for the probe's channels; the channels above them are in no spike group
-            if labels > self.n_channels or any(
-                channel not in self.ungrouped_channels for channel in range(labels, self.n_channels)
-            ):
+            # DT1: one label per channel of the spike groups (30 of its 34 channels), in channel order
+            if labels not in (self.n_channels, self.n_channels - len(self.ungrouped_channels)):
                 raise ValueError(f"sessionInfo.region of {self.session_id} does not have one label per channel")
 
     def channel_regions(self) -> list:
         """The lab's region label of each channel (sessionInfo.region), or 'unknown'."""
         if self.session_info and self.session_info["region"]:
             regions = list(self.session_info["region"])
-            return regions + ["unknown"] * (self.n_channels - len(regions))
+            if len(regions) == self.n_channels:
+                return regions
+            # One label per channel in a spike group, in channel order; the channels in no spike group get 'unknown'
+            grouped = iter(regions)
+            return ["unknown" if channel in self.ungrouped_channels else next(grouped) for channel in range(self.n_channels)]
         return ["unknown"] * self.n_channels
 
     def probes(self) -> list:
