@@ -66,12 +66,15 @@ class PetersenEcephysInterface(BaseDataInterface):
         electrodes = as_dict(self.session["extracellular"].get("electrodes"))
         if not electrodes:  # the session.mat files list no probes
             device = nwbfile.create_device(
-                name="probe", description="silicon probe; the lab's session.mat files of this session list no probe model"
+                name="probe",
+                description="silicon probe; the lab's session.mat files of this session list no probe model",
             )
             return [(device, 0, self.xml_info["n_channels"] - 1)]
         names = as_list(electrodes["siliconProbes"])
         companies = as_list(electrodes.get("company")) or [""] * len(names)  # not in the older session.mat
-        n_channels = [int(n) for n in as_list(electrodes.get("nChannels", electrodes.get("channels")))]  # older: channels
+        n_channels = [
+            int(n) for n in as_list(electrodes.get("nChannels", electrodes.get("channels")))
+        ]  # older: channels
         unique_names = str(electrodes.get("uniqueName", "")).split(", MS")
         devices = []
         first = 0
