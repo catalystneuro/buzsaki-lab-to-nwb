@@ -63,7 +63,7 @@ if __name__ == "__main__":
         "session_path", type=Path, help="session folder, e.g. PetersenP/MS21/Peter_MS21_180719_155941_concat"
     )
     parser.add_argument("nwbfile_path", type=Path)
-    parser.add_argument("--published-raw", type=Path, help="the session's desc-raw file from DANDI:000059")
+    parser.add_argument("--published-raw", help="the session's desc-raw file from DANDI:000059: a path or a URL")
     parser.add_argument("--no-wideband", action="store_true", help="write the LFP but not the wide-band signal")
     parser.add_argument("--stub", action="store_true")
     args = parser.parse_args()

@@ -1,7 +1,7 @@
 """Electrodes, LFP and wide-band signal of a Petersen session (DANDI:000059)."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import h5py
 import numpy as np
@@ -30,7 +30,7 @@ class PetersenEcephysInterface(BaseDataInterface):
     def __init__(
         self,
         folder_path: DirectoryPath,
-        published_raw_file_path: Optional[FilePath] = None,
+        published_raw_file_path: Optional[Union[FilePath, str]] = None,  # a path, or a URL to stream
         include_wideband: bool = True,
         verbose: bool = False,
     ):
@@ -151,7 +151,12 @@ class PetersenEcephysInterface(BaseDataInterface):
         if published_raw_file_path is None:
             return
         # Kept open until the new file has been written
-        self._published_file = published = h5py.File(published_raw_file_path, "r")
+        if str(published_raw_file_path).startswith(("https://", "http://")):
+            import remfile  # stream the earlier file (some are larger than the disk of a cloud job)
+
+            self._published_file = published = h5py.File(remfile.File(str(published_raw_file_path)), "r")
+        else:
+            self._published_file = published = h5py.File(published_raw_file_path, "r")
         order = self.published_columns(published)
         electrodes = nwbfile.create_electrode_table_region(
             region=[int(channel) for channel in order],  # rows are in channel order
