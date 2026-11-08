@@ -107,7 +107,9 @@ class GirardeauBehaviorInterface(BaseDataInterface):
     def add_position(self, nwbfile: NWBFile):
         if not self.file(".whl").is_file():
             return
-        whl = pd.read_csv(self.file(".whl"), sep=r"\s+", header=None).to_numpy(dtype=float, copy=True)
+        # Columns separated by spaces, or by commas (Rat08-20130720)
+        whl = pd.read_csv(self.file(".whl"), sep=r"[\s,]+", header=None, engine="python")
+        whl = whl.to_numpy(dtype=float, copy=True)
         whl[whl < 0] = np.nan  # -1 marks samples without a detected LED
         position = Position(name="position")
         for index in range(whl.shape[1] // 2):

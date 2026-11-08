@@ -338,7 +338,9 @@ class GirardeauEcephysInterface(BaseDataInterface):
                 sides[channel] = ("left", left, right)
             elif right > 10 * max(abs(left), 1):
                 sides[channel] = ("right", left, right)
-        return sides
+        # Two lines that look like the same side (e.g. Rat08-20130720) cannot be told apart: name neither by side
+        named = [side for side, _, _ in sides.values()]
+        return {channel: value for channel, value in sides.items() if named.count(value[0]) == 1}
 
     def add_auxiliary_inputs(self, nwbfile: NWBFile, stub_test: bool = False):
         """Accelerometer, air-puff and reward inputs (see channel_tags), in the system's raw int16 steps."""
