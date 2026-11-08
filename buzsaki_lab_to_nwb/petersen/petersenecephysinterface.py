@@ -76,6 +76,17 @@ class PetersenEcephysInterface(BaseDataInterface):
             int(n) for n in as_list(electrodes.get("nChannels", electrodes.get("channels")))
         ]  # older: channels
         unique_names = str(electrodes.get("uniqueName", "")).split(", MS")
+        if sum(n_channels) != self.xml_info["n_channels"]:
+            # Peter_MS13_171127_133330_concat: probes of 128 channels listed for a 96-channel recording
+            device = nwbfile.create_device(
+                name="probe",
+                description=(
+                    f"silicon probe(s); the lab's session.mat lists {', '.join(map(str, names))} with "
+                    f"{sum(n_channels)} channels in all, which does not match the recording's "
+                    f"{self.xml_info['n_channels']} channels, so the probes are not split by channel"
+                ),
+            )
+            return [(device, 0, self.xml_info["n_channels"] - 1)]
         devices = []
         first = 0
         for index, (name, company, count) in enumerate(zip(names, companies, n_channels)):
@@ -147,11 +158,15 @@ class PetersenEcephysInterface(BaseDataInterface):
             )
 
     def published_columns(self, published: h5py.File) -> np.ndarray:
-        """The channel of each column of the earlier file's signals: the .dat channels 0 to n-1."""
-        electrodes = published["general/extracellular_ephys/electrodes"]
-        if not np.array_equal(electrodes["id"][:], self.channels):
-            raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not the channels 0 to n-1")
-        return self.channels
+        """The channel of each column of the earlier file's signals: the .dat channels 0 to n-1, or (in some sessions)
+        only the channels in spike groups, in the earlier file's order."""
+        ids = published["general/extracellular_ephys/electrodes"]["id"][:]
+        self.missing_channels = sorted(set(self.channels.tolist()) - set(ids.tolist()))
+        if np.array_equal(ids, self.channels):
+            return self.channels
+        if len(set(ids.tolist())) != len(ids) or not set(ids.tolist()) <= set(self.channels.tolist()):
+            raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not channels of the recording")
+        return ids
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.add_electrodes(nwbfile)
@@ -168,7 +183,13 @@ class PetersenEcephysInterface(BaseDataInterface):
         order = self.published_columns(published)
         electrodes = nwbfile.create_electrode_table_region(
             region=[int(channel) for channel in order],  # rows are in channel order
-            description="the probe channels 0 to n-1, in the column order of the data",
+            description="the probe channels of the data, in its column order",
+        )
+        missing_note = (
+            f" The earlier file holds no data for channels {', '.join(map(str, self.missing_channels))}, which are in "
+            "no spike group of the .xml, so they are not in this series."
+            if self.missing_channels
+            else ""
         )
         lsb = self.session["extracellular"].get("leastSignificantBit")
         if lsb is None:  # not in the session.mat files: the scaling of the earlier file's LFP
@@ -187,7 +208,7 @@ class PetersenEcephysInterface(BaseDataInterface):
                 raise ValueError(f"The earlier {path} of {self.session_id} has another scaling than session.mat")
             return ElectricalSeries(
                 name=name,
-                description=description,
+                description=description + missing_note,
                 data=SliceableDataChunkIterator(data=data[:STUB_SAMPLES] if stub_test else data),
                 electrodes=electrodes,
                 starting_time=float(source["starting_time"][()]),
