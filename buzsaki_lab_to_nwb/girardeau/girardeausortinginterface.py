@@ -15,6 +15,7 @@ from .girardeauutils import (
     load_mat,
     read_recording_locations,
     read_session_xml,
+    spike_group_shanks,
 )
 
 STUB_UNITS = 10
@@ -61,6 +62,7 @@ class GirardeauSortingInterface(BaseDataInterface):
         self.session_id = self.session_path.name
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
         self.regions = read_recording_locations(Path(subject_folder_path), self.session_id)
+        self.shanks = spike_group_shanks(self.xml_info)  # .clu.N -> anatomical group (shank)
 
     def read_units(self) -> dict:
         """(shank, cluster) -> sorted spike times in samples, in shank and cluster order."""
@@ -95,7 +97,7 @@ class GirardeauSortingInterface(BaseDataInterface):
                 {
                     (key[0], region)
                     for key, region in zip(keys, regions)
-                    if region.lower() not in [code.lower() for code in self.regions.get(key[0], [])]
+                    if region.lower() not in [code.lower() for code in self.regions.get(self.shanks[key[0]], [])]
                 }
             )
             if differ:
@@ -113,7 +115,7 @@ class GirardeauSortingInterface(BaseDataInterface):
         note = self.check_cellinfo(units)
         sampling_rate = self.xml_info["sampling_rate"]
         shanks_with_units = sorted({shank for shank, _ in units})
-        codes = {code for shank in shanks_with_units for code in self.regions.get(shank, [])}
+        codes = {code for shank in shanks_with_units for code in self.regions.get(self.shanks[shank], [])}
         nwbfile.units = Units(
             name="units",
             description=(
@@ -124,7 +126,14 @@ class GirardeauSortingInterface(BaseDataInterface):
             ),
             resolution=1 / sampling_rate,
         )
-        nwbfile.add_unit_column(name="shank", description="shank number, the N of the unit's .clu.N/.res.N files")
+        nwbfile.add_unit_column(
+            name="shank",
+            description=(
+                "the N of the unit's .clu.N/.res.N files (spike group N); its electrode group is the anatomical "
+                "group holding the spike group's channels, group N except in Rat09-20140324 (spike groups 17 to 19 "
+                "are shanks 18 to 20)"
+            ),
+        )
         nwbfile.add_unit_column(name="cluster_id", description="cluster number in the .clu file of the shank")
         nwbfile.add_unit_column(
             name="region",
@@ -139,11 +148,11 @@ class GirardeauSortingInterface(BaseDataInterface):
         for (shank, cluster), samples in units.items():
             nwbfile.add_unit(
                 spike_times=samples / sampling_rate,
-                electrode_group=nwbfile.electrode_groups[f"shank{shank}"],
+                electrode_group=nwbfile.electrode_groups[f"shank{self.shanks[shank]}"],
                 electrodes=[channel_ids.index(channel) for channel in self.xml_info["spike_groups"][shank - 1]],
                 shank=shank,
                 cluster_id=cluster,
-                region="/".join(self.regions.get(shank, [])) or UNKNOWN_REGION,
+                region="/".join(self.regions.get(self.shanks[shank], [])) or UNKNOWN_REGION,
             )
             if stub_test and len(nwbfile.units) >= STUB_UNITS:
                 return
