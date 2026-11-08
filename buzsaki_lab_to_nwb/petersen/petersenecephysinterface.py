@@ -165,7 +165,9 @@ class PetersenEcephysInterface(BaseDataInterface):
         if np.array_equal(ids, self.channels):
             return self.channels
         if len(set(ids.tolist())) != len(ids) or not set(ids.tolist()) <= set(self.channels.tolist()):
-            raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not channels of the recording")
+            raise ValueError(
+                f"The electrodes of the earlier file of {self.session_id} are not channels of the recording"
+            )
         return ids
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
