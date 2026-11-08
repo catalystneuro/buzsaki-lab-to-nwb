@@ -1,7 +1,7 @@
 """Units of a Senzai session (DANDI:000003)."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import h5py
 import numpy as np
@@ -10,7 +10,7 @@ from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile
 from pynwb.misc import Units
 
-from .senzaiutils import FINE_CELL_TYPES, REGIONS, read_session_xml, read_unit_summary
+from .senzaiutils import open_published, FINE_CELL_TYPES, REGIONS, read_session_xml, read_unit_summary
 
 # .spk spikes whose samples are all 0 or reach beyond 20,000 steps (7.6 mV) are damaged blocks of the lab's file
 DAMAGED_STEPS = 20_000
@@ -33,7 +33,7 @@ class SenzaiSortingInterface(BaseDataInterface):
         self,
         folder_path: DirectoryPath,
         unit_summary_file_path: FilePath,
-        published_nwb_file_path: Optional[FilePath] = None,
+        published_nwb_file_path: Optional[Union[FilePath, str]] = None,  # a path, or a URL to stream
         verbose: bool = False,
     ):
         super().__init__(
@@ -77,7 +77,7 @@ class SenzaiSortingInterface(BaseDataInterface):
         if published_nwb_file_path is None:
             return units
         sampling_rate = self.xml_info["sampling_rate"]
-        with h5py.File(published_nwb_file_path, "r") as file:
+        with open_published(published_nwb_file_path) as file:
             published = file["units"]
             if "waveforms" not in published or "electrode_group" not in published or "shank_id" not in published:
                 return units  # an earlier file without waveforms or shanks gives nothing to compare or take
@@ -94,7 +94,8 @@ class SenzaiSortingInterface(BaseDataInterface):
         for shank in sorted(
             {key[0] for key in units} | {int(g.removeprefix("shank")) for g in groups if g.startswith("shank")}
         ):
-            rows = [row for row, group in enumerate(groups) if group == f"shank{shank}"]
+            # Units without spikes in the earlier file (it keeps some) are not clusters of the .clu files
+            rows = [row for row, group in enumerate(groups) if group == f"shank{shank}" and ends[row] > starts[row]]
             published_units = {
                 (shank, int(shank_ids[row]) + 2): np.rint(spike_times[starts[row] : ends[row]] * sampling_rate).astype(
                     np.int64
@@ -115,7 +116,7 @@ class SenzaiSortingInterface(BaseDataInterface):
         published_nwb_file_path = self.source_data["published_nwb_file_path"]
         if published_nwb_file_path is None:
             return None
-        self._published_file = h5py.File(published_nwb_file_path, "r")
+        self._published_file = open_published(published_nwb_file_path)
         published = self._published_file["units"]
         if "waveforms" not in published:
             return None
