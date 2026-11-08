@@ -9,6 +9,8 @@ import h5py
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.hdmf import SliceableDataChunkIterator
+
+from buzsaki_lab_to_nwb.utils.iterators import signal_iterator
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile
@@ -260,7 +262,7 @@ class TingleyEcephysInterface(BaseDataInterface):
             order = np.argsort(published_channels[rows])  # the published column of each channel
             if not np.isclose(series["data"].attrs["conversion"], VOLTS_PER_STEP):
                 raise ValueError(f"{series.name} of the earlier file is not in 0.195 uV steps")
-            return SliceableDataChunkIterator(data=PublishedColumns(series["data"], order, n_samples))
+            return signal_iterator(PublishedColumns(series["data"], order, n_samples))
 
         source_note = (
             " Taken from the session's file in the earlier version of the dandiset (the lab's int16 values, written "

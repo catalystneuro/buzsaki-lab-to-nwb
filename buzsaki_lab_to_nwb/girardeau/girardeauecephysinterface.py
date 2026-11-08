@@ -9,6 +9,8 @@ import h5py
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.hdmf import SliceableDataChunkIterator
+
+from buzsaki_lab_to_nwb.utils.iterators import signal_iterator
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath
 from pynwb import NWBFile, TimeSeries
@@ -209,7 +211,7 @@ class GirardeauEcephysInterface(BaseDataInterface):
             if data.shape[1] < n_electrodes:
                 raise ValueError(f"{source} has {data.shape[1]} columns for {n_electrodes} probe channels")
             rows = min(STUB_SAMPLES, data.shape[0]) if stub_test else data.shape[0]
-            return SliceableDataChunkIterator(data=FirstColumns(data, rows, n_electrodes), display_progress=True)
+            return signal_iterator(FirstColumns(data, rows, n_electrodes), display_progress=True)
 
         lfp = self.local_signal([".lfp", ".eeg"])
         lfp_source = "the lab's .lfp file (the wide-band signal down-sampled by the lab)"
