@@ -7,6 +7,8 @@ import h5py
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.hdmf import SliceableDataChunkIterator
+
+from buzsaki_lab_to_nwb.utils.iterators import signal_iterator
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile
@@ -188,7 +190,7 @@ class PetersenEcephysInterface(BaseDataInterface):
             return ElectricalSeries(
                 name=name,
                 description=description,
-                data=SliceableDataChunkIterator(data=data[:STUB_SAMPLES] if stub_test else data),
+                data=signal_iterator(data[:STUB_SAMPLES] if stub_test else data),
                 electrodes=electrodes,
                 starting_time=float(source["starting_time"][()]),
                 rate=float(source["starting_time"].attrs["rate"]),
