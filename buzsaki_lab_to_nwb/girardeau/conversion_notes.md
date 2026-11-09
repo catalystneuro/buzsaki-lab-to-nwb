@@ -60,7 +60,9 @@ The `.mpg` files in the session folder are written as external files and hard-li
   shank 7 'VEn/BLA' (`ven`). The units table keeps RecordingLocations.mat and says so in its description.
 - The published Rat09 files hold only channels 0 to 127 without 123 (the spike-group channels), so their LFP cannot be
   mapped by column order; the converter takes Rat09's LFP from the share's `.lfp` (and refuses a published file whose
-  columns are fewer than the probe channels). Rat08's published LFP is channels 0 to 159 in order.
+  columns are fewer than the probe channels); its wide-band signal comes from the published file, mapped by the
+  published electrode ids (exact against the .lfp of Rat09-20140402). Rat08's published LFP is channels 0 to 159 in
+  order.
 - The number in the ripple labels ("Ripple start 30") is probably the detection channel; `session.mat` tags channel 3
   (1-based) as the ripple channel, so this is not certain.
 - The `.tsp` time column is -2147483648 on every line, so the video frame times are unknown.

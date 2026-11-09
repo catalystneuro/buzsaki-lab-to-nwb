@@ -38,6 +38,7 @@ REGIONS = {
     "pir": LOCATIONS["piriform cortex"],
     "cpu": LOCATIONS["caudate putamen"],
 }
+CELL_TYPES = {"pyramidal cell": obo("CL:0000598"), "interneuron": obo("CL:0000099")}
 
 
 def _add_column_terms(herd, column, terms: dict):
@@ -65,5 +66,7 @@ def add_external_resources(nwbfile: NWBFile):
     if nwbfile.electrodes is not None:
         _add_column_terms(herd, nwbfile.electrodes["location"], LOCATIONS)
         _add_column_terms(herd, nwbfile.electrodes["region"], REGIONS)
-    if nwbfile.units is not None and "region" in nwbfile.units.colnames:
-        _add_column_terms(herd, nwbfile.units["region"], REGIONS)
+    if nwbfile.units is not None:
+        for name, terms in (("region", REGIONS), ("cell_type", CELL_TYPES)):
+            if name in nwbfile.units.colnames:
+                _add_column_terms(herd, nwbfile.units[name], terms)

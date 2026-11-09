@@ -113,28 +113,48 @@ def wire_groups(description: str) -> dict:
 def electrode_groups(xml_info: dict, auxiliary_channels: set) -> list:
     """The .xml anatomical groups that are electrodes, as (group number, channels, kind).
 
-    Anatomical group N is shank N: the shank numbering of RecordingLocations.mat and of the .clu.N/.res.N files, whose
-    spike group N holds the channels of anatomical group N (checked), sometimes without a channel the lab left out of
-    spike detection (Rat09: channel 123 of shank 16). A group is left out when it holds auxiliary inputs (the session's
-    channel tags), or when it has no spike group and only channels from 160 up (beyond the paper's 160 probe
-    channels) and the .xml description does not name it as recording wires (Rat11: groups 21 and 22, channels 160 to
-    165, which the source does not identify). Kept without spike groups: Rat09's groups 17 to 20 (channels 128 to 159,
-    a 4-shank probe) and Rat10's group 21 (channels 160 to 165, "Hippo wires" in its .xml). kind is "shank" or "wires".
+    Anatomical group N is shank N: the shank numbering of RecordingLocations.mat and (but for Rat09-20140324, see
+    spike_group_shanks) of the .clu.N/.res.N files, whose spike group N holds the channels of anatomical group N,
+    sometimes without a channel the lab left out of spike detection (Rat09: channel 123 of shank 16). A group is
+    left out when it holds auxiliary inputs (the session's channel tags), or when it has no spike group and only
+    channels from 160 up (beyond the paper's 160 probe channels) and the .xml description does not name it as
+    recording wires (Rat11: groups 21 and 22, channels 160 to 165, which the source does not identify). Kept without
+    spike groups: Rat09's groups 17 to 20 (channels 128 to 159, a 4-shank probe) and Rat10's group 21 (channels 160
+    to 165, "Hippo wires" in its .xml). kind is "shank" or "wires".
     """
     wires = {frozenset(channels) for channels in wire_groups(xml_info["description"])}
     groups = []
+    with_spike_groups = set(spike_group_shanks(xml_info).values())
     for number, channels in enumerate(xml_info["anatomical_groups"], start=1):
         if set(channels) & auxiliary_channels:
             continue
-        has_spike_group = number <= len(xml_info["spike_groups"])
+        has_spike_group = number in with_spike_groups
         if frozenset(channels) in wires:
             groups.append((number, list(channels), "wires"))
         elif has_spike_group or min(channels) < N_PROBE_CHANNELS:
             groups.append((number, list(channels), "shank"))
-    for index, spike_group in enumerate(xml_info["spike_groups"]):
-        if not set(spike_group) <= set(groups[index][1]) or groups[index][0] != index + 1:
-            raise ValueError(f"Spike group {index + 1} is not within anatomical group {index + 1}")
+    kept = {number for number, _, _ in groups}
+    for index, number in spike_group_shanks(xml_info).items():
+        if number not in kept:
+            raise ValueError(f"Spike group {index} is in anatomical group {number}, which is not an electrode group")
     return groups
+
+
+def spike_group_shanks(xml_info: dict) -> dict:
+    """The anatomical group (shank) of each spike group N, the N of the .clu.N/.res.N files: the one group that holds
+    its channels. That is group N, except in Rat09-20140324, whose spike groups 17 to 19 are anatomical groups 18 to 20
+    (group 17 has no spike group there; RecordingLocations.mat places shanks 17 to 20 all in hpc that session)."""
+    shanks = {}
+    for index, spike_group in enumerate(xml_info["spike_groups"], start=1):
+        holders = [
+            number
+            for number, channels in enumerate(xml_info["anatomical_groups"], start=1)
+            if set(spike_group) <= set(channels)
+        ]
+        if len(holders) != 1:
+            raise ValueError(f"Spike group {index} is not within exactly one anatomical group")
+        shanks[index] = holders[0]
+    return shanks
 
 
 def read_session_list(subject_path: Path, rat: str) -> list:
@@ -188,3 +208,26 @@ def read_evt(evt_file_path: Path) -> pd.DataFrame:
 
 def load_mat(file_path: Path, **kwargs) -> dict:
     return loadmat(str(file_path), squeeze_me=True, struct_as_record=False, **kwargs)
+
+
+def read_cell_types(subject_path: Path, session_id: str, n_units: int) -> tuple:
+    """The paper's cell type of each unit of a session (in shank and cluster order), from the lab's RatNN-finalType.mat,
+    and a note for the units table; (None, note) where the source does not type the session's units (see
+    cell_types.yaml)."""
+    import yaml
+
+    rat, _ = split_session_id(session_id)
+    table = yaml.safe_load((Path(__file__).parent / "cell_types.yaml").read_text())
+    days, codes = table["finaltype_days"].get(rat), {int(k): v for k, v in table["codes"].items()}
+    final_type_path = subject_path / f"{rat}-finalType.mat"
+    if session_id in table["untyped_days"]:
+        return None, f" No cell types: {table['untyped_days'][session_id]}."
+    if days is None or session_id not in days or not final_type_path.is_file():
+        return None, f" No cell types: the lab's share has no {rat}-finalType.mat for this rat."
+    if days[session_id] != n_units:
+        raise ValueError(f"{session_id} has {n_units} units, but {days[session_id]} in the lab's finalType order")
+    final_type = np.asarray(loadmat(str(final_type_path), squeeze_me=True)["finalType"]).ravel()
+    start = sum(n for day, n in days.items() if day < session_id)
+    if list(days) != sorted(days) or start + n_units > final_type.size:
+        raise ValueError(f"{rat}-finalType.mat does not cover the units of {session_id}")
+    return [codes[int(code)] for code in final_type[start : start + n_units]], ""

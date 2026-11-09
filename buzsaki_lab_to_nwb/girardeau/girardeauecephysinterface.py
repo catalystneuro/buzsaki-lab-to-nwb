@@ -208,10 +208,21 @@ class GirardeauEcephysInterface(BaseDataInterface):
         )
 
         def select(data, source: str):
-            if data.shape[1] < n_electrodes:
-                raise ValueError(f"{source} has {data.shape[1]} columns for {n_electrodes} probe channels")
+            """The probe columns of a signal, and the electrodes they are."""
             rows = min(STUB_SAMPLES, data.shape[0]) if stub_test else data.shape[0]
-            return signal_iterator(FirstColumns(data, rows, n_electrodes), display_progress=True)
+            if data.shape[1] >= n_electrodes:
+                return signal_iterator(FirstColumns(data, rows, n_electrodes), display_progress=True), electrodes
+            # The earlier files of some sessions (Rat09) hold only some channels; their electrodes table names them, in
+            # the order of the columns (checked against the share's .lfp of Rat09-20140402)
+            published = self.published() if isinstance(data, h5py.Dataset) else None
+            ids = published["general/extracellular_ephys/electrodes/id"][:] if published is not None else np.array([])
+            if len(ids) != data.shape[1] or not set(ids.tolist()) <= set(self.channels) or np.any(np.diff(ids) <= 0):
+                raise ValueError(f"{source} has {data.shape[1]} columns for {n_electrodes} probe channels")
+            region = nwbfile.create_electrode_table_region(
+                region=[list(self.channels).index(channel) for channel in ids.tolist()],
+                description="the probe electrodes the earlier file holds a signal for, in the order of the columns",
+            )
+            return signal_iterator(FirstColumns(data, rows, len(ids)), display_progress=True), region
 
         lfp = self.local_signal([".lfp", ".eeg"])
         lfp_source = "the lab's .lfp file (the wide-band signal down-sampled by the lab)"
@@ -222,6 +233,7 @@ class GirardeauEcephysInterface(BaseDataInterface):
                 "whose columns are the recording channels in order"
             )
         if lfp is not None:
+            lfp_data, lfp_electrodes = select(lfp, "the LFP")
             lfp_series = ElectricalSeries(
                 name="lfp",
                 description=(
@@ -229,8 +241,8 @@ class GirardeauEcephysInterface(BaseDataInterface):
                     "steps of 0.3815 uV (the least significant bit in the lab's session.mat; the .xml settings would "
                     "give 0.305 uV)"
                 ),
-                data=select(lfp, "the LFP"),
-                electrodes=electrodes,
+                data=lfp_data,
+                electrodes=lfp_electrodes,
                 rate=self.xml_info["lfp_sampling_rate"],
                 conversion=VOLTS_PER_STEP,
             )
@@ -247,6 +259,7 @@ class GirardeauEcephysInterface(BaseDataInterface):
             wideband = self.published()["acquisition/ElectricalSeries/data"]
             wideband_source = "the session's file in DANDI:000061 version 0.250624.0426"
         if wideband is not None:
+            wideband_data, wideband_electrodes = select(wideband, "the wide-band signal")
             nwbfile.add_acquisition(
                 ElectricalSeries(
                     name="ElectricalSeries",
@@ -254,8 +267,8 @@ class GirardeauEcephysInterface(BaseDataInterface):
                         f"wide-band signal of the probe channels at {self.xml_info['sampling_rate']:g} Hz, from "
                         f"{wideband_source}; in steps of 0.3815 uV (see the LFP)"
                     ),
-                    data=select(wideband, "the wide-band signal"),
-                    electrodes=electrodes,
+                    data=wideband_data,
+                    electrodes=wideband_electrodes,
                     rate=self.xml_info["sampling_rate"],
                     conversion=VOLTS_PER_STEP,
                 )
