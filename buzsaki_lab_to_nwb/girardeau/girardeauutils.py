@@ -231,4 +231,3 @@ def read_cell_types(subject_path: Path, session_id: str, n_units: int) -> tuple:
     if list(days) != sorted(days) or start + n_units > final_type.size:
         raise ValueError(f"{rat}-finalType.mat does not cover the units of {session_id}")
     return [codes[int(code)] for code in final_type[start : start + n_units]], ""
-
