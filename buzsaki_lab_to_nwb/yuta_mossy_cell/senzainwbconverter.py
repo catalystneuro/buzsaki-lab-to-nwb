@@ -14,12 +14,15 @@ from .senzaisortinginterface import SenzaiSortingInterface
 from .senzaiutils import read_exp_sheet, read_unit_summary, split_session_id
 
 # Mice whose experiment sheet and the flags of the lab's unit summary disagree on the genotype; the paper counts
-# 7 SST-Cre, 3 POMC-Cre::Ai35, 5 DRD2-Cre::Ai35 and 1 wild-type mouse
+# 7 SST-Cre, 3 POMC-Cre::Ai35, 5 DRD2-Cre::Ai35 and 1 wild-type mouse, which the summary matches for the paper's mice
+# (YM21, SST-Cre, is not in the dandiset; YutaMouse57 is not in the paper)
+# Where the paper settles the disagreement, its genotype is used
+GENOTYPE_FROM_PAPER = {"YutaMouse41": "wild type"}
 GENOTYPE_NOTES = {
     "YutaMouse39": "The experiment sheet gives no genotype; the lab's unit summary marks this mouse as SST-Cre.",
     "YutaMouse41": (
-        "The experiment sheet gives POMC-Cre::Arch, but the lab's unit summary marks this mouse as wild type (no opsin), "
-        "which matches the one wild-type mouse of the paper."
+        "Wild type, as the lab's unit summary and the paper's one wild-type mouse (Table S1) have it; the experiment "
+        "sheet gives POMC-Cre::Arch."
     ),
     "YutaMouse57": (
         "The experiment sheet gives POMC-Cre::Ai35, but the lab's unit summary marks this mouse as a DRD2-Cre::Ai35 "
@@ -56,7 +59,7 @@ class SenzaiNWBConverter(NWBConverter):
         number = mouse.removeprefix("YutaMouse")
 
         sheet = read_exp_sheet(self.exp_sheet_folder_path / f"YM{number} exp_sheet.xlsx")
-        genotype = sheet.get("genotype")
+        genotype = GENOTYPE_FROM_PAPER.get(mouse, sheet.get("genotype"))
         if not isinstance(genotype, str):
             summary = read_unit_summary(Path(sorting.source_data["unit_summary_file_path"]))
             flags = summary[summary.fname == session_id][["sstmouse", "pomcmouse", "drd2mouse", "wtmouse"]].max()
