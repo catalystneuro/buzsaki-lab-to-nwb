@@ -13,6 +13,7 @@ from .girardeauutils import (
     UNKNOWN_REGION,
     describe_region_codes,
     load_mat,
+    read_cell_types,
     read_recording_locations,
     read_session_xml,
     spike_group_shanks,
@@ -61,6 +62,7 @@ class GirardeauSortingInterface(BaseDataInterface):
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
         self.xml_info = read_session_xml(self.session_path / f"{self.session_id}.xml")
+        self.subject_path = Path(subject_folder_path)
         self.regions = read_recording_locations(Path(subject_folder_path), self.session_id)
         self.shanks = spike_group_shanks(self.xml_info)  # .clu.N -> anatomical group (shank)
 
@@ -113,6 +115,7 @@ class GirardeauSortingInterface(BaseDataInterface):
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         units = self.read_units()
         note = self.check_cellinfo(units)
+        cell_types, cell_type_note = read_cell_types(self.subject_path, self.session_id, len(units))
         sampling_rate = self.xml_info["sampling_rate"]
         shanks_with_units = sorted({shank for shank, _ in units})
         codes = {code for shank in shanks_with_units for code in self.regions.get(self.shanks[shank], [])}
@@ -122,7 +125,7 @@ class GirardeauSortingInterface(BaseDataInterface):
                 "Units sorted by the lab with KlustaKwik and curated in Klusters: the clusters numbered 2 and up of the "
                 f".clu.N files, with spike times from the .res.N files ({sampling_rate:g} Hz samples). Clusters 0 "
                 "(artifacts) and 1 (noise and multi-unit activity) are left out. Shanks with no .clu/.res files on the "
-                "lab's share have no units." + note
+                "lab's share have no units." + note + cell_type_note
             ),
             resolution=1 / sampling_rate,
         )
@@ -144,8 +147,18 @@ class GirardeauSortingInterface(BaseDataInterface):
                 + describe_region_codes(codes)
             ),
         )
+        if cell_types is not None:
+            nwbfile.add_unit_column(
+                name="cell_type",
+                description=(
+                    "the paper's putative cell type (Girardeau et al. 2017, typed by monosynaptic connections and "
+                    "k-means on spike features), from the lab's finalType file (1 pyramidal cell, 2 interneuron, 0 "
+                    "unclassified)"
+                ),
+            )
         channel_ids = list(nwbfile.electrodes["channel_id"][:])
-        for (shank, cluster), samples in units.items():
+        for index, ((shank, cluster), samples) in enumerate(units.items()):
+            extra = dict(cell_type=cell_types[index]) if cell_types is not None else {}
             nwbfile.add_unit(
                 spike_times=samples / sampling_rate,
                 electrode_group=nwbfile.electrode_groups[f"shank{self.shanks[shank]}"],
@@ -153,6 +166,7 @@ class GirardeauSortingInterface(BaseDataInterface):
                 shank=shank,
                 cluster_id=cluster,
                 region="/".join(self.regions.get(self.shanks[shank], [])) or UNKNOWN_REGION,
+                **extra,
             )
             if stub_test and len(nwbfile.units) >= STUB_UNITS:
                 return

@@ -208,3 +208,27 @@ def read_evt(evt_file_path: Path) -> pd.DataFrame:
 
 def load_mat(file_path: Path, **kwargs) -> dict:
     return loadmat(str(file_path), squeeze_me=True, struct_as_record=False, **kwargs)
+
+
+def read_cell_types(subject_path: Path, session_id: str, n_units: int) -> tuple:
+    """The paper's cell type of each unit of a session (in shank and cluster order), from the lab's RatNN-finalType.mat,
+    and a note for the units table; (None, note) where the source does not type the session's units (see
+    cell_types.yaml)."""
+    import yaml
+
+    rat, _ = split_session_id(session_id)
+    table = yaml.safe_load((Path(__file__).parent / "cell_types.yaml").read_text())
+    days, codes = table["finaltype_days"].get(rat), {int(k): v for k, v in table["codes"].items()}
+    final_type_path = subject_path / f"{rat}-finalType.mat"
+    if session_id in table["untyped_days"]:
+        return None, f" No cell types: {table['untyped_days'][session_id]}."
+    if days is None or session_id not in days or not final_type_path.is_file():
+        return None, f" No cell types: the lab's share has no {rat}-finalType.mat for this rat."
+    if days[session_id] != n_units:
+        raise ValueError(f"{session_id} has {n_units} units, but {days[session_id]} in the lab's finalType order")
+    final_type = np.asarray(loadmat(str(final_type_path), squeeze_me=True)["finalType"]).ravel()
+    start = sum(n for day, n in days.items() if day < session_id)
+    if list(days) != sorted(days) or start + n_units > final_type.size:
+        raise ValueError(f"{rat}-finalType.mat does not cover the units of {session_id}")
+    return [codes[int(code)] for code in final_type[start : start + n_units]], ""
+

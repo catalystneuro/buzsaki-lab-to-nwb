@@ -50,3 +50,11 @@ tables:
         meaning: water reward at the left end of the track (.lrw.evt)
       right:
         meaning: water reward at the right end of the track (.rrw.evt)
+  units:
+    cell_type:
+      pyramidal cell:
+        meaning: putative pyramidal cell in the paper's typing (the lab's finalType code 1)
+      interneuron:
+        meaning: putative interneuron in the paper's typing (the lab's finalType code 2)
+      unclassified:
+        meaning: a unit the paper's typing leaves unclassified (the lab's finalType code 0)
