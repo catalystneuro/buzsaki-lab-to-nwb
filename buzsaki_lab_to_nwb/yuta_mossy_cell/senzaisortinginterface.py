@@ -141,6 +141,34 @@ class SenzaiSortingInterface(BaseDataInterface):
             first_spike = last_spike
         return waveforms
 
+    @staticmethod
+    def sort_spikes(units: dict, waveforms: Optional[dict]) -> tuple:
+        """Each unit's spikes in time order, with their waveforms, and without exact repeats.
+
+        The units the earlier DANDI file gives for a re-sorted shank keep its spike order; unit 1 of
+        YutaMouse33-150223 there is two time-ordered runs of spikes one after the other (327,680 spikes from 17,225 s,
+        then 490,362 from 0.3 s), 2,328 of whose times are in both. Returns the units, the waveforms and a note for the
+        units table naming the units changed.
+        """
+        changed = []
+        for key, samples in list(units.items()):
+            order = np.argsort(samples, kind="stable")
+            sorted_samples = samples[order]
+            keep = np.concatenate([[True], np.diff(sorted_samples) != 0])
+            if np.array_equal(order, np.arange(len(samples))) and keep.all():
+                continue
+            units[key] = sorted_samples[keep]
+            if waveforms is not None and key in waveforms:
+                waveforms[key] = np.asarray(waveforms[key])[order][keep]
+            changed.append(f"shank {key[0]} cluster {key[1]} ({int((~keep).sum())} repeated spike times dropped)")
+        note = (
+            ". The spike times of " + "; ".join(changed) + " were not in time order in the earlier file and are "
+            "sorted here, with their waveforms; a spike time listed twice is kept once"
+            if changed
+            else ""
+        )
+        return units, waveforms, note
+
     def read_spk_waveforms(self, units: dict):
         """Per-unit waveforms in steps from the .spk files, when every shank with units has one."""
         n_samples = self.xml_info["spikes_n_samples"]
@@ -165,6 +193,7 @@ class SenzaiSortingInterface(BaseDataInterface):
             waveforms = self.read_spk_waveforms(units)
         if stub_test:
             units = dict(list(units.items())[:STUB_UNITS])
+        units, waveforms, unsorted_note = self.sort_spikes(units, waveforms)
 
         summary = read_unit_summary(Path(self.source_data["unit_summary_file_path"]))
         summary = summary[summary.fname == self.session_id].set_index(["shank", "unitIDshank"])
@@ -187,6 +216,7 @@ class SenzaiSortingInterface(BaseDataInterface):
                     if self.shanks_from_published_file
                     else ""
                 )
+                + unsorted_note
             ),
             resolution=1 / sampling_rate,
             waveform_rate=sampling_rate,
@@ -216,10 +246,18 @@ class SenzaiSortingInterface(BaseDataInterface):
         )
         for name in ("ACGquality", "UnitStability"):
             nwbfile.add_unit_column(name=name, description=QUALITY_DESCRIPTION.format(name=name))
-        for name, cell in (("sstcell", "SST"), ("drd2cell", "DRD2"), ("pomccell", "POMC")):
+        for name, cell in (("sstcell", "SST"), ("drd2cellGOOD", "DRD2"), ("pomccell", "POMC")):
+            extra = (
+                "; the summary's drd2cell is 0 for every unit, and drd2cellGOOD marks the 42 units whose firing green "
+                "light suppressed, 29 of them mossy cells, as in the paper"
+                if cell == "DRD2"
+                else ""
+            )
             nwbfile.add_unit_column(
                 name=f"{cell.lower()}_tagged",
-                description=f"the unit responded to light as a {cell}-expressing cell ({name} of the lab's unit summary)",
+                description=(
+                    f"the unit responded to light as a {cell}-expressing cell ({name} of the lab's unit summary{extra})"
+                ),
             )
 
         for (shank, cluster), unit_samples in units.items():
@@ -239,7 +277,7 @@ class SenzaiSortingInterface(BaseDataInterface):
                     ACGquality=int(row.ACGquality),
                     UnitStability=int(row.UnitStability),
                     sst_tagged=bool(row.sstcell),
-                    drd2_tagged=bool(row.drd2cell),
+                    drd2_tagged=bool(row.drd2cellGOOD),
                     pomc_tagged=bool(row.pomccell),
                 )
             else:

@@ -67,6 +67,7 @@ def read_unit_summary(summary_file_path: Path) -> pd.DataFrame:
         "UnitStability",
         "sstcell",
         "drd2cell",
+        "drd2cellGOOD",
         "pomccell",
         "sstmouse",
         "pomcmouse",
