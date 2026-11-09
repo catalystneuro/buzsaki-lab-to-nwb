@@ -39,7 +39,14 @@ def rebuild_rounded_timestamps(timestamps: np.ndarray, rates: list):
     frames = np.arange(timestamps.size)
     for rate in rates:
         candidate = frames / rate
-        if np.allclose(round_significant(candidate), timestamps, rtol=0, atol=1e-9):
+        exact = np.isclose(round_significant(candidate), timestamps, rtol=0, atol=1e-9)
+        # A frame time on a rounding tie (e.g. 14835.5 s) can round either way, depending on floating-point detail
+        # (DT2-20160222 and 20160226 have 256 and 6,823 such frames); within half a rounding unit is a match too
+        unit = np.zeros_like(candidate)
+        nonzero = candidate != 0
+        unit[nonzero] = 10 ** (np.floor(np.log10(np.abs(candidate[nonzero]))) - 4)
+        tie = np.abs(candidate - timestamps) <= unit / 2 * (1 + 1e-9)
+        if np.all(exact | tie):
             return candidate, rate
     return timestamps, None
 
