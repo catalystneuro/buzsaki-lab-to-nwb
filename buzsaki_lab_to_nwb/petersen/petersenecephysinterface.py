@@ -1,5 +1,6 @@
 """Electrodes, LFP and wide-band signal of a Petersen session (DANDI:000059)."""
 
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -149,11 +150,16 @@ class PetersenEcephysInterface(BaseDataInterface):
             )
 
     def published_columns(self, published: h5py.File) -> np.ndarray:
-        """The channel of each column of the earlier file's signals: the .dat channels 0 to n-1."""
-        electrodes = published["general/extracellular_ephys/electrodes"]
-        if not np.array_equal(electrodes["id"][:], self.channels):
-            raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not the channels 0 to n-1")
-        return self.channels
+        """The channel of each column of the earlier file's signals: the .dat channels 0 to n-1, or an increasing subset
+        of them (the earlier conversion left some channels out of some sessions, e.g. 9 of MS13-171129's 128)."""
+        ids = np.asarray(published["general/extracellular_ephys/electrodes"]["id"][:])
+        if np.array_equal(ids, self.channels):
+            return self.channels
+        if len(ids) and np.all(np.diff(ids) > 0) and set(ids.tolist()) <= set(self.channels):
+            left_out = sorted(set(self.channels) - set(ids.tolist()))
+            warnings.warn(f"{self.session_id}: the earlier file has no signal for channels {left_out}")
+            return ids
+        raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not channels of the session")
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.add_electrodes(nwbfile)
@@ -169,8 +175,8 @@ class PetersenEcephysInterface(BaseDataInterface):
             self._published_file = published = h5py.File(published_raw_file_path, "r")
         order = self.published_columns(published)
         electrodes = nwbfile.create_electrode_table_region(
-            region=[int(channel) for channel in order],  # rows are in channel order
-            description="the probe channels 0 to n-1, in the column order of the data",
+            region=[list(self.channels).index(int(channel)) for channel in order],
+            description="the probe channels of the data's columns, in that order",
         )
         lsb = self.session["extracellular"].get("leastSignificantBit")
         if lsb is None:  # not in the session.mat files: the scaling of the earlier file's LFP
