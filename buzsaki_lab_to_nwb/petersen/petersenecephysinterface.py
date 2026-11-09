@@ -124,7 +124,8 @@ class PetersenEcephysInterface(BaseDataInterface):
             group = nwbfile.create_electrode_group(
                 name=f"shank{group_index + 1}",
                 description=(
-                    f"electrode group {group_index + 1} of the lab's .xml file ({len(channels)} sites) on {device[0].name}"
+                    f"electrode group {group_index + 1} of the lab's .xml file ({len(channels)} sites) on "
+                    f"{device[0].name}"
                 ),
                 location=group_regions.pop() if len(group_regions) == 1 else "unknown",
                 device=device[0],
