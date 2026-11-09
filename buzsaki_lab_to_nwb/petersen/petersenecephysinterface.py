@@ -171,10 +171,44 @@ class PetersenEcephysInterface(BaseDataInterface):
             return ids
         raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not channels of the session")
 
+    def add_wideband_from_dat(self, nwbfile: NWBFile, stub_test: bool = False):
+        """The wide-band signal from the session's own .dat file, for a session with no earlier DANDI file
+        (Peter_MS12_170715_111545_concat, which the earlier conversion left out). The share has no .lfp for it."""
+        dat_path = self.session_path / f"{self.session_id}.dat"
+        if not self.source_data["include_wideband"] or not dat_path.is_file():
+            return
+        lsb = self.session["extracellular"].get("leastSignificantBit")
+        if lsb is None:
+            raise ValueError(f"{self.session_id}: session.mat has no leastSignificantBit to scale the .dat")
+        n_channels = self.xml_info["n_channels"]
+        if dat_path.stat().st_size % (2 * n_channels):
+            raise ValueError(f"{dat_path.name} is not a whole number of {n_channels}-channel int16 samples")
+        data = np.memmap(dat_path, dtype=np.int16, mode="r").reshape(-1, n_channels)
+        electrodes = nwbfile.create_electrode_table_region(
+            region=[list(self.channels).index(channel) for channel in range(n_channels)],
+            description="the .dat channels 0 to n-1, in the column order of the data",
+        )
+        nwbfile.add_acquisition(
+            ElectricalSeries(
+                name="ElectricalSeries",
+                description=(
+                    f"wide-band signal of all {n_channels} channels at {self.xml_info['sampling_rate']:g} Hz, from the "
+                    "lab's .dat file (Intan RHD2000), int16 steps of session.mat's leastSignificantBit. This session "
+                    "has no earlier DANDI file and the lab's share has no .lfp for it, so the file has no LFP."
+                ),
+                data=signal_iterator(data[:STUB_SAMPLES] if stub_test else data),
+                electrodes=electrodes,
+                starting_time=0.0,
+                rate=self.xml_info["sampling_rate"],
+                conversion=float(lsb) * 1e-6,
+            )
+        )
+
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         self.add_electrodes(nwbfile)
         published_raw_file_path = self.source_data["published_raw_file_path"]
         if published_raw_file_path is None:
+            self.add_wideband_from_dat(nwbfile, stub_test=stub_test)
             return
         # Kept open until the new file has been written
         if str(published_raw_file_path).startswith(("https://", "http://")):
