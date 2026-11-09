@@ -1,13 +1,11 @@
 """Electrodes, LFP and wide-band signal of a Petersen session (DANDI:000059)."""
 
-import warnings
 from pathlib import Path
 from typing import Optional, Union
 
 import h5py
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
-from neuroconv.tools.hdmf import SliceableDataChunkIterator
 
 from buzsaki_lab_to_nwb.utils.iterators import signal_iterator
 from neuroconv.tools.nwb_helpers import get_module
@@ -79,6 +77,17 @@ class PetersenEcephysInterface(BaseDataInterface):
             int(n) for n in as_list(electrodes.get("nChannels", electrodes.get("channels")))
         ]  # older: channels
         unique_names = str(electrodes.get("uniqueName", "")).split(", MS")
+        if sum(n_channels) != self.xml_info["n_channels"]:
+            # Peter_MS13_171127_133330_concat: probes of 128 channels listed for a 96-channel recording
+            device = nwbfile.create_device(
+                name="probe",
+                description=(
+                    f"silicon probe(s); the lab's session.mat lists {', '.join(map(str, names))} with "
+                    f"{sum(n_channels)} channels in all, which does not match the recording's "
+                    f"{self.xml_info['n_channels']} channels, so the probes are not split by channel"
+                ),
+            )
+            return [(device, 0, self.xml_info["n_channels"] - 1)]
         devices = []
         first = 0
         for index, (name, company, count) in enumerate(zip(names, companies, n_channels)):
@@ -115,7 +124,8 @@ class PetersenEcephysInterface(BaseDataInterface):
             group = nwbfile.create_electrode_group(
                 name=f"shank{group_index + 1}",
                 description=(
-                    f"electrode group {group_index + 1} of the lab's .xml file ({len(channels)} sites) on {device[0].name}"
+                    f"electrode group {group_index + 1} of the lab's .xml file ({len(channels)} sites) on "
+                    f"{device[0].name}"
                 ),
                 location=group_regions.pop() if len(group_regions) == 1 else "unknown",
                 device=device[0],
@@ -151,13 +161,13 @@ class PetersenEcephysInterface(BaseDataInterface):
 
     def published_columns(self, published: h5py.File) -> np.ndarray:
         """The channel of each column of the earlier file's signals: the .dat channels 0 to n-1, or an increasing subset
-        of them (the earlier conversion left some channels out of some sessions, e.g. 9 of MS13-171129's 128)."""
+        of them (the earlier conversion left some channels out of some sessions, e.g. 17 of MS10-170314's 64 and 9 of
+        MS13-171129's 128)."""
         ids = np.asarray(published["general/extracellular_ephys/electrodes"]["id"][:])
+        self.missing_channels = sorted(set(self.channels.tolist()) - set(ids.tolist()))
         if np.array_equal(ids, self.channels):
             return self.channels
-        if len(ids) and np.all(np.diff(ids) > 0) and set(ids.tolist()) <= set(self.channels):
-            left_out = sorted(set(self.channels) - set(ids.tolist()))
-            warnings.warn(f"{self.session_id}: the earlier file has no signal for channels {left_out}")
+        if len(ids) and np.all(np.diff(ids) > 0) and set(ids.tolist()) <= set(self.channels.tolist()):
             return ids
         raise ValueError(f"The electrodes of the earlier file of {self.session_id} are not channels of the session")
 
@@ -178,6 +188,12 @@ class PetersenEcephysInterface(BaseDataInterface):
             region=[list(self.channels).index(int(channel)) for channel in order],
             description="the probe channels of the data's columns, in that order",
         )
+        missing_note = (
+            f" The earlier file holds no data for channels {', '.join(map(str, self.missing_channels))}, so they are "
+            "not in this series."
+            if self.missing_channels
+            else ""
+        )
         lsb = self.session["extracellular"].get("leastSignificantBit")
         if lsb is None:  # not in the session.mat files: the scaling of the earlier file's LFP
             volts_per_step = float(published["processing/ecephys/LFP/LFP/data"].attrs["conversion"])
@@ -195,7 +211,7 @@ class PetersenEcephysInterface(BaseDataInterface):
                 raise ValueError(f"The earlier {path} of {self.session_id} has another scaling than session.mat")
             return ElectricalSeries(
                 name=name,
-                description=description,
+                description=description + missing_note,
                 data=signal_iterator(data[:STUB_SAMPLES] if stub_test else data),
                 electrodes=electrodes,
                 starting_time=float(source["starting_time"][()]),
