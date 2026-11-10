@@ -118,7 +118,9 @@ class GirardeauBehaviorInterface(BaseDataInterface):
         if len(whl) > expected + WHL_RATE and all(f.is_file() for f in epoch_files):
             n = sum(len(f.read_text().splitlines()) for f in epoch_files)
             if abs(n - expected) > WHL_RATE:
-                raise ValueError(f"{self.session_id}: .whl has {len(whl)} samples and its epochs {n}, against {expected} expected")
+                raise ValueError(
+                    f"{self.session_id}: .whl has {len(whl)} samples and its epochs {n}, against {expected} expected"
+                )
             whl = whl[:n]
         position = Position(name="position")
         for index in range(whl.shape[1] // 2):
