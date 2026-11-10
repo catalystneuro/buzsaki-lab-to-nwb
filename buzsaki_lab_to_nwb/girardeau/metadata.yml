@@ -1,0 +1,22 @@
+NWBFile:
+  experiment_description:
+    Reactivations of emotional memory in the hippocampus-amygdala system during sleep. Rats learned the location of an
+    aversive air puff on a linear track, given in one running direction only. Neuronal ensembles were recorded in the
+    dorsal hippocampus (CA1) and in the basolateral amygdala and neighboring structures of both sides, with three
+    silicon probes (160 channels, 20 kHz, Amplipex), during the track sessions and during home-cage sleep before and
+    after training. Hippocampal-BLA reactivations peaked during hippocampal sharp-wave ripples of post-training non-REM
+    sleep and were stronger for the air-puff direction than for the safe direction.
+  related_publications:
+    - https://doi.org/10.1038/nn.4637
+  experimenter:
+    - Girardeau, Gabrielle
+  institution: New York University
+  lab: Buzsaki
+  keywords:
+    - hippocampus
+    - basolateral amygdala
+    - emotional memory
+    - reactivation
+    - sharp-wave ripples
+    - sleep
+    - silicon probe

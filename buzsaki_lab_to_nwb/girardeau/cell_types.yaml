@@ -1,0 +1,23 @@
+# The paper's cell types are in the lab's RatNN-finalType.mat (one code per unit: 1 putative pyramidal cell,
+# 2 putative interneuron, 0 not classified), over every unit of the rat's recording days in the order of its session
+# list, and within a day in shank and cluster order. The units of each day (in that order) are listed here, from the
+# lab's RatNN-YYYYMMDD-CellIndex.mat (Rat08 to 2013-07-13, Rat09) or .spikes.cellinfo.mat (later Rat08 days, Rat10);
+# they add up to the length of finalType for Rat09 (1,294) and Rat10 (1,138), and the day of each unit was checked
+# against the published cell types of DANDI:000061 (Rat08-20130709 to 0713: 224 of 239 excitatory are code 1, 70 of
+# 73 inhibitory are code 2) and against firing rates (code 2 faster than code 1 on every typed day).
+# Rat08's finalType has 2,444 codes for 2,469 units: the first 12 days line up with it, and Rat08-20130722 has 152
+# units for the 127 remaining codes. Which of its units the codes are for is not known, so that day is not typed.
+# Rat11 has no finalType file on the lab's share.
+finaltype_days:
+  Rat08: {Rat08-20130708: 166, Rat08-20130709: 201, Rat08-20130710: 190, Rat08-20130711: 201, Rat08-20130712: 199,
+          Rat08-20130713: 252, Rat08-20130715: 166, Rat08-20130716: 187, Rat08-20130717: 197, Rat08-20130718: 219,
+          Rat08-20130719: 157, Rat08-20130720: 182, Rat08-20130722: 152}
+  Rat09: {Rat09-20140324: 136, Rat09-20140325: 97, Rat09-20140326: 140, Rat09-20140327: 138, Rat09-20140328: 75,
+          Rat09-20140329: 67, Rat09-20140331: 74, Rat09-20140401: 57, Rat09-20140402: 71, Rat09-20140403: 64,
+          Rat09-20140404: 63, Rat09-20140405: 94, Rat09-20140407: 78, Rat09-20140408: 83, Rat09-20140409: 57}
+  Rat10: {Rat10-20140619: 92, Rat10-20140620: 100, Rat10-20140622: 115, Rat10-20140624: 101, Rat10-20140626: 76,
+          Rat10-20140627: 76, Rat10-20140628: 90, Rat10-20140629: 108, Rat10-20140701: 40, Rat10-20140702: 61,
+          Rat10-20140703: 73, Rat10-20140704: 57, Rat10-20140705: 49, Rat10-20140707: 44, Rat10-20140708: 56}
+untyped_days:
+  Rat08-20130722: "the lab's finalType has 127 codes left for its 152 units, and which units they are for is not known"
+codes: {1: pyramidal cell, 2: interneuron, 0: unclassified}

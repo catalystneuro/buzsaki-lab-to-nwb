@@ -162,12 +162,13 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                 SpatialSeries(
                     name="central_arm_position",
                     description=(
-                        "position along the 65 cm central arm (column 1 of twhl_linearized, 0 to 2 normalized units "
-                        "scaled to meters); 0 while the mouse is on a side arm"
+                        "the lab's linearized position on the central arm (column 1 of twhl_linearized, normalized "
+                        "units scaled to meters): about 2 where the mouse enters the central arm, falling to about 0 "
+                        "where it leaves it toward the side arms, and 0 while it is on a side arm"
                     ),
                     data=linear[:, 1],
                     **timing(times),
-                    reference_frame="start of the central arm",
+                    reference_frame="0 at the end of the central arm where the side arms begin",
                     conversion=METERS_PER_MAZE_UNIT,
                 )
             )

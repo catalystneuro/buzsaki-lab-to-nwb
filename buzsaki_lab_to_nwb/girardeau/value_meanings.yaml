@@ -1,0 +1,60 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools.
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
+tables:
+  sleep_states:
+    label:
+      wake:
+        meaning: wake, as scored by the lab (-States.mat wake)
+        hed: Awake
+      drowsy:
+        meaning: drowsiness, a state between wake and sleep scored by the lab (-States.mat drowsy); not defined further in the source
+        hed: Drowsy
+      sws:
+        meaning: slow-wave (non-REM) sleep, as scored by the lab (-States.mat sws)
+        hed: Asleep
+      Rem:
+        meaning: REM sleep, as scored by the lab (-States.mat Rem)
+        hed: Asleep, sc:Sleep-stage-REM
+  sleep_states_buzcode:
+    label:
+      WAKEstate:
+        meaning: wake, scored by buzcode SleepScoreMaster in 2019
+        hed: Awake
+      NREMstate:
+        meaning: non-REM sleep, scored by buzcode SleepScoreMaster in 2019
+        hed: Asleep
+      REMstate:
+        meaning: REM sleep, scored by buzcode SleepScoreMaster in 2019
+        hed: Asleep, sc:Sleep-stage-REM
+  trials:
+    direction:
+      left to right:
+        meaning: a lap from the left to the right end of the linear track, in the camera image (-Laps.mat LtoRlaps)
+        hed: (Run, Rightward)
+      right to left:
+        meaning: a lap from the right to the left end of the linear track, in the camera image (-Laps.mat RtoLlaps)
+        hed: (Run, Leftward)
+      U-turn:
+        meaning: a run on the track that probably turned back before reaching the other end (-Laps.mat Uturnlaps)
+    lap_type:
+      air-puff direction:
+        meaning: a lap in the running direction in which the air puff was given during the run epoch (-LapType.mat aplaps); in the pre- and post-run epochs no puff was given
+      safe direction:
+        meaning: a lap in the other running direction, with no air puff (-LapType.mat safelaps)
+      not classified:
+        meaning: a lap that -LapType.mat does not list (U-turns)
+  rewards:
+    side:
+      left:
+        meaning: water reward at the left end of the track (.lrw.evt)
+      right:
+        meaning: water reward at the right end of the track (.rrw.evt)
+  units:
+    cell_type:
+      pyramidal cell:
+        meaning: putative pyramidal cell in the paper's typing (the lab's finalType code 1)
+      interneuron:
+        meaning: putative interneuron in the paper's typing (the lab's finalType code 2)
+      unclassified:
+        meaning: a unit the paper's typing leaves unclassified (the lab's finalType code 0)
