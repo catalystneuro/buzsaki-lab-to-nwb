@@ -1,0 +1,95 @@
+# Meanings of categorical column values, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Each HED string was validated against HED 8.4.0 and the SCORE library 2.1.0 (prefix sc:) with hedtools. The uLED pulses have meanings only: no base HED tag
+# describes optogenetic stimulation.
+hed_schema_version: '["8.4.0", "sc:score_2.1.0"]'
+tables:
+  SleepStates:
+    label:
+      WAKEstate:
+        meaning: wake, scored by the lab's SleepScoreMaster from the LFP and the EMG estimated from the LFP
+        hed: Awake
+      NREMstate:
+        meaning: non-REM sleep, scored by the lab's SleepScoreMaster from the LFP and the EMG estimated from the LFP
+        hed: Asleep
+      REMstate:
+        meaning: REM sleep, scored by the lab's SleepScoreMaster from the LFP and the EMG estimated from the LFP
+        hed: Asleep, sc:Sleep-stage-REM
+      WAKEtheta:
+        meaning: wake with theta (the lab's SleepScoreMaster)
+        hed: Awake
+      WAKEnontheta:
+        meaning: wake without theta (the lab's SleepScoreMaster)
+        hed: Awake
+      WAKEtheta_ThDt:
+        meaning: wake with theta, scored with a higher theta/delta ratio threshold; overlaps the other states
+        hed: Awake
+      REMtheta_ThDt:
+        meaning: REM sleep with theta, scored with a higher theta/delta ratio threshold; overlaps the other states
+        hed: Asleep, sc:Sleep-stage-REM
+      QWake_ThDt:
+        meaning: quiet wake, scored with a higher theta/delta ratio threshold; overlaps the other states
+        hed: Awake
+      QWake_noRipples_ThDt:
+        meaning: quiet wake without ripples, scored with a higher theta/delta ratio threshold; overlaps the other states
+        hed: Awake
+      NREM_ThDt:
+        meaning: non-REM sleep, scored with a higher theta/delta ratio threshold; overlaps the other states
+        hed: Asleep
+      NREM_noRipples_ThDt:
+        meaning: non-REM sleep without ripples, scored with a higher theta/delta ratio threshold; overlaps the other states
+        hed: Asleep
+  trials:
+    visited_arm:
+      1:
+        meaning: a lap from the right end to the left end of the linear track, ending at the left reward (lReward)
+        hed: (Run, Leftward)
+      0:
+        meaning: a lap from the left end to the right end of the linear track, ending at the right reward (rReward)
+        hed: (Run, Rightward)
+    stimulated:
+      true:
+        meaning: the lap is in a block of runs with random uLED stimulation
+      false:
+        meaning: the lap is in a baseline block of runs without stimulation
+  rewards:
+    side:
+      left:
+        meaning: water reward at the left end of the linear track (lReward)
+      right:
+        meaning: water reward at the right end of the linear track (rReward)
+  uled_pulses:
+    code:
+      1:
+        meaning: 20 ms light pulse from uLED 1 of shank 1
+      2:
+        meaning: 20 ms light pulse from uLED 2 of shank 1
+      3:
+        meaning: 20 ms light pulse from uLED 3 of shank 1
+      4:
+        meaning: 20 ms light pulse from uLED 1 of shank 2
+      5:
+        meaning: 20 ms light pulse from uLED 2 of shank 2
+      6:
+        meaning: 20 ms light pulse from uLED 3 of shank 2
+      7:
+        meaning: 20 ms light pulse from uLED 1 of shank 3
+      8:
+        meaning: 20 ms light pulse from uLED 2 of shank 3
+      9:
+        meaning: 20 ms light pulse from uLED 3 of shank 3
+      10:
+        meaning: 20 ms light pulse from uLED 1 of shank 4
+      11:
+        meaning: 20 ms light pulse from uLED 2 of shank 4
+      12:
+        meaning: 20 ms light pulse from uLED 3 of shank 4
+  units:
+    cell_type:
+      Pyramidal Cell:
+        meaning: putative pyramidal cell (CellExplorer classification from the waveform and autocorrelogram)
+      Narrow Interneuron:
+        meaning: putative interneuron with a narrow waveform (CellExplorer classification)
+      Wide Interneuron:
+        meaning: putative interneuron with a wide waveform (CellExplorer classification)
+      Unknown:
+        meaning: not classified by CellExplorer
