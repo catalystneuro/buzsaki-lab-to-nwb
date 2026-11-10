@@ -111,6 +111,15 @@ class GirardeauBehaviorInterface(BaseDataInterface):
         whl = pd.read_csv(self.file(".whl"), sep=r"[\s,]+", header=None, engine="python")
         whl = whl.to_numpy(dtype=float, copy=True)
         whl[whl < 0] = np.nan  # -1 marks samples without a detected LED
+        # Rat08-20130722's session .whl holds the session twice: its first half is the epochs' .whl files in order (the
+        # session's length at 1250/32 Hz), and a near-identical copy follows. Keep the samples the epochs account for.
+        epoch_files = [self.session_path / f"{name}.whl" for name, _, _ in self.epochs]
+        expected = round(self.epochs[-1][2] * WHL_RATE)
+        if len(whl) > expected + WHL_RATE and all(f.is_file() for f in epoch_files):
+            n = sum(len(f.read_text().splitlines()) for f in epoch_files)
+            if abs(n - expected) > WHL_RATE:
+                raise ValueError(f"{self.session_id}: .whl has {len(whl)} samples and its epochs {n}, against {expected} expected")
+            whl = whl[:n]
         position = Position(name="position")
         for index in range(whl.shape[1] // 2):
             position.add_spatial_series(
