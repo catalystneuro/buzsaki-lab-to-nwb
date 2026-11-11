@@ -25,7 +25,9 @@ class HuszarEpochsInterface(BaseDataInterface):
         self.session_path = Path(folder_path)
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
-        epochs = read_epochs(read_session(self.session_path))
+        # Leave out entries without a stop time: e13_26m1_211116's session.mat holds only a template entry
+        # ("analogin", start 0, no stop), and its published file has no epochs
+        epochs = [epoch for epoch in read_epochs(read_session(self.session_path)) if "stopTime" in epoch]
         if not epochs:
             return
         maze_info = read_maze_info(self.session_path)
