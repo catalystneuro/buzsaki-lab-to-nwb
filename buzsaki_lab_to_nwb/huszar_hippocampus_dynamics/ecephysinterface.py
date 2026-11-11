@@ -18,6 +18,18 @@ from .huszarutils import as_list, read_session
 # The paper's probes were implanted in dorsal CA1; session.mat gives no brain region
 LOCATION = "CA1"
 STUB_SAMPLES = 75_000
+# The written chunks (yuta_mossy_cell.convert_session.set_streaming_chunks): 2**20 samples of 16 channels. The
+# iterator must read whole multiples of them across all channels: left to choose, it picked buffers of one channel
+# down the whole recording for some shapes (e13_26m1_211116: 497,825,986 x 1), so every compressed chunk was read
+# back and rewritten 16 times and the source read once per channel, about 190 times the data.
+CHUNK_SAMPLES, CHUNK_CHANNELS, BUFFER_BYTES = 2**20, 16, 512e6
+
+
+def signal_iterator(data) -> SliceableDataChunkIterator:
+    samples, channels = data.shape
+    chunk = (min(samples, CHUNK_SAMPLES), min(channels, CHUNK_CHANNELS))
+    rows = chunk[0] * max(1, int(BUFFER_BYTES // (chunk[0] * channels * data.dtype.itemsize)))
+    return SliceableDataChunkIterator(data=data, chunk_shape=chunk, buffer_shape=(min(samples, rows), channels))
 
 GAIN_NOTE = (
     "scaled to volts with session.mat extracellular.leastSignificantBit ({lsb} uV per step, the Intan RHD2000 step); "
@@ -125,7 +137,7 @@ class HuszarEcephysInterface(BaseDataInterface):
         return ElectricalSeries(
             name=name,
             description=description,
-            data=SliceableDataChunkIterator(data=data),
+            data=signal_iterator(data),
             electrodes=nwbfile.create_electrode_table_region(
                 region=list(range(self.n_channels)), description="all channels"
             ),
@@ -204,7 +216,7 @@ class HuszarEcephysInterface(BaseDataInterface):
                     "The samples are those of the session's raw file in DANDI:000552 version 0.230630.2304 (the lab's "
                     ".dat files are not on its share)"
                 ),
-                data=SliceableDataChunkIterator(data=data[:STUB_SAMPLES] if stub_test else data),
+                data=signal_iterator(data[:STUB_SAMPLES] if stub_test else data),
                 electrodes=nwbfile.create_electrode_table_region(
                     region=list(range(self.n_channels)), description="all channels"
                 ),
