@@ -31,13 +31,15 @@ OPTO_TAG_COLUMNS = (
     (
         "p_salt",
         "opto_p_salt",
-        "p value of the stimulus-associated spike latency test (SALT) for the light pulses (cell_metrics.optoTag.p_salt)",
+        "p value of the stimulus-associated spike latency test (SALT) for the light pulses (cell_metrics.optoTag.p_salt); "
+        "the paper counts P <= 0.001 as significant (Methods). See light_responsive",
     ),
     (
         "h_reliable",
         "opto_h_reliable",
-        "True if the lab's test marked the unit's light response as reliable (cell_metrics.optoTag.h_reliable); the "
-        "criterion the paper used to call a unit light-responsive (birthdated) is not stated in the source",
+        "True if the unit passed the lab's test of reliable firing after the light pulses, compared with before them "
+        "(cell_metrics.optoTag.h_reliable; the Methods' Poisson test at alpha 0.001, Bonferroni corrected). See "
+        "light_responsive",
     ),
     (
         "int_ratemod",
@@ -105,7 +107,13 @@ class HuszarSortingInterface(BaseDataInterface):
         nwbfile.add_unit_column(name="unit_name", description="UID of the unit in the lab's files")
         nwbfile.add_unit_column(name="cluster_id", description="Phy cluster id of the unit (spikes.cellinfo cluID)")
         nwbfile.add_unit_column(
-            name="shank_id", description="1-indexed electrode group the unit was sorted on (spikes.cellinfo shankID)"
+            name="shank_id",
+            description=(
+                "1-indexed electrode group the unit was sorted on (spikes.cellinfo shankID), the 'Group N' electrode "
+                "group. A group is a set of channels the lab sorted together, not always a physical shank: on probes "
+                "with two groups per shank, two shank_id values share one shank. The physical shank is the shank "
+                "column of the electrodes table (for example at max_electrode)."
+            ),
         )
         nwbfile.add_unit_column(
             name="max_electrode",
@@ -117,6 +125,16 @@ class HuszarSortingInterface(BaseDataInterface):
                 nwbfile.add_unit_column(name=column, description=description)
             for _, column, description in OPTO_TAG_COLUMNS:
                 nwbfile.add_unit_column(name=column, description=description)
+            nwbfile.add_unit_column(
+                name="light_responsive",
+                description=(
+                    "True for a pyramidal neuron that the paper's criteria call light-responsive, that is birthdated "
+                    "(ChR2-expressing): putative_cell_type 'Pyramidal Cell', opto_p_salt <= 0.001 and opto_h_reliable "
+                    "True. The Methods test only pyramidal neurons and require every test to be passed; with these "
+                    "criteria the files give the paper's 664 light-responsive neurons in the 96 sessions it analyses. "
+                    "Derived here from the lab's statistics, not stored by the lab."
+                ),
+            )
 
         for index in range(n_units):
             group = nwbfile.electrode_groups[f"Group {int(spikes['shankID'][index])}"]
@@ -139,4 +157,9 @@ class HuszarSortingInterface(BaseDataInterface):
                 for field, column, _ in OPTO_TAG_COLUMNS:
                     value = float(cell_metrics["optoTag"][field][index])
                     row[column] = bool(value) if field == "h_reliable" else value
+                row["light_responsive"] = bool(
+                    str(row["putative_cell_type"]) == "Pyramidal Cell"
+                    and row["opto_p_salt"] <= 0.001
+                    and row["opto_h_reliable"]
+                )
             nwbfile.add_unit(**row)

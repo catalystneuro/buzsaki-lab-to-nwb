@@ -7,9 +7,30 @@ from neuroconv.basedatainterface import BaseDataInterface
 from pydantic import DirectoryPath
 from pynwb.file import NWBFile
 
-from .huszarutils import as_list, read_behavior, read_epochs, read_maze_info, read_session, sub_session_names
+from .huszarutils import (
+    as_list,
+    read_behavior,
+    read_epochs,
+    read_maze_info,
+    read_session,
+    read_tracking,
+    sub_session_names,
+)
 
 NO_ENVIRONMENT = "none"
+
+
+def tracked_sub_sessions(session_path: Path) -> list:
+    """Epochs (name, startTime, stopTime) of the tracked sub-sessions in Tracking.Behavior.mat (folders and
+    events.subSessions), for a session whose session.mat lists none."""
+    tracking = read_tracking(session_path)
+    if tracking is None or not isinstance(tracking.get("events"), dict) or "subSessions" not in tracking["events"]:
+        return []
+    folders = [str(folder) for folder in as_list(tracking["folders"])]
+    intervals = np.atleast_2d(np.asarray(tracking["events"]["subSessions"], dtype=float))
+    if len(folders) != len(intervals):
+        raise ValueError(f"{len(folders)} tracking folders for {len(intervals)} sub-session intervals")
+    return [dict(name=folder, startTime=start, stopTime=stop) for folder, (start, stop) in zip(folders, intervals)]
 
 
 class HuszarEpochsInterface(BaseDataInterface):
@@ -26,8 +47,11 @@ class HuszarEpochsInterface(BaseDataInterface):
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         # Leave out entries without a stop time: e13_26m1_211116's session.mat holds only a template entry
-        # ("analogin", start 0, no stop), and its published file has no epochs
+        # ("analogin", start 0, no stop). Such a session still has its tracked sub-sessions (folder names and start
+        # and stop times) in Tracking.Behavior.mat, which give its epochs; its home-cage periods are then not epochs.
         epochs = [epoch for epoch in read_epochs(read_session(self.session_path)) if "stopTime" in epoch]
+        if not epochs:
+            epochs = tracked_sub_sessions(self.session_path)
         if not epochs:
             return
         maze_info = read_maze_info(self.session_path)
