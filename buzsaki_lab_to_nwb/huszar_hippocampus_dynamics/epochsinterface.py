@@ -33,6 +33,34 @@ def tracked_sub_sessions(session_path: Path) -> list:
     return [dict(name=folder, startTime=start, stopTime=stop) for folder, (start, stop) in zip(folders, intervals)]
 
 
+def behavior_sub_sessions(session_path: Path) -> list:
+    """Epochs of the maze sub-sessions in Behavior.mat, for a session without Tracking.Behavior.mat: each starts at
+    its events.recordings time and ends at its last tracked frame (the source gives no stop time), with its
+    environment and task."""
+    behavior = read_behavior(session_path)
+    if behavior is None:
+        return []
+    starts = np.atleast_1d(np.asarray(behavior["events"]["recordings"], dtype=float))
+    timestamps = np.atleast_1d(np.asarray(behavior["timestamps"], dtype=float))
+    masks = np.atleast_1d(behavior["masks"]["recording"]).astype(int)
+    descriptions = [str(description) for description in as_list(behavior["description"])]
+    maze_info = read_maze_info(session_path)
+    epochs = []
+    for number in np.unique(masks):
+        if number < 1 or number > len(starts):
+            continue
+        epochs.append(
+            dict(
+                name=f"maze sub-session {number} (Behavior.mat)",
+                startTime=starts[number - 1],
+                stopTime=float(timestamps[masks == number].max()),
+                environment=maze_info[number - 1] if maze_info and number <= len(maze_info) else "figure-8 maze",
+                task=descriptions[number - 1] if number <= len(descriptions) else NO_ENVIRONMENT,
+            )
+        )
+    return epochs
+
+
 class HuszarEpochsInterface(BaseDataInterface):
     """One epoch per sub-session of session.mat, named by its recording folder.
 
@@ -50,8 +78,16 @@ class HuszarEpochsInterface(BaseDataInterface):
         # ("analogin", start 0, no stop). Such a session still has its tracked sub-sessions (folder names and start
         # and stop times) in Tracking.Behavior.mat, which give its epochs; its home-cage periods are then not epochs.
         epochs = [epoch for epoch in read_epochs(read_session(self.session_path)) if "stopTime" in epoch]
-        if not epochs:
-            epochs = tracked_sub_sessions(self.session_path)
+        # Add the tracked sub-sessions that session.mat's epochs do not cover: in some sessions they end before the
+        # maze (e14_2m3_201017: one epoch, 0 to 6,768 s; maze tracking 6,793 to 8,943 s)
+        names = {str(epoch["name"]) for epoch in epochs}
+        for tracked in tracked_sub_sessions(self.session_path) or behavior_sub_sessions(self.session_path):
+            start, stop = float(tracked["startTime"]), float(tracked["stopTime"])
+            covered = sum(
+                max(0.0, min(stop, float(epoch["stopTime"])) - max(start, float(epoch["startTime"]))) for epoch in epochs
+            )
+            if tracked["name"] not in names and covered < 0.5 * (stop - start):
+                epochs.append(tracked)
         if not epochs:
             return
         maze_info = read_maze_info(self.session_path)
@@ -71,7 +107,14 @@ class HuszarEpochsInterface(BaseDataInterface):
                     if maze_info is None:
                         environments[folders[number - 1]] = "figure-8 maze"
 
-        nwbfile.add_epoch_column(name="epoch_name", description="name of the sub-session: its recording folder")
+        nwbfile.add_epoch_column(
+            name="epoch_name",
+            description=(
+                "name of the sub-session: its recording folder, or 'maze sub-session N (Behavior.mat)' for a maze "
+                "sub-session that session.mat does not list, which runs from its Behavior.mat start to its last "
+                "tracked frame"
+            ),
+        )
         nwbfile.add_epoch_column(
             name="environment",
             description=(
@@ -90,6 +133,6 @@ class HuszarEpochsInterface(BaseDataInterface):
                 start_time=float(epoch["startTime"]),
                 stop_time=float(epoch["stopTime"]),
                 epoch_name=name,
-                environment=environments.get(name, NO_ENVIRONMENT),
-                task=tasks.get(name, NO_ENVIRONMENT),
+                environment=epoch.get("environment", environments.get(name, NO_ENVIRONMENT)),
+                task=epoch.get("task", tasks.get(name, NO_ENVIRONMENT)),
             )

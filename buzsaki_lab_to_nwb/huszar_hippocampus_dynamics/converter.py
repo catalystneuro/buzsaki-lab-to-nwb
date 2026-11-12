@@ -116,7 +116,13 @@ class HuzsarNWBConverter(NWBConverter):
                 "subject id."
             ),
         )
-        # The source gives no age; the paper gives 3 to 6 months for the implanted mice as a group
+        # No source file gives an age; the paper gives 3 to 6 months for the implanted mice as a group
         if "age" in animal:
             metadata["Subject"]["age"] = str(animal["age"])
+        else:
+            metadata["Subject"]["age"] = "P3M/P6M"
+            metadata["Subject"]["description"] += (
+                " Age: 3 to 6 months, the range the paper gives for the implanted mice as a group; no source file "
+                "gives each mouse's age."
+            )
         return metadata
