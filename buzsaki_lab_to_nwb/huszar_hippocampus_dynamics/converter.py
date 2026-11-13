@@ -119,8 +119,7 @@ class HuzsarNWBConverter(NWBConverter):
         # No source file gives an age; the paper gives 3 to 6 months for the implanted mice as a group
         if "age" in animal:
             metadata["Subject"]["age"] = str(animal["age"])
-        else:
-            metadata["Subject"]["age"] = "P3M/P6M"
+        else:  # the age itself, P3M/P6M, is in metadata.yml, which is merged in after this
             metadata["Subject"]["description"] += (
                 " Age: 3 to 6 months, the range the paper gives for the implanted mice as a group; no source file "
                 "gives each mouse's age."
