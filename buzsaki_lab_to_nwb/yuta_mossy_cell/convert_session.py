@@ -1,6 +1,5 @@
 """Convert one Senzai and Buzsaki 2017 session (DANDI:000003) to NWB."""
 
-import math
 import re
 from pathlib import Path
 from typing import Optional
@@ -12,37 +11,8 @@ from buzsaki_lab_to_nwb.yuta_mossy_cell import SenzaiNWBConverter
 from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiherd import add_external_resources
 from buzsaki_lab_to_nwb.yuta_mossy_cell.value_meanings import add_value_meanings
 
-# Chunk sizes before compression, to give stored chunks of tens of MB for streaming from S3
-CHUNK_MB = 32
-LFP_CHUNK_CHANNELS = 16
-BUFFER_MB = 512
-
-
-def set_streaming_chunks(backend_configuration):
-    """Chunk every dataset along its first axis to about CHUNK_MB, or keep it in one chunk if it is smaller.
-
-    The LFP and wide-band signals are also split into groups of LFP_CHUNK_CHANNELS channels.
-    """
-    for location, configuration in backend_configuration.dataset_configurations.items():
-        full_shape = configuration.full_shape
-        if not full_shape or 0 in full_shape:
-            continue
-        item_bytes = configuration.dtype.itemsize
-        if location.endswith(("LFP/lfp/data", "acquisition/ElectricalSeries/data")):
-            other_axes = (min(full_shape[1], LFP_CHUNK_CHANNELS),)
-        else:
-            other_axes = full_shape[1:]
-        bytes_per_row = item_bytes * math.prod(other_axes)
-        if full_shape[0] * bytes_per_row <= CHUNK_MB * 1e6:
-            rows = full_shape[0]
-        else:
-            rows = min(full_shape[0], 2 ** round(math.log2(CHUNK_MB * 1e6 / bytes_per_row)))
-        buffer_rows = rows * max(1, int(BUFFER_MB * 1e6 // (rows * item_bytes * math.prod(full_shape[1:]))))
-        backend_configuration.dataset_configurations[location] = configuration.model_copy(
-            update=dict(
-                chunk_shape=(rows, *other_axes), buffer_shape=(min(full_shape[0], buffer_rows), *full_shape[1:])
-            )
-        )
+# The chunk and buffer shapes shared by the Buzsaki conversions (see utils/iterators.py)
+from buzsaki_lab_to_nwb.utils.iterators import set_streaming_chunks  # noqa: E402,F401
 
 
 def session_to_nwb(

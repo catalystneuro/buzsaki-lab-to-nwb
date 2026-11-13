@@ -1,10 +1,12 @@
 """Electrodes, LFP and wide-band signal of a Huszar session (DANDI:000552)."""
 
 from pathlib import Path
+from typing import Optional
 
+import h5py
 import numpy as np
 from neuroconv.basedatainterface import BaseDataInterface
-from neuroconv.tools.hdmf import SliceableDataChunkIterator
+from buzsaki_lab_to_nwb.utils.iterators import signal_iterator
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath
 from pymatreader import read_mat
@@ -16,7 +18,6 @@ from .huszarutils import as_list, read_session
 # The paper's probes were implanted in dorsal CA1; session.mat gives no brain region
 LOCATION = "CA1"
 STUB_SAMPLES = 75_000
-
 GAIN_NOTE = (
     "scaled to volts with session.mat extracellular.leastSignificantBit ({lsb} uV per step, the Intan RHD2000 step); "
     "the .xml gives 20 V and x1000 (0.305 uV per step), template values of the lab's files"
@@ -31,9 +32,20 @@ class HuszarEcephysInterface(BaseDataInterface):
     """
 
     def __init__(
-        self, folder_path: DirectoryPath, write_lfp: bool = True, write_raw: bool = True, verbose: bool = False
+        self,
+        folder_path: DirectoryPath,
+        write_lfp: bool = True,
+        write_raw: bool = True,
+        published_raw_file_path: Optional[str] = None,  # a path, or a URL to stream
+        verbose: bool = False,
     ):
-        super().__init__(folder_path=folder_path, write_lfp=write_lfp, write_raw=write_raw, verbose=verbose)
+        super().__init__(
+            folder_path=folder_path,
+            write_lfp=write_lfp,
+            write_raw=write_raw,
+            published_raw_file_path=published_raw_file_path,
+            verbose=verbose,
+        )
         self.session_path = Path(folder_path)
         self.session_id = self.session_path.name
         self.session = read_session(self.session_path)
@@ -112,7 +124,7 @@ class HuszarEcephysInterface(BaseDataInterface):
         return ElectricalSeries(
             name=name,
             description=description,
-            data=SliceableDataChunkIterator(data=data),
+            data=signal_iterator(data, kind="lfp" if name == "LFP" else "wideband"),
             electrodes=nwbfile.create_electrode_table_region(
                 region=list(range(self.n_channels)), description="all channels"
             ),
@@ -141,7 +153,9 @@ class HuszarEcephysInterface(BaseDataInterface):
             )
 
         raw_path = self.session_path / f"{self.session_id}.dat"
-        if self.source_data["write_raw"] and raw_path.is_file() and raw_path.stat().st_size:
+        if self.source_data["write_raw"] and self.source_data["published_raw_file_path"]:
+            self.add_raw_from_published(nwbfile, gain_note, stub_test)
+        elif self.source_data["write_raw"] and raw_path.is_file() and raw_path.stat().st_size:
             rate = float(self.extracellular["sr"])
             nwbfile.add_acquisition(
                 self._series(
@@ -153,3 +167,58 @@ class HuszarEcephysInterface(BaseDataInterface):
                     stub_test,
                 )
             )
+
+    def add_raw_from_published(self, nwbfile: NWBFile, gain_note: str, stub_test: bool = False):
+        """The wide-band signal from the session's raw file in DANDI:000552 version 0.230630.2304, for the sessions
+        whose .dat is published (the lab's .dat files are not on its share): the same int16 steps, in channel order."""
+        path = str(self.source_data["published_raw_file_path"])
+        if path.startswith(("https://", "http://")):
+            import remfile
+
+            self._published_file = published = h5py.File(remfile.File(path), "r")
+        else:
+            self._published_file = published = h5py.File(path, "r")  # kept open until the new file is written
+        if "acquisition/ElectricalSeries" not in published:
+            raise ValueError(f"The earlier raw file of {self.session_id} has no wide-band signal")
+        source = published["acquisition/ElectricalSeries"]
+        data = source["data"]
+        ids = np.asarray(published["general/extracellular_ephys/electrodes/id"][:])
+        rate = float(source["starting_time"].attrs["rate"])
+        if (
+            data.dtype != np.int16
+            or data.shape[1] != self.n_channels
+            or not np.array_equal(ids, np.arange(self.n_channels))
+        ):
+            raise ValueError(
+                f"Unexpected wide-band signal in the earlier file of {self.session_id}: {data.dtype} {data.shape}"
+            )
+        if not np.isclose(float(data.attrs["conversion"]), self.volts_per_step, rtol=1e-3):
+            raise ValueError(f"The earlier wide-band signal of {self.session_id} has another scaling than session.mat")
+        if not np.isclose(rate, float(self.extracellular["sr"])):
+            raise ValueError(
+                f"The earlier wide-band signal of {self.session_id} is at {rate} Hz, session.mat says otherwise"
+            )
+        lfp_path = self.session_path / f"{self.session_id}.lfp"
+        if lfp_path.is_file():  # the .lfp is the .dat down-sampled 24 times: the durations must agree within a second
+            lfp_seconds = lfp_path.stat().st_size / 2 / self.n_channels / float(self.extracellular.get("srLfp", 1250))
+            if abs(lfp_seconds - data.shape[0] / rate) > 1:
+                raise ValueError(
+                    f"{self.session_id}: the earlier wide-band signal lasts {data.shape[0] / rate:.1f} s, the .lfp {lfp_seconds:.1f} s"
+                )
+        nwbfile.add_acquisition(
+            ElectricalSeries(
+                name="ElectricalSeries",
+                description=(
+                    f"wide-band signal of all channels at {rate:g} Hz (session.mat sr), the lab's .dat file, {gain_note}. "
+                    "The samples are those of the session's raw file in DANDI:000552 version 0.230630.2304 (the lab's "
+                    ".dat files are not on its share)"
+                ),
+                data=signal_iterator(data[:STUB_SAMPLES] if stub_test else data),
+                electrodes=nwbfile.create_electrode_table_region(
+                    region=list(range(self.n_channels)), description="all channels"
+                ),
+                starting_time=0.0,
+                rate=rate,
+                conversion=self.volts_per_step,
+            )
+        )

@@ -31,7 +31,8 @@ class HuszarTrialsInterface(BaseDataInterface):
         trial_ints = trials["trial_ints"]
         if isinstance(trial_ints, np.ndarray) and trial_ints.dtype != object:
             trial_ints = [trial_ints]
-        trial_ints = [np.atleast_2d(np.asarray(ints, dtype=float)) for ints in trial_ints]
+        # A sub-session can have no trials (e16_3m2_211211's second block is empty): keep it as 0 rows of 2
+        trial_ints = [np.asarray(ints, dtype=float).reshape(-1, 2) for ints in trial_ints]
         intervals = np.concatenate(trial_ints)
         recordings = np.atleast_1d(trials["recordings"]).astype(int)
         if len(recordings) != len(intervals):
