@@ -84,7 +84,8 @@ class HuszarEpochsInterface(BaseDataInterface):
         for tracked in tracked_sub_sessions(self.session_path) or behavior_sub_sessions(self.session_path):
             start, stop = float(tracked["startTime"]), float(tracked["stopTime"])
             covered = sum(
-                max(0.0, min(stop, float(epoch["stopTime"])) - max(start, float(epoch["startTime"]))) for epoch in epochs
+                max(0.0, min(stop, float(epoch["stopTime"])) - max(start, float(epoch["startTime"])))
+                for epoch in epochs
             )
             if tracked["name"] not in names and covered < 0.5 * (stop - start):
                 epochs.append(tracked)

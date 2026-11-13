@@ -64,7 +64,10 @@ def set_streaming_chunks(backend_configuration):
             else:
                 rows = min(full_shape[0], 2 ** max(0, round(math.log2(OTHER_CHUNK_MB * 1e6 / bytes_per_row))))
             chunk = (rows, *full_shape[1:])
-            buffer = (min(full_shape[0], rows * max(1, int(BUFFER_MB * 1e6 // (rows * bytes_per_row)))), *full_shape[1:])
+            buffer = (
+                min(full_shape[0], rows * max(1, int(BUFFER_MB * 1e6 // (rows * bytes_per_row)))),
+                *full_shape[1:],
+            )
         backend_configuration.dataset_configurations[location] = configuration.model_copy(
             update=dict(chunk_shape=chunk, buffer_shape=buffer)
         )

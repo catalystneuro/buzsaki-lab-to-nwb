@@ -184,17 +184,27 @@ class HuszarEcephysInterface(BaseDataInterface):
         data = source["data"]
         ids = np.asarray(published["general/extracellular_ephys/electrodes/id"][:])
         rate = float(source["starting_time"].attrs["rate"])
-        if data.dtype != np.int16 or data.shape[1] != self.n_channels or not np.array_equal(ids, np.arange(self.n_channels)):
-            raise ValueError(f"Unexpected wide-band signal in the earlier file of {self.session_id}: {data.dtype} {data.shape}")
+        if (
+            data.dtype != np.int16
+            or data.shape[1] != self.n_channels
+            or not np.array_equal(ids, np.arange(self.n_channels))
+        ):
+            raise ValueError(
+                f"Unexpected wide-band signal in the earlier file of {self.session_id}: {data.dtype} {data.shape}"
+            )
         if not np.isclose(float(data.attrs["conversion"]), self.volts_per_step, rtol=1e-3):
             raise ValueError(f"The earlier wide-band signal of {self.session_id} has another scaling than session.mat")
         if not np.isclose(rate, float(self.extracellular["sr"])):
-            raise ValueError(f"The earlier wide-band signal of {self.session_id} is at {rate} Hz, session.mat says otherwise")
+            raise ValueError(
+                f"The earlier wide-band signal of {self.session_id} is at {rate} Hz, session.mat says otherwise"
+            )
         lfp_path = self.session_path / f"{self.session_id}.lfp"
         if lfp_path.is_file():  # the .lfp is the .dat down-sampled 24 times: the durations must agree within a second
             lfp_seconds = lfp_path.stat().st_size / 2 / self.n_channels / float(self.extracellular.get("srLfp", 1250))
             if abs(lfp_seconds - data.shape[0] / rate) > 1:
-                raise ValueError(f"{self.session_id}: the earlier wide-band signal lasts {data.shape[0] / rate:.1f} s, the .lfp {lfp_seconds:.1f} s")
+                raise ValueError(
+                    f"{self.session_id}: the earlier wide-band signal lasts {data.shape[0] / rate:.1f} s, the .lfp {lfp_seconds:.1f} s"
+                )
         nwbfile.add_acquisition(
             ElectricalSeries(
                 name="ElectricalSeries",

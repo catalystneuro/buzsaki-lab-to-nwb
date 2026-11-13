@@ -59,7 +59,9 @@ def session_to_nwbfile(
     if not has("pulses.events.mat"):
         source_data.pop("OptogeneticPulses")
 
-    if raw_only:  # the session's raw file: electrodes, epochs and the wide-band signal; the rest is in its processed file
+    if (
+        raw_only
+    ):  # the session's raw file: electrodes, epochs and the wide-band signal; the rest is in its processed file
         source_data = dict(Ecephys=source_data["Ecephys"], Epochs=source_data["Epochs"])
 
     converter = HuzsarNWBConverter(source_data=source_data, verbose=verbose)
