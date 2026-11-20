@@ -12,7 +12,15 @@ from pynwb.epoch import TimeIntervals
 from pynwb.event import EventsTable
 from pynwb.file import NWBFile
 
-from .huszarutils import FAMILIAR_MAZE, read_behavior, read_maze_info, read_tracking, sub_session_names
+from .epochsinterface import session_epochs
+from .huszarutils import (
+    FAMILIAR_MAZE,
+    check_sub_session_times,
+    read_behavior,
+    read_maze_info,
+    read_tracking,
+    sub_session_names,
+)
 
 BEHAVIOR_MODULE_DESCRIPTION = "behavior: position in the mazes, maze events and sleep states"
 
@@ -70,6 +78,13 @@ class HuszarPositionInterface(BaseDataInterface):
                 )
         if not segments:
             return
+
+        # The environment and the recording folder of a sub-session are looked up by its number. Check that its
+        # samples lie in the epoch of that folder before anything is written: in e16_3m2_211211, Behavior.mat gives
+        # sub-session 3 (the linear track) the times of sub-session 2 (the open field).
+        epochs = session_epochs(self.session_path)
+        for number, (timestamps, _, _, _, source) in sorted(segments.items()):
+            check_sub_session_times(number, timestamps, folders, epochs, source=source)
 
         module = behavior_module(nwbfile)
         position = Position(name="SubjectPosition")

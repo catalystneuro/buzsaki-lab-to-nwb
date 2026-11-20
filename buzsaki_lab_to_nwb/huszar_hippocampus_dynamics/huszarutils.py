@@ -78,6 +78,53 @@ def sub_session_names(session_path: Path) -> list:
     return names
 
 
+def epochs_at(time: float, epochs: list) -> list:
+    """Names of the epochs (dicts with name, startTime and stopTime) that hold this time."""
+    return [str(epoch["name"]) for epoch in epochs if float(epoch["startTime"]) <= time <= float(epoch["stopTime"])]
+
+
+def check_sub_session_times(number: int, timestamps, folders: list, epochs: list, source: str = "the source") -> list:
+    """Compare the two ways to place the samples of sub-session `number`, and raise an error if they differ.
+
+    By index, the samples belong to the epoch named `folders[number - 1]`, which is how the environment and the
+    recording folder of the sub-session are looked up. By time, they belong to the epoch that holds their median
+    timestamp. The lab's files can disagree: in e16_3m2_211211, Behavior.mat numbers its linear-track block 3 and
+    gives it the times of sub-session 2 (5564.48 s too early). The conversion cannot tell which of the two is right,
+    so it stops.
+
+    Returns the names of the epochs that hold the median timestamp (empty if no epoch does; nothing is compared then).
+    """
+    if number < 1:
+        raise ValueError(
+            f"{source} numbers a sub-session {number}; the lab's sub-session numbers start at 1, so its environment "
+            "and recording folder cannot be looked up."
+        )
+    timestamps = np.asarray(timestamps, dtype=float)
+    if timestamps.size == 0 or np.all(np.isnan(timestamps)):
+        return []
+    by_time = epochs_at(float(np.nanmedian(timestamps)), epochs)
+    if not by_time:
+        return by_time
+
+    by_index = folders[number - 1] if number <= len(folders) else ""
+    known = {str(epoch["name"]) for epoch in epochs}
+    numbers_by_time = [index + 1 for index, folder in enumerate(folders) if folder and folder in by_time]
+    in_other_sub_session = bool(numbers_by_time) and number not in numbers_by_time
+    outside_own_epoch = by_index in known and by_index not in by_time
+    if in_other_sub_session or outside_own_epoch:
+        first, last = float(np.nanmin(timestamps)), float(np.nanmax(timestamps))
+        where = ", ".join(by_time)
+        if numbers_by_time:
+            where += " (the recording folder of sub-session " + ", ".join(str(n) for n in numbers_by_time) + ")"
+        own = f"the epoch of its own recording folder, {by_index}" if by_index else "an epoch of its own"
+        raise ValueError(
+            f"The samples of sub-session {number} in {source} run from {first:.3f} to {last:.3f} s, which is in the "
+            f"epoch {where}, not in {own}. The sub-session number and the timestamps disagree in the source, so the "
+            "samples, and the trials and events on the same clock, cannot be placed."
+        )
+    return by_time
+
+
 def sub_session_environments(session_path: Path) -> dict:
     """Map the lab's sub-session number (1-indexed) to its maze_info.mat environment, if the session has one."""
     maze_info = read_maze_info(session_path)
