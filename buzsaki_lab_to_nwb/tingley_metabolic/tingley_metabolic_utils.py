@@ -1,5 +1,6 @@
 """Author: Cody Baker."""
 
+import re
 from typing import List
 from pathlib import Path
 from datetime import datetime
@@ -43,3 +44,23 @@ def read_glucose_csv(file_path: Path) -> (List[datetime], List[float]):
 def get_session_datetime(session_id: str):
     """Auxiliary function for parsing the datetime part of a sesion ID."""
     return datetime.strptime("_".join(session_id.split("_")[-2:]), "%y%m%d_%H%M%S")
+
+
+def get_session_datetime_key(session_id: str) -> str:
+    """The date and time fields of a session ID (its last two fields), joined by an underscore.
+
+    The fields can be separated by underscores (CGM1_210125_143404, the session folders) or by dashes
+    (CGM1-210125-143404, how some files on DANDI are named). Both give 210125_143404.
+    """
+    return "_".join(re.split("[-_]", session_id)[-2:])
+
+
+def get_dandi_session_datetime_key(dandi_path: str) -> str:
+    """The date and time fields of the session of a DANDI asset path.
+
+    Both sub-CGM1/sub-CGM1_ses-CGM1_210125_143404_ecephys.nwb and sub-CGM1/sub-CGM1_ses-CGM1-210125-143404_ecephys.nwb
+    give 210125_143404.
+    """
+    file_name = dandi_path.split("/")[-1]
+    without_modality = file_name.rsplit("_", maxsplit=1)[0]  # drop the trailing "_ecephys.nwb"
+    return get_session_datetime_key(without_modality)
