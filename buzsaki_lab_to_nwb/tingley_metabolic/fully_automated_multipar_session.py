@@ -26,6 +26,10 @@ from nwb_conversion_tools.utils import load_dict_from_file, dict_deep_update
 from spikeextractors import NeuroscopeRecordingExtractor
 
 from buzsaki_lab_to_nwb.tingley_metabolic import TingleyMetabolicConverter, get_session_datetime
+from buzsaki_lab_to_nwb.tingley_metabolic.tingley_metabolic_utils import (
+    get_dandi_session_datetime_key,
+    get_session_datetime_key,
+)
 
 assert os.environ.get("DANDI_API_KEY"), "Set your DANDI_API_KEY!"
 
@@ -70,15 +74,15 @@ else:
 def _transfer_and_convert(subject_id, subject_contents):
     try:
         dandi_content = list(get_s3_urls_and_dandi_paths(dandiset_id=dandiset_id).values())
-        dandi_session_datetimes = [
-            "_".join(x.split("/")[1].split("_")[-3:-1]) for x in dandi_content
-        ]  # probably a better way to do this, just brute forcing for now
+        # Compare on the date and time fields of the session ID, whether a name separates them by "_" or by "-":
+        # DANDI:000233 holds files named both ways, and a split on "_" alone never matched the dash-named ones
+        dandi_session_datetimes = [get_dandi_session_datetime_key(x) for x in dandi_content]
         sessions = set([Path(x).parent.name for x in subject_contents]) - set([subject_id])  # subject_id for .csv
         unconverted_sessions = natsorted(
             [
                 session_id
                 for session_id in sessions
-                if "_".join(session_id.split("_")[-2:]) not in dandi_session_datetimes
+                if get_session_datetime_key(session_id) not in dandi_session_datetimes
             ]
         )  # natsorted for consistency on each run
 

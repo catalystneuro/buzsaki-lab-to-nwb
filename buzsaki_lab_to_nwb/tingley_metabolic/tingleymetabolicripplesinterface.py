@@ -35,7 +35,9 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
                     mat_data = mat_file["ripples"]
                     start_and_stop_times = mat_data["timestamps"][0][0][:stub_events]
                     durations = [x[0] for x in mat_data["data"][0][0]["duration"][0][0]][:stub_events]
-                    peaks = [x[0] for x in mat_data["peaks"][0][0]][:stub_events]
+                    # The source gives the peak times, like the start and stop times, in seconds from the start of
+                    # the ecephys recording; shift them to the session clock in the same way
+                    peaks = [ecephys_start_time + x[0] for x in mat_data["peaks"][0][0]][:stub_events]
                     peak_normed_powers = [x[0] for x in mat_data["peakNormedPower"][0][0]][:stub_events]
                     peak_frequencies = [x[0] for x in mat_data["data"][0][0]["peakFrequency"][0][0]][:stub_events]
                     peak_amplitudes = [x[0] for x in mat_data["data"][0][0]["peakAmplitude"][0][0]][:stub_events]
@@ -46,7 +48,11 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
 
                     descriptions = dict(
                         duration="Duration of the ripple event.",
-                        peak="Peak of the ripple.",
+                        peak=(
+                            "Time of the peak of the ripple, in seconds from the session start time: the same clock "
+                            "as start_time and stop_time (the time from the start of the ecephys recording, plus "
+                            "the offset of the ecephys recording from the session start)."
+                        ),
                         peak_normed_power="Normed power of the peak.",
                         peak_frequency="Peak frequency of the ripple.",
                         peak_amplitude="Peak amplitude of the ripple.",
@@ -79,7 +85,9 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
                         table.add_column(
                             name=column_name,
                             description=indexed_descriptions[column_name],
-                            index=list(range(column_data.shape[0])),
+                            # one row of the map per ripple: row i ends at element i + 1 (an index of 0, 1, ...
+                            # would leave row 0 empty and shift every waveform to the next ripple)
+                            index=list(range(1, column_data.shape[0] + 1)),
                             data=H5DataIO(column_data, compression="gzip"),
                         )
                     processing_module.add(table)
