@@ -117,6 +117,28 @@ NOT_IN_PAPER_NOTE = (
 )
 
 
+# The lab's "YutaMouse DG additional channel list.xlsx" (2019) gives the hilus and molecular layer channel of 33
+# sessions. It settles the sessions whose dentate spike files name more than one channel, and its one comment says
+# that the hilus channel of YutaMouse20-140328 is not in the hilus.
+LAB_HILUS_CHANNELS = {"YutaMouse20-140325": 33}
+SESSIONS_WITHOUT_A_HILUS_CHANNEL = ("YutaMouse20-140328",)
+NOT_HILUS_NOTE = (
+    "The lab's channel list says that channel 59, used here as the hilus channel, is not in the hilus, and that the "
+    "session should have been removed; one unit of this session is in the paper's data. No channel is marked as the "
+    "hilus reference."
+)
+
+
+def hilus_channel(session_id: str, dentate_spike_channels: set) -> Optional[int]:
+    """The session's hilus channel: the one channel its dentate spike files name, the channel the lab's list gives
+    where they name more than one, and none where the lab's list says the channel is not in the hilus."""
+    if session_id in SESSIONS_WITHOUT_A_HILUS_CHANNEL:
+        return None
+    if session_id in LAB_HILUS_CHANNELS:
+        return LAB_HILUS_CHANNELS[session_id]
+    return next(iter(dentate_spike_channels)) if len(dentate_spike_channels) == 1 else None
+
+
 def light_note(mouse: str) -> str:
     """What the paper says about the light delivered to a mouse; the lab's files give no wavelength.
 

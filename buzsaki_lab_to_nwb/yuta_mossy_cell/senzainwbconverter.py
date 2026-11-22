@@ -14,6 +14,8 @@ from .senzaisortinginterface import SenzaiSortingInterface
 from .senzaiutils import (
     MICE_NOT_IN_PAPER,
     NOT_IN_PAPER_NOTE,
+    NOT_HILUS_NOTE,
+    SESSIONS_WITHOUT_A_HILUS_CHANNEL,
     VIRUS_FROM_PAPER,
     read_exp_sheet,
     read_unit_summary,
@@ -107,6 +109,8 @@ class SenzaiNWBConverter(NWBConverter):
         )
         if mouse in MICE_NOT_IN_PAPER:
             session_description += " " + NOT_IN_PAPER_NOTE
+        if session_id in SESSIONS_WITHOUT_A_HILUS_CHANNEL:
+            session_description += " " + NOT_HILUS_NOTE
         if second_session:
             session_description += (
                 " This is the second recording session of the day (named with 'b'), recorded with the same probe."

@@ -23,6 +23,8 @@ from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiecephysinterface import (
     group_kinds,
 )
 from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiutils import (
+    NOT_HILUS_NOTE,
+    hilus_channel,
     NOT_IN_PAPER_NOTE,
     find_frame_offset,
     light_note,
@@ -546,6 +548,23 @@ def test_exp_sheet_details_are_read_from_whichever_tab_holds_them(tmp_path, deta
     sheet = read_exp_sheet(path)
     assert sheet["genotype"] == "SST-Cre"
     assert pd.Timestamp(sheet["DOB"]) == pd.Timestamp("2014-08-20")
+
+
+@pytest.mark.parametrize(
+    "session_id, channels, expected",
+    [
+        ("YutaMouse41-150829", {12}, 12),  # one dentate spike channel: that one
+        ("YutaMouse55-160906", {48, 60}, None),  # two channels and nothing in the lab's list: none marked
+        ("YutaMouse20-140325", {11, 33}, 33),  # two channels: the lab's channel list decides
+        ("YutaMouse20-140328", {59}, None),  # the lab's list says channel 59 is not in the hilus
+    ],
+)
+def test_hilus_channel_follows_the_dentate_spike_files_and_the_lab_channel_list(session_id, channels, expected):
+    assert hilus_channel(session_id, set(channels)) == expected
+
+
+def test_note_for_the_session_whose_hilus_channel_is_not_in_the_hilus():
+    assert "channel 59" in NOT_HILUS_NOTE and "not in the hilus" in NOT_HILUS_NOTE
 
 
 def test_note_for_the_mouse_that_is_not_in_the_paper():
