@@ -119,3 +119,31 @@ def test_other_sessions_and_files_without_a_session_do_not_match():
     assert utils.get_session_datetime_key("CGM1_210125_143404") in dandi_keys
     assert utils.get_session_datetime_key("CGM1_210126_143404") not in dandi_keys
     assert utils.get_session_datetime_key("CGM30_210123_101500") not in dandi_keys
+
+
+def test_each_ripple_holds_its_own_waveform(tmp_path, conversion_tools):
+    starts = np.array([10.0, 20.5, 31.25, 47.0])
+    file_path = tmp_path / "CGM1_210125_143404.ripples.events.mat"
+    write_ripples_file(file_path, starts=starts, peaks=starts + 0.03, stops=starts + 0.08, samples=7)
+    maps = np.arange(len(starts) * 7, dtype=float).reshape(len(starts), 7)
+
+    module = load_module("tingleymetabolicripplesinterface")
+    interface = module.TingleyMetabolicRipplesInterface(mat_file_paths=[file_path])
+    nwbfile = mock_NWBFile()
+    interface.run_conversion(nwbfile=nwbfile, metadata=dict(), ecephys_start_time=0.0)
+
+    table = nwbfile.processing["ecephys"]["Ripples"]
+    for column_name, offset in (("ripple", 0.0), ("frequency", 1.0), ("phase", 2.0), ("amplitude", 3.0)):
+        assert len(table[column_name]) == len(starts)
+        for row in range(len(starts)):  # the first ripple's row is not empty, and the last ripple has its waveform
+            np.testing.assert_array_equal(np.asarray(table[column_name][row]).ravel(), maps[row] + offset)
+
+
+def test_subject_age_is_set_and_reads_as_an_iso_8601_range():
+    import yaml
+
+    metadata = yaml.safe_load((FOLDER / "tingley_metabolic_metadata.yml").read_text())
+    age = metadata["Subject"]["age"]
+    assert age == "/"  # the paper gives no age; "/" is the ISO 8601 interval with both ends unknown
+    lower, upper = age.split("/")
+    assert lower == "" and upper == ""

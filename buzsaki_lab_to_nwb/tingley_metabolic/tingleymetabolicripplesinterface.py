@@ -85,7 +85,9 @@ class TingleyMetabolicRipplesInterface(BaseDataInterface):
                         table.add_column(
                             name=column_name,
                             description=indexed_descriptions[column_name],
-                            index=list(range(column_data.shape[0])),
+                            # one row of the map per ripple: row i ends at element i + 1 (an index of 0, 1, ...
+                            # would leave row 0 empty and shift every waveform to the next ripple)
+                            index=list(range(1, column_data.shape[0] + 1)),
                             data=H5DataIO(column_data, compression="gzip"),
                         )
                     processing_module.add(table)

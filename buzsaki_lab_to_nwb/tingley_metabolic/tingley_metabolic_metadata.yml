@@ -24,6 +24,7 @@ Subject:
   species: Rattus norvegicus
   strain: Long Evans
   sex: U
+  age: "/"  # unknown: the paper (Methods, "Rat details") and its supplement give no age, only "adult"
 Ecephys:
   Device:
     - name: IntanDevice
