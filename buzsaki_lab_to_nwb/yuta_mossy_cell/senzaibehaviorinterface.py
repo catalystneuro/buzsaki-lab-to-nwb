@@ -9,10 +9,18 @@ from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath
 from pynwb import NWBFile, TimeSeries
-from pynwb.misc import AnnotationSeries
 from pynwb.behavior import Position, SpatialSeries
 from pynwb.epoch import TimeIntervals
+from pynwb.misc import AnnotationSeries
 from scipy.io import loadmat
+
+from .senzaiutils import (
+    find_frame_offset,
+    light_note,
+    read_roi,
+    roi_note,
+    split_session_id,
+)
 
 STATE_DESCRIPTIONS = {
     "awake": "wake, scored from the theta/delta ratio of the hilus LFP and the movement of the mouse",
@@ -32,7 +40,11 @@ TRIAL_COLUMNS = {
     "both_visit": "the lab's both_visit flag",
     "arm_start": "time the mouse entered the central arm (s)",
     "arm_end": "time the mouse left the central arm (s)",
-    "sens_pass": "time the mouse passed the sensor at the end of the central arm (s)",
+    "sens_pass": (
+        "time the mouse passed the infrared sensor on the side arm it ran to, near the water port (s); these times are "
+        "the onsets of the side arm sensor inputs (ch_SsolL and ch_SsolR in acquisition; sensors 4 and 1 of the "
+        "experiment sheets), and water delivery follows"
+    ),
     "light_start": "start of light delivery during the run (s); 0 if none",
     "light_end": "end of light delivery during the run (s); 0 if none",
     "sessionIdx": "the lab's sessionIdx of the run",
@@ -54,6 +66,24 @@ RUN_COLUMNS = [
     "sessionIdx",
 ]
 PULSE_NAME = re.compile(r"PulseStim_(?P<voltage>[\d.]+)V_(?P<duration>\d+)ms_LD(?P<diodes>\d+)")
+# The pulse files of YutaMouse20 and YutaMouse23 give the duration only: PulseStim_10ms, PulseStim_1sec,
+# PulseStim_1sec_weak, PulseStim_1sec2, PulseStim_10ms.ST1
+DURATION_PULSE_NAME = re.compile(r"PulseStim_(?P<duration>\d+)(?P<unit>ms|sec)(?P<suffix>[\w.]*)$")
+LED_RATE = 1250 / 32  # .whl rows per second
+NO_DIODE = "not recorded"
+
+
+def parse_pulse_label(label: str):
+    """(voltage in V, duration in s, laser diode code, protocol name) from the label of a light pulse .evt file, or
+    None for other event files. Labels that give only the duration have a voltage of NaN and no diode code."""
+    match = PULSE_NAME.search(label)
+    if match:
+        return float(match["voltage"]), float(match["duration"]) / 1000, match["diodes"], match[0]
+    match = DURATION_PULSE_NAME.fullmatch(label)
+    if match:
+        seconds = float(match["duration"]) * (1.0 if match["unit"] == "sec" else 0.001)
+        return np.nan, seconds, NO_DIODE, label
+    return None
 
 
 def timing(times: np.ndarray) -> dict:
@@ -86,6 +116,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict):
         self.epochs = []
+        self.led0_pixels = None
         self.add_states(nwbfile)
         self.add_led_positions(nwbfile)
         self.add_maze(nwbfile)
@@ -122,17 +153,41 @@ class SenzaiBehaviorInterface(BaseDataInterface):
             return
         whl = pd.read_csv(self.file(".whl"), sep=r"\s+", header=None).to_numpy(dtype=float, copy=True)
         whl[whl < 0] = np.nan  # -1 marks frames without a detected LED
+        self.led0_pixels = whl[:, :2]
+        scaled = (
+            "; the T-maze and open field positions in processing/behavior are this LED in arena coordinates, and "
+            "their descriptions give each arena's place in the camera image"
+        )
         for index in range(whl.shape[1] // 2):
             nwbfile.add_acquisition(
                 SpatialSeries(
                     name=f"led{index}_position",
-                    description=f"position of LED {index} on the head stage in camera pixels (.whl file), NaN when not detected",
+                    description=(
+                        f"position of LED {index} on the head stage in camera pixels (.whl file), NaN when not detected"
+                        + (scaled if index == 0 and self.has_arena_positions() else "")
+                    ),
                     data=whl[:, 2 * index : 2 * index + 2],
                     reference_frame="camera image",
                     unit="pixels",
-                    rate=1250 / 32,
+                    rate=LED_RATE,
                 )
             )
+
+    def has_arena_positions(self) -> bool:
+        return self.file("__EightMazePosition.mat").is_file() or any(
+            self.session_path.glob(f"{self.session_id}__OpenFieldPosition_*.mat")
+        )
+
+    def arena_note(self, roi_file: Path, times: np.ndarray, arena: np.ndarray) -> str:
+        """Where the arena of a position series lies in the camera image, from the lab's ROI file; empty without one.
+        The formula from pixels is stated only when it reproduces the series from the session's .whl file."""
+        if not roi_file.is_file():
+            return ""
+        roi = read_roi(roi_file)
+        offset = None
+        if getattr(self, "led0_pixels", None) is not None:
+            offset = find_frame_offset(times, arena, self.led0_pixels, roi, LED_RATE)
+        return ". " + roi_note(roi, roi_file.name, offset)
 
     def add_maze(self, nwbfile: NWBFile):
         position_file = self.file("__EightMazePosition.mat")
@@ -149,6 +204,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                 description=(
                     "head position on the circular T-maze (twhl_norm), in the lab's normalized maze coordinates scaled "
                     "to meters: one unit is the 32.5 cm radius of the circle formed by the side arms"
+                    + self.arena_note(self.file("__EightMazeROI.mat"), times, norm[:, 1:3])
                 ),
                 data=norm[:, 1:],
                 **timing(times),
@@ -238,6 +294,9 @@ class SenzaiBehaviorInterface(BaseDataInterface):
                     "B and A' and the same arenas in another room or behind a curtain; the session labels are the lab's"
                 )
                 conversion, unit = 0.46, "meters"
+            description += self.arena_note(
+                self.session_path / f"{self.session_id}__OpenFieldROI_{label}.mat", times, norm[:, 1:3]
+            )
             position.add_spatial_series(
                 SpatialSeries(
                     name=label,
@@ -283,39 +342,76 @@ class SenzaiBehaviorInterface(BaseDataInterface):
             table.add_row(start_time=start, stop_time=stop, type=kind, peak_time=peak, hilus_channel=channel)
         get_module(nwbfile, "ecephys", "processed extracellular electrophysiology data").add(table)
 
+    def label(self, evt_file: Path) -> str:
+        """The part of an .evt file name between the session name and .evt."""
+        return evt_file.name[len(self.session_id) + 1 : -len(".evt")]
+
     def add_light_pulses(self, nwbfile: NWBFile):
-        """Light pulse files whose names give the voltage, duration and laser diodes; other .evt files go to
-        add_lab_events."""
+        """Light pulse files, whose names give the pulse duration and, in most sessions, the voltage and the laser
+        diodes; other .evt files go to add_lab_events."""
         files = [
-            path for path in sorted(self.session_path.glob(f"{self.session_id}.*.evt")) if PULSE_NAME.search(path.name)
+            path
+            for path in sorted(self.session_path.glob(f"{self.session_id}.*.evt"))
+            if parse_pulse_label(self.label(path)) is not None
         ]
-        rows, notes = [], []
+        rows, notes, seen = [], [], {}
         for evt_file in files:
             if evt_file.stat().st_size == 0:  # some sessions have empty pulse files, with no onsets
                 continue
-            match = PULSE_NAME.search(evt_file.name)
+            voltage, duration, diodes, label = parse_pulse_label(self.label(evt_file))
             onsets = pd.read_csv(evt_file, sep="\t", header=None, usecols=[0]).iloc[:, 0].to_numpy() / 1000
             unique_onsets = np.unique(onsets)  # sorted
             if len(unique_onsets) < len(onsets):
                 notes.append(f"{evt_file.name} lists {len(onsets) - len(unique_onsets)} onsets twice")
-            duration = float(match["duration"]) / 1000
-            rows += [
-                (onset, onset + duration, float(match["voltage"]), match["diodes"], match[0]) for onset in unique_onsets
-            ]
+            if diodes == NO_DIODE:
+                # A duration-only file can repeat the pulses of another one (PulseStim_1sec2 is the later part of
+                # PulseStim_1sec in YutaMouse20-140324): a pulse already listed with that duration is kept once
+                listed = seen.setdefault(duration, {})
+                repeats = {listed[onset] for onset in unique_onsets if onset in listed}
+                if repeats:
+                    n_repeats = sum(onset in listed for onset in unique_onsets)
+                    notes.append(
+                        f"{n_repeats} onsets of {evt_file.name} are also in " + " and ".join(sorted(repeats)) + ".evt"
+                    )
+                unique_onsets = np.array([onset for onset in unique_onsets if onset not in listed])
+                listed.update({onset: label for onset in unique_onsets})
+            rows += [(onset, onset + duration, voltage, diodes, label) for onset in unique_onsets]
         if not rows:
             return
+        duration_only = any(diodes == NO_DIODE for _, _, _, diodes, _ in rows)
+        mouse = split_session_id(self.session_id)[0]
         table = TimeIntervals(
             name="light_pulses",
             description=(
-                "light pulses delivered through the optical fibers on the probe (.PulseStim_<voltage>V_<duration>ms_"
-                "LD<diodes>.evt files), with the voltage, pulse duration and laser diodes taken from each file's name; "
-                "each onset is kept once" + ("" if not notes else " (" + "; ".join(notes) + ")")
+                "light pulses delivered through the optical fibers on the probe (the lab's .PulseStim_*.evt files), "
+                "with the pulse duration, the voltage and the laser diodes taken from each file's name"
+                + (
+                    "; the files of this session name the duration only (.PulseStim_10ms.evt, .PulseStim_1sec.evt), so "
+                    "the voltage is NaN and the laser diodes are 'not recorded'"
+                    if duration_only
+                    else " (.PulseStim_<voltage>V_<duration>ms_LD<diodes>.evt)"
+                )
+                + "; each onset is kept once"
+                + ("" if not notes else " (" + "; ".join(notes) + ")")
+                + ". "
+                + light_note(mouse)
             ),
         )
-        table.add_column(name="voltage", description="voltage driving the laser diode (V)")
-        table.add_column(name="laser_diodes", description="laser diode code from the file name (e.g. 1, 2 or 12)")
+        table.add_column(
+            name="voltage", description="voltage driving the laser diode (V); NaN when the file name does not give it"
+        )
+        table.add_column(
+            name="laser_diodes",
+            description=(
+                "laser diode code from the file name (e.g. 1, 2 or 12), or 'not recorded'; the lab's files do not give "
+                "the wavelength of each diode (see the table description for the light the paper reports for this mouse)"
+            ),
+        )
         table.add_column(name="protocol", description="name of the lab's event file")
-        for start, stop, voltage, diodes, protocol in sorted(rows):
+        # NaN voltages cannot be compared, so they sort as -1
+        for start, stop, voltage, diodes, protocol in sorted(
+            rows, key=lambda row: (row[0], row[1], -1.0 if np.isnan(row[2]) else row[2], row[3], row[4])
+        ):
             table.add_row(start_time=start, stop_time=stop, voltage=voltage, laser_diodes=diodes, protocol=protocol)
         nwbfile.add_time_intervals(table)
 
@@ -324,7 +420,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         files = [
             path
             for path in sorted(self.session_path.glob(f"{self.session_id}.*.evt"))
-            if not PULSE_NAME.search(path.name) and not re.search(r"\.DS[12]\.ch\d+\.evt$", path.name)
+            if parse_pulse_label(self.label(path)) is None and not re.search(r"\.DS[12]\.ch\d+\.evt$", path.name)
         ]
         if not files:
             return
@@ -332,7 +428,7 @@ class SenzaiBehaviorInterface(BaseDataInterface):
         for evt_file in files:
             if evt_file.stat().st_size == 0:
                 continue
-            label = evt_file.name[len(self.session_id) + 1 : -len(".evt")]
+            label = self.label(evt_file)
             events = pd.read_csv(evt_file, sep="\t", header=None, names=["ms", "text"], dtype={"text": str})
             events = events.fillna("").drop_duplicates().sort_values("ms")
             module.add(
