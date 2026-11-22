@@ -61,6 +61,18 @@ STUB_SAMPLES = 75_000
 SITES_PER_SHANK = {"Buzsaki64": 8, "Buzsaki64sp": 10}
 
 
+def auxiliary_description(name: str, n_recorded_channels: int, session_id: str, share_file_name: str = None) -> str:
+    """Description of an auxiliary input series; `share_file_name` is the lab's .eeg file when the series is read
+    from it."""
+    base_channel, what = AUXILIARY_CHANNELS[name]
+    return (
+        f"auxiliary input on channel {auxiliary_channel(base_channel, n_recorded_channels)} of the recording system: "
+        f"{what}, in the system's raw int16 steps (the scaling of these inputs is not documented)"
+        + (f", from the lab's {share_file_name}" if share_file_name else "")
+        + AUXILIARY_NOTES.get(session_id, "")
+    )
+
+
 def group_kinds(group_sizes: list, sites_per_shank: int) -> list:
     """What each spike-detection channel group of the .xml file is: a "shank" of the shank probe, half of the 32-site
     "linear" probe (groups of 16 channels, in the YutaMouse33 sessions), or "other" channels."""
@@ -343,24 +355,19 @@ class SenzaiEcephysInterface(BaseDataInterface):
                 data = published[f"acquisition/{name}/data"]
                 data = data[:STUB_SAMPLES] if stub_test else data[:]
                 rate = float(published[f"acquisition/{name}/starting_time"].attrs["rate"])
-                source = ""
+                source = None
             elif share_signal is not None:
                 # In other recordings the earlier file's series are probe channels (it read the same channel numbers
                 # in every recording), so the inputs come from the lab's .eeg file
                 data = np.asarray(share_signal[:STUB_SAMPLES, channel] if stub_test else share_signal[:, channel])
                 rate = self.xml_info["lfp_sampling_rate"]
-                source = f", from the lab's {self.share_signal_file.name}"
+                source = self.share_signal_file.name
             else:
                 continue
             nwbfile.add_acquisition(
                 TimeSeries(
                     name=name,
-                    description=(
-                        f"auxiliary input on channel {channel} of the recording system: {description}, "
-                        "in the system's raw int16 steps (the scaling of these inputs is not documented)"
-                        + source
-                        + AUXILIARY_NOTES.get(self.session_id, "")
-                    ),
+                    description=auxiliary_description(name, n_recorded, self.session_id, source),
                     data=data,
                     unit="a.u.",
                     rate=rate,
