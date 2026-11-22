@@ -563,6 +563,11 @@ def test_hilus_channel_follows_the_dentate_spike_files_and_the_lab_channel_list(
     assert hilus_channel(session_id, set(channels)) == expected
 
 
+def test_the_earlier_conversion_hilus_phase_series_is_not_carried_over():
+    source = (Path(__file__).parents[1] / "buzsaki_lab_to_nwb/yuta_mossy_cell/senzaiecephysinterface.py").read_text()
+    assert "hilus_lfp_phase" not in source and "DecompositionSeries(" not in source
+
+
 def test_note_for_the_session_whose_hilus_channel_is_not_in_the_hilus():
     assert "channel 59" in NOT_HILUS_NOTE and "not in the hilus" in NOT_HILUS_NOTE
 

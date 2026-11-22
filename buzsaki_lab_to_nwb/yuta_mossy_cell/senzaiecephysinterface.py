@@ -11,7 +11,6 @@ from neuroconv.tools.nwb_helpers import get_module
 from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile, TimeSeries
 from pynwb.ecephys import LFP, ElectricalSeries
-from pynwb.misc import DecompositionSeries
 
 from .senzaiutils import open_published, read_session_xml
 
@@ -306,27 +305,8 @@ class SenzaiEcephysInterface(BaseDataInterface):
         ecephys_module = get_module(nwbfile, "ecephys", "processed extracellular electrophysiology data")
         ecephys_module.add(LFP(electrical_series=lfp_series))
 
-        if "processing/ecephys/LFPDecompositionSeries" in published:
-            phases = published["processing/ecephys/LFPDecompositionSeries"]
-            decomposition = DecompositionSeries(
-                name="hilus_lfp_phase",
-                description=(
-                    "theta and gamma phase of the LFP of a hilus channel, as written in the earlier DANDI file, whose "
-                    "conversion took the channel from the lab's experiment sheets (it may differ from the dentate spike "
-                    "channel marked in the electrodes table): band-passed with a zero-phase Butterworth filter, then the "
-                    "angle of the Hilbert transform"
-                ),
-                data=SliceableDataChunkIterator(data=phases["data"][:STUB_SAMPLES] if stub_test else phases["data"]),
-                rate=float(phases["starting_time"].attrs["rate"]),
-                source_timeseries=lfp_series,
-                metric="phase",
-                unit="radians",
-            )
-            for name, limits in zip(phases["bands/band_name"][:], phases["bands/band_limits"][:]):
-                decomposition.add_band(
-                    band_name=name.decode() if isinstance(name, bytes) else str(name), band_limits=tuple(limits)
-                )
-            ecephys_module.add(decomposition)
+        # The earlier DANDI files of 41 sessions also held the theta and gamma phase of a hilus LFP channel. It was
+        # computed by that conversion, not by the lab, and is not carried over.
 
         if "acquisition/ElectricalSeries" in published:
             wideband = published["acquisition/ElectricalSeries"]
