@@ -11,22 +11,31 @@ from .senzaibehaviorinterface import SenzaiBehaviorInterface
 from .senzaiecephysinterface import SenzaiEcephysInterface
 from .senzaimonosynapticinterface import SenzaiMonosynapticInterface
 from .senzaisortinginterface import SenzaiSortingInterface
-from .senzaiutils import read_exp_sheet, read_unit_summary, split_session_id
+from .senzaiutils import (
+    MICE_NOT_IN_PAPER,
+    NOT_IN_PAPER_NOTE,
+    NOT_HILUS_NOTE,
+    SESSIONS_WITHOUT_A_HILUS_CHANNEL,
+    VIRUS_FROM_PAPER,
+    read_exp_sheet,
+    read_unit_summary,
+    split_session_id,
+)
 
 # Mice whose experiment sheet and the flags of the lab's unit summary disagree on the genotype; the paper counts
 # 7 SST-Cre, 3 POMC-Cre::Ai35, 5 DRD2-Cre::Ai35 and 1 wild-type mouse, which the summary matches for the paper's mice
-# (YM21, SST-Cre, is not in the dandiset; YutaMouse57 is not in the paper)
+# (YM21, SST-Cre, recorded with a 32-site linear probe for the DS2 depth profile, is not in the dandiset; YutaMouse57
+# is not in the paper)
 # Where the paper settles the disagreement, its genotype is used
 GENOTYPE_FROM_PAPER = {"YutaMouse41": "wild type"}
 GENOTYPE_NOTES = {
-    "YutaMouse39": "The experiment sheet gives no genotype; the lab's unit summary marks this mouse as SST-Cre.",
     "YutaMouse41": (
         "Wild type, as the lab's unit summary and the paper's one wild-type mouse (Table S1) have it; the experiment "
         "sheet gives POMC-Cre::Arch."
     ),
     "YutaMouse57": (
-        "The experiment sheet gives POMC-Cre::Ai35, but the lab's unit summary marks this mouse as a DRD2-Cre::Ai35 "
-        "mouse."
+        "The experiment sheet gives POMC-Cre::Ai35, as does the mouse type of the lab's unit summary ('po'), whose "
+        "drd2mouse flag is nevertheless set for this mouse."
     ),
 }
 
@@ -70,8 +79,15 @@ class SenzaiNWBConverter(NWBConverter):
                 "wtmouse": "wild type",
             }[flags.idxmax()]
         description = "Male mouse implanted with a silicon probe in the dorsal hippocampus."
+        if mouse in VIRUS_FROM_PAPER:
+            description += (
+                f" Injected with {VIRUS_FROM_PAPER[mouse]} in the dentate gyrus (the paper's Table S1 and Figure S1; "
+                "the experiment sheet gives the date of the virus injection, not the virus)."
+            )
         if mouse in GENOTYPE_NOTES:
             description += " " + GENOTYPE_NOTES[mouse]
+        if mouse in MICE_NOT_IN_PAPER:
+            description += " " + NOT_IN_PAPER_NOTE
 
         subject = dict(
             subject_id=mouse,
@@ -91,6 +107,10 @@ class SenzaiNWBConverter(NWBConverter):
             "Recording in the home cage, the circular T-maze or an open field, from a silicon probe in the dentate "
             "gyrus and CA3."
         )
+        if mouse in MICE_NOT_IN_PAPER:
+            session_description += " " + NOT_IN_PAPER_NOTE
+        if session_id in SESSIONS_WITHOUT_A_HILUS_CHANNEL:
+            session_description += " " + NOT_HILUS_NOTE
         if second_session:
             session_description += (
                 " This is the second recording session of the day (named with 'b'), recorded with the same probe."

@@ -10,12 +10,28 @@ from pydantic import DirectoryPath, FilePath
 from pynwb import NWBFile
 from pynwb.misc import Units
 
-from .senzaiutils import open_published, FINE_CELL_TYPES, REGIONS, read_session_xml, read_unit_summary
+from .senzaiutils import (
+    FINE_CELL_TYPES,
+    REGIONS,
+    open_published,
+    read_session_xml,
+    read_unit_summary,
+)
 
 # .spk spikes whose samples are all 0 or reach beyond 20,000 steps (7.6 mV) are damaged blocks of the lab's file
 DAMAGED_STEPS = 20_000
 STUB_UNITS = 5
 
+WAVEFORMS_DESCRIPTION = (
+    "spike waveforms are 32 samples (1.6 ms at 20 kHz) on each channel of the unit's shank, as stored in the lab's .spk "
+    "files, as the lab's int16 steps (multiply by 0.3815 uV, the Amplipex system's 10 V over 16 bits at x400, for "
+    "volts); some spikes' stored waveforms are damaged (every sample 0, or a sample beyond 20,000 steps, 7.6 mV) and "
+    "are kept as stored, counted in damaged_waveforms"
+)
+NO_WAVEFORMS_DESCRIPTION = (
+    "this file has no spike waveforms: the session's earlier DANDI file has none, and the lab's share does not hold a "
+    ".spk file for every shank with units (damaged_waveforms is 0 for every unit)"
+)
 QUALITY_DESCRIPTION = (
     "{name} from the lab's unit summary (DG_all_6__UnitFeatureSummary_add.mat); -1 for units not in the summary"
 )
@@ -111,8 +127,10 @@ class SenzaiSortingInterface(BaseDataInterface):
             replaced.update(ours if same or not rows else published_units)
         return replaced
 
-    def read_published_waveforms(self, units: dict):
-        """Per-unit waveforms from the earlier DANDI file, after checking that its spikes are these spikes."""
+    def read_published_waveforms(self, units: dict, max_units: Optional[int] = None):
+        """Per-unit waveforms from the earlier DANDI file, after checking that its spikes are these spikes.
+
+        With `max_units` (a stub conversion), only the first units' waveforms are read."""
         published_nwb_file_path = self.source_data["published_nwb_file_path"]
         if published_nwb_file_path is None:
             return None
@@ -132,7 +150,7 @@ class SenzaiSortingInterface(BaseDataInterface):
         row_starts = np.concatenate([[0], row_ends[:-1]])
         waveforms = {}
         first_spike = 0
-        for key, unit_samples in units.items():
+        for key, unit_samples in list(units.items())[:max_units]:
             last_spike = first_spike + len(unit_samples)
             n_channels = int(row_ends[first_spike] - row_starts[first_spike])
             rows = published["waveforms"][row_starts[first_spike] : row_ends[last_spike - 1]]
@@ -188,7 +206,7 @@ class SenzaiSortingInterface(BaseDataInterface):
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict, stub_test: bool = False):
         units = self.read_units()
-        waveforms = self.read_published_waveforms(units)
+        waveforms = self.read_published_waveforms(units, STUB_UNITS if stub_test else None)
         if waveforms is None:
             waveforms = self.read_spk_waveforms(units)
         if stub_test:
@@ -202,11 +220,8 @@ class SenzaiSortingInterface(BaseDataInterface):
         nwbfile.units = Units(
             name="units",
             description=(
-                "units sorted with KlustaKwik and curated in Klusters (clusters 2 and up of the .clu files); spike "
-                "waveforms are 32 samples (1.6 ms at 20 kHz) on each channel of the unit's shank, as stored in the "
-                "lab's .spk files, as the lab's int16 steps (multiply by 0.3815 uV, the Amplipex system's 10 V over 16 "
-                "bits at x400, for volts); some spikes' stored waveforms are damaged (every sample 0, or a sample beyond "
-                "20,000 steps, 7.6 mV) and are kept as stored, counted in damaged_waveforms"
+                "units sorted with KlustaKwik and curated in Klusters (clusters 2 and up of the .clu files); "
+                + (WAVEFORMS_DESCRIPTION if waveforms is not None else NO_WAVEFORMS_DESCRIPTION)
                 + (
                     ". The .clu/.res files of shank(s) "
                     + ", ".join(map(str, self.shanks_from_published_file))

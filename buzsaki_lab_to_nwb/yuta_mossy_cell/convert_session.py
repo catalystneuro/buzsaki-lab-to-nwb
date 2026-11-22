@@ -9,6 +9,7 @@ from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from buzsaki_lab_to_nwb.yuta_mossy_cell import SenzaiNWBConverter
 from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiherd import add_external_resources
+from buzsaki_lab_to_nwb.yuta_mossy_cell.senzaiutils import hilus_channel
 from buzsaki_lab_to_nwb.yuta_mossy_cell.value_meanings import add_value_meanings
 
 # The chunk and buffer shapes shared by the Buzsaki conversions (see utils/iterators.py)
@@ -32,7 +33,7 @@ def session_to_nwb(
     session_id = session_path.name
     published = str(published_nwb_file_path) if published_nwb_file_path else None
 
-    hilus_channels = {
+    dentate_spike_channels = {
         int(re.search(r"\.ch(\d+)\.evt$", path.name).group(1))
         for path in session_path.glob(f"{session_id}.DS2.ch*.evt")
     }
@@ -40,7 +41,7 @@ def session_to_nwb(
         Ecephys=dict(
             folder_path=str(session_path),
             published_nwb_file_path=published,
-            hilus_channel=hilus_channels.pop() if len(hilus_channels) == 1 else None,
+            hilus_channel=hilus_channel(session_id, dentate_spike_channels),
         ),
         Sorting=dict(
             folder_path=str(session_path),
